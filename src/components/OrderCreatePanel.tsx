@@ -100,11 +100,8 @@ const OrderCreatePanel: React.FC = () => {
               setError("Invoice upload failed: No data returned.");
               console.error("Invoice upload failed: No data returned.");
             } else {
-              const { data: publicData, error: publicError } = supabase.storage.from("invoices").getPublicUrl(fileName);
-              if (publicError) {
-                setError("Invoice public URL failed: " + publicError.message);
-                console.error("Invoice public URL failed:", publicError);
-              } else if (!publicData || !publicData.publicUrl) {
+              const { data: publicData } = supabase.storage.from("invoices").getPublicUrl(fileName);
+              if (!publicData || !publicData.publicUrl) {
                 setError("Invoice public URL failed: No URL returned.");
                 console.error("Invoice public URL failed: No URL returned.");
               } else {

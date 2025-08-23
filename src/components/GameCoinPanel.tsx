@@ -69,7 +69,7 @@ const GameCoinPanel: React.FC = () => {
     setError(null);
     const { error: deleteError } = await supabase.from("game_coins").delete().eq("id", id);
     if (deleteError) {
-      setError("Failed to delete game coin: " + deleteError.message);
+      setError("Failed to Delete game coin: " + deleteError.message);
       setLoading(false);
       return;
     }

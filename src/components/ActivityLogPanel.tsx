@@ -11,11 +11,9 @@ interface Log {
 
 const ActivityLogPanel: React.FC = () => {
   const [logs, setLogs] = useState<Log[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchLogs = async () => {
-    setLoading(true);
     setError(null);
     const { data, error: fetchError } = await supabase
       .from("logs")
@@ -23,11 +21,9 @@ const ActivityLogPanel: React.FC = () => {
       .order("timestamp", { ascending: false });
     if (fetchError) {
       setError("Failed to fetch logs: " + fetchError.message);
-      setLoading(false);
       return;
     }
     if (data) setLogs(data);
-    setLoading(false);
   };
 
   useEffect(() => {

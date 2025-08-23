@@ -16,8 +16,6 @@ import {
   UserCog,
   Activity,
   LogOut,
-  Edit,
-  Trash2,
 } from "lucide-react";
 import { useAppDispatch } from "../hooks/redux";
 import { logout } from "../store/authSlice";
@@ -66,78 +64,6 @@ const AdminDashboard: React.FC = () => {
   };
 
   // Sample data for the table
-  const coinData = [
-    {
-      id: 1,
-      platform: "Xyz",
-      inventory: "1000",
-      quantity: "$50",
-      selected: true,
-    },
-    {
-      id: 2,
-      platform: "Row Item",
-      inventory: "Row Item",
-      quantity: "Row Item",
-      selected: true,
-    },
-    {
-      id: 3,
-      platform: "Row Item",
-      inventory: "Row Item",
-      quantity: "Row Item",
-      selected: true,
-    },
-    {
-      id: 4,
-      platform: "Row Item",
-      inventory: "Row Item",
-      quantity: "Row Item",
-      selected: true,
-    },
-    {
-      id: 5,
-      platform: "Row Item",
-      inventory: "Row Item",
-      quantity: "Row Item",
-      selected: true,
-    },
-    {
-      id: 6,
-      platform: "Row Item",
-      inventory: "Row Item",
-      quantity: "Row Item",
-      selected: false,
-    },
-    {
-      id: 7,
-      platform: "Row Item",
-      inventory: "Row Item",
-      quantity: "Row Item",
-      selected: false,
-    },
-    {
-      id: 8,
-      platform: "Row Item",
-      inventory: "Row Item",
-      quantity: "Row Item",
-      selected: false,
-    },
-    {
-      id: 9,
-      platform: "Row Item",
-      inventory: "Row Item",
-      quantity: "Row Item",
-      selected: false,
-    },
-    {
-      id: 10,
-      platform: "Row Item",
-      inventory: "Row Item",
-      quantity: "Row Item",
-      selected: false,
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-100 flex">

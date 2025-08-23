@@ -1,4 +1,11 @@
 import React, { useState } from "react";
+import EmployeePanel from "./EmployeePanel";
+import GameCoinPanel from "./GameCoinPanel";
+import ActivityLogPanel from "./ActivityLogPanel";
+import CustomerIssuesPanel from "./CustomerIssuesPanel";
+import CustomerPanel from "./CustomerPanel";
+import ReportsPanel from "./ReportsPanel";
+import OrderCreatePanel from "./OrderCreatePanel";
 import {
   Home,
   Coins,
@@ -166,146 +173,32 @@ const AdminDashboard: React.FC = () => {
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <h1 className="text-2xl font-bold text-pink-500 text-center">
-            Game Coin Management
+            {menuItems.find((item) => item.id === activeMenuItem)?.label || "Dashboard"}
           </h1>
         </header>
 
         {/* Content */}
         <main className="flex-1 p-6 bg-pink-500">
-          {activeMenuItem === "game-coin" && (
-            <div className="space-y-6">
-              {/* Add New Coin Section */}
-              <div className="bg-white rounded-2xl p-6">
-                <h2 className="text-lg font-semibold mb-4">Add new Coin</h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-sm mb-2">
-                      Gaming Platform
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter name here"
-                      className="w-full px-3 py-2 rounded-lg text-gray-800 placeholder-gray-500 border-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm mb-2">Inventory</label>
-                    <input
-                      type="text"
-                      placeholder="Enter Game inventory here"
-                      className="w-full px-3 py-2 rounded-lg text-gray-800 placeholder-gray-500 border-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block  text-sm mb-2">Cost Price</label>
-                    <input
-                      type="text"
-                      placeholder="Enter Cost price per quantity"
-                      className="w-full px-3 py-2 rounded-lg text-gray-800 placeholder-gray-500 border-2"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <button className="w-full bg-pink-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-50 hover:text-pink-500 transition-colors">
-                      Add
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Table Section */}
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="select-all"
-                        className="w-4 h-4 text-pink-500 border-gray-300 rounded focus:ring-pink-500"
-                      />
-                      <label
-                        htmlFor="select-all"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Select all
-                      </label>
-                    </div>
-                    <button className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                      Delete All
-                    </button>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4 font-medium text-gray-600"></th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">
-                            Gaming Platform
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">
-                            Inventory
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">
-                            Quantity
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {coinData.map((item) => (
-                          <tr
-                            key={item.id}
-                            className="border-b border-gray-100 hover:bg-gray-50"
-                          >
-                            <td className="py-3 px-4">
-                              <input
-                                type="checkbox"
-                                checked={item.selected}
-                                className="w-4 h-4 text-pink-500 border-gray-300 rounded focus:ring-pink-500"
-                                readOnly
-                              />
-                            </td>
-                            <td className="py-3 px-4 text-gray-700">
-                              {item.platform}
-                            </td>
-                            <td className="py-3 px-4 text-gray-700">
-                              {item.inventory}
-                            </td>
-                            <td className="py-3 px-4 text-gray-700">
-                              {item.quantity}
-                            </td>
-                            <td className="py-3 px-4">
-                              <div className="flex space-x-2">
-                                <button className="p-1 text-blue-500 hover:bg-blue-50 rounded">
-                                  <Edit className="w-4 h-4" />
-                                </button>
-                                <button className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          
 
           {/* Placeholder for other menu items */}
-          {activeMenuItem !== "game-coin" && (
-            <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                {menuItems.find((item) => item.id === activeMenuItem)?.label}{" "}
-                Page
-              </h2>
-              <p className="text-gray-600">
-                This page will be implemented later.
-              </p>
-            </div>
-          )}
+            {activeMenuItem === "overview" && <ReportsPanel />}
+            {activeMenuItem === "game-coin" && <GameCoinPanel />}
+            {activeMenuItem === "employees" && <EmployeePanel />}
+            {activeMenuItem === "order-create" && <OrderCreatePanel />}
+            {activeMenuItem === "activity-log" && <ActivityLogPanel />}
+            {activeMenuItem === "customer-issues" && <CustomerIssuesPanel />}
+            {activeMenuItem === "customers" && <CustomerPanel />}
+            {activeMenuItem !== "overview" && activeMenuItem !== "game-coin" && activeMenuItem !== "employees" && activeMenuItem !== "order-create" && activeMenuItem !== "activity-log" && activeMenuItem !== "customer-issues" && activeMenuItem !== "customers" && (
+              <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                  {menuItems.find((item) => item.id === activeMenuItem)?.label} Page
+                </h2>
+                <p className="text-gray-600">
+                  This page will be implemented later.
+                </p>
+              </div>
+            )}
         </main>
       </div>
     </div>

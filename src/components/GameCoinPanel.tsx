@@ -13,10 +13,18 @@ interface Coin {
 const GameCoinPanel: React.FC = () => {
   const [coins, setCoins] = useState<Coin[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ platform: "", inventory: "", cost_price: "" });
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({
+    platform: "",
+    inventory: "",
+    cost_price: "",
+  });
   const [editId, setEditId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ platform: "", inventory: "", cost_price: "" });
+  const [editForm, setEditForm] = useState({
+    platform: "",
+    inventory: "",
+    cost_price: "",
+  });
   const [error, setError] = useState<string | null>(null);
 
   const fetchCoins = async () => {
@@ -59,7 +67,7 @@ const GameCoinPanel: React.FC = () => {
       return;
     }
     setForm({ platform: "", inventory: "", cost_price: "" });
-    setShowForm(false);
+    setShowModal(false);
     fetchCoins();
     setLoading(false);
   };
@@ -67,9 +75,11 @@ const GameCoinPanel: React.FC = () => {
   const handleDelete = async (id: string) => {
     setLoading(true);
     setError(null);
-    const { error: deleteError } = await supabase.from("game_coins").delete().eq("id", id);
+    const { error: deleteError } = await supabase
+      .from("game_coins")
+      .delete()
+      .eq("id", id);
     if (deleteError) {
-      setError("Failed to Delete game coin: " + deleteError.message);
       setLoading(false);
       return;
     }
@@ -94,7 +104,7 @@ const GameCoinPanel: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error: editError } = await supabase
+    const { error } = await supabase
       .from("game_coins")
       .update({
         platform: editForm.platform,
@@ -102,8 +112,8 @@ const GameCoinPanel: React.FC = () => {
         cost_price: Number(editForm.cost_price),
       })
       .eq("id", editId);
-    if (editError) {
-      setError("Failed to update game coin: " + editError.message);
+    if (error) {
+      setError("Failed to edit game coin: " + error.message);
       setLoading(false);
       return;
     }
@@ -116,55 +126,71 @@ const GameCoinPanel: React.FC = () => {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg">
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-          {error}
-        </div>
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Game Coins</h2>
         <button
           className="bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => setShowModal(true)}
         >
           <Plus className="w-4 h-4 mr-2" /> Add Coin
         </button>
       </div>
-      {showForm && (
-        <form className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={handleAddCoin}>
-          <input
-            name="platform"
-            value={form.platform}
-            onChange={handleInputChange}
-            placeholder="Gaming Platform"
-            className="px-3 py-2 rounded-lg border"
-            required
-          />
-          <input
-            name="inventory"
-            type="number"
-            value={form.inventory}
-            onChange={handleInputChange}
-            placeholder="Inventory"
-            className="px-3 py-2 rounded-lg border"
-            required
-          />
-          <input
-            name="cost_price"
-            type="number"
-            value={form.cost_price}
-            onChange={handleInputChange}
-            placeholder="Cost Price"
-            className="px-3 py-2 rounded-lg border"
-            required
-          />
-          <button
-            type="submit"
-            className="bg-pink-500 text-white px-4 py-2 rounded-lg"
-            disabled={loading}
-          >
-            Add
-          </button>
-        </form>
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.2)" }}
+        >
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add Game Coin</h3>
+            <form onSubmit={handleAddCoin} className="space-y-4">
+              <input
+                name="platform"
+                value={form.platform}
+                onChange={handleInputChange}
+                placeholder="Platform"
+                className="w-full px-3 py-2 border rounded"
+                required
+              />
+              <input
+                name="inventory"
+                value={form.inventory}
+                onChange={handleInputChange}
+                placeholder="Inventory"
+                type="number"
+                min={0}
+                className="w-full px-3 py-2 border rounded"
+                required
+              />
+              <input
+                name="cost_price"
+                value={form.cost_price}
+                onChange={handleInputChange}
+                placeholder="Cost Price"
+                type="number"
+                min={0}
+                className="w-full px-3 py-2 border rounded"
+                required
+              />
+              <div className="flex justify-end space-x-2 mt-4">
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-gray-200 rounded"
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-pink-500 text-white rounded"
+                >
+                  Confirm
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -182,7 +208,10 @@ const GameCoinPanel: React.FC = () => {
               <tr key={coin.id} className="border-b hover:bg-gray-50">
                 <td className="py-2 px-4">
                   {editId === coin.id ? (
-                    <form className="flex space-x-2" onSubmit={handleEditSubmit}>
+                    <form
+                      className="flex space-x-2"
+                      onSubmit={handleEditSubmit}
+                    >
                       <input
                         name="platform"
                         value={editForm.platform}
@@ -206,10 +235,18 @@ const GameCoinPanel: React.FC = () => {
                         className="px-2 py-1 rounded border"
                         required
                       />
-                      <button type="submit" className="bg-pink-500 text-white px-2 py-1 rounded" disabled={loading}>
+                      <button
+                        type="submit"
+                        className="bg-pink-500 text-white px-2 py-1 rounded"
+                        disabled={loading}
+                      >
                         Save
                       </button>
-                      <button type="button" className="bg-gray-300 text-gray-700 px-2 py-1 rounded" onClick={() => setEditId(null)}>
+                      <button
+                        type="button"
+                        className="bg-gray-300 text-gray-700 px-2 py-1 rounded"
+                        onClick={() => setEditId(null)}
+                      >
                         Cancel
                       </button>
                     </form>
@@ -219,7 +256,9 @@ const GameCoinPanel: React.FC = () => {
                 </td>
                 <td className="py-2 px-4">{coin.inventory} Qty</td>
                 <td className="py-2 px-4">$ {coin.cost_price}</td>
-                <td className="py-2 px-4">{new Date(coin.created_at).toLocaleString()}</td>
+                <td className="py-2 px-4">
+                  {new Date(coin.created_at).toLocaleString()}
+                </td>
                 <td className="py-2 px-4">
                   <button
                     className="p-1 text-blue-500 hover:bg-blue-50 rounded mr-2"

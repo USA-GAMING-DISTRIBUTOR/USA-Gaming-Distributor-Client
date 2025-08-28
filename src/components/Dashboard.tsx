@@ -397,7 +397,7 @@ const Dashboard: React.FC = () => {
                   >
                     {isLoading ? (
                       <div className="flex items-center justify-center space-x-2">
-                        <LoadingSpinner size="sm" />
+                        <LoadingSpinner size={20} />
                         <span>Creating...</span>
                       </div>
                     ) : (

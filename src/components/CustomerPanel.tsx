@@ -1,3 +1,4 @@
+// ...existing code...
 import React, { useEffect, useState } from "react";
 import { Edit, Trash2, Plus } from "lucide-react";
 import { supabase } from "../lib/supabase";
@@ -13,7 +14,7 @@ const CustomerPanel: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: "", contact_info: "" });
   const [editId, setEditId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", contact_info: "" });
@@ -46,16 +47,15 @@ const CustomerPanel: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error: addError } = await supabase.from("customers").insert([
-      { name: form.name, contact_info: form.contact_info },
-    ]);
+    const { error: addError } = await supabase
+      .from("customers")
+      .insert([{ name: form.name, contact_info: form.contact_info }]);
     if (addError) {
       setError("Failed to add customer: " + addError.message);
       setLoading(false);
       return;
     }
     setForm({ name: "", contact_info: "" });
-    setShowForm(false);
     fetchCustomers();
     setLoading(false);
   };
@@ -63,7 +63,10 @@ const CustomerPanel: React.FC = () => {
   const handleDelete = async (id: string) => {
     setLoading(true);
     setError(null);
-    const { error: deleteError } = await supabase.from("customers").delete().eq("id", id);
+    const { error: deleteError } = await supabase
+      .from("customers")
+      .delete()
+      .eq("id", id);
     if (deleteError) {
       setError("Failed to delete customer: " + deleteError.message);
       setLoading(false);
@@ -103,44 +106,60 @@ const CustomerPanel: React.FC = () => {
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg">
-      <h2 className="text-lg font-semibold mb-4">Customers</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">Customers</h2>
+        <button
+          className="bg-pink-500 text-white px-4 py-2 rounded shadow flex items-center"
+          onClick={() => setShowModal(true)}
+        >
+          <Plus className="w-4 h-4 mr-1 inline" /> Add Customer
+        </button>
+      </div>
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
-      <div className="flex justify-between items-center mb-4">
-        <button
-          className="bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center"
-          onClick={() => setShowForm(!showForm)}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.2)" }}
         >
-          <Plus className="w-4 h-4 mr-2" /> Add Customer
-        </button>
-      </div>
-      {showForm && (
-        <form className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={handleAddCustomer}>
-          <input
-            name="name"
-            value={form.name}
-            onChange={handleInputChange}
-            placeholder="Customer Name"
-            className="px-3 py-2 rounded-lg border"
-            required
-          />
-          <input
-            name="contact_info"
-            value={form.contact_info}
-            onChange={handleInputChange}
-            placeholder="Contact Info"
-            className="px-3 py-2 rounded-lg border"
-            required
-          />
-          <button
-            type="submit"
-            className="bg-pink-500 text-white px-4 py-2 rounded-lg"
-            disabled={loading}
-          >
-            Add
-          </button>
-        </form>
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add Customer</h3>
+            <form onSubmit={handleAddCustomer} className="space-y-4">
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleInputChange}
+                placeholder="Customer Name"
+                className="w-full px-3 py-2 border rounded"
+                required
+              />
+              <input
+                name="contact_info"
+                value={form.contact_info}
+                onChange={handleInputChange}
+                placeholder="Contact Info"
+                className="w-full px-3 py-2 border rounded"
+                required
+              />
+              <div className="flex justify-end space-x-2 mt-4">
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-gray-200 rounded"
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-pink-500 text-white rounded"
+                >
+                  Confirm
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -157,7 +176,10 @@ const CustomerPanel: React.FC = () => {
               <tr key={customer.id} className="border-b hover:bg-gray-50">
                 <td className="py-2 px-4">
                   {editId === customer.id ? (
-                    <form className="flex space-x-2" onSubmit={handleEditSubmit}>
+                    <form
+                      className="flex space-x-2"
+                      onSubmit={handleEditSubmit}
+                    >
                       <input
                         name="name"
                         value={editForm.name}
@@ -172,10 +194,18 @@ const CustomerPanel: React.FC = () => {
                         className="px-2 py-1 rounded border"
                         required
                       />
-                      <button type="submit" className="bg-pink-500 text-white px-2 py-1 rounded" disabled={loading}>
+                      <button
+                        type="submit"
+                        className="bg-pink-500 text-white px-2 py-1 rounded"
+                        disabled={loading}
+                      >
                         Save
                       </button>
-                      <button type="button" className="bg-gray-300 text-gray-700 px-2 py-1 rounded" onClick={() => setEditId(null)}>
+                      <button
+                        type="button"
+                        className="bg-gray-300 text-gray-700 px-2 py-1 rounded"
+                        onClick={() => setEditId(null)}
+                      >
                         Cancel
                       </button>
                     </form>
@@ -184,7 +214,9 @@ const CustomerPanel: React.FC = () => {
                   )}
                 </td>
                 <td className="py-2 px-4">{customer.contact_info}</td>
-                <td className="py-2 px-4">{new Date(customer.created_at).toLocaleString()}</td>
+                <td className="py-2 px-4">
+                  {new Date(customer.created_at).toLocaleString()}
+                </td>
                 <td className="py-2 px-4">
                   <button
                     className="p-1 text-blue-500 hover:bg-blue-50 rounded mr-2"

@@ -49,7 +49,9 @@ const ActivityLogPanel: React.FC = () => {
           <tbody>
             {logs.map((log) => (
               <tr key={log.id} className="border-b hover:bg-gray-50">
-                <td className="py-2 px-4">{new Date(log.timestamp).toLocaleString()}</td>
+                <td className="py-2 px-4">
+                  {new Date(log.timestamp).toLocaleString()}
+                </td>
                 <td className="py-2 px-4">{log.user_id}</td>
                 <td className="py-2 px-4">{log.action}</td>
                 <td className="py-2 px-4">{log.details}</td>

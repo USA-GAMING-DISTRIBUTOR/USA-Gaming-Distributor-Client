@@ -97,6 +97,7 @@ const OverviewPanel: React.FC = () => {
         (order: Record<string, unknown>) => ({
           id: String(order.id || ""),
           customer_id: String(order.customer_id || ""),
+          order_number: String(order.order_number || ""),
           created_at: String(order.created_at || new Date().toISOString()),
           created_by: String(order.created_by || ""),
           items: Array.isArray(order.items) ? (order.items as OrderItem[]) : [],
@@ -107,7 +108,9 @@ const OverviewPanel: React.FC = () => {
           total_amount: Number(order.total_amount || 0),
           discount_amount: Number(order.discount_amount || 0),
           final_amount: Number(order.final_amount || order.total_amount || 0),
-          status: (order.status as Order["status"]) || "Pending",
+          status: (order.status as Order["status"]) || "pending",
+          payment_status: (order.payment_status as "pending" | "completed" | "refunded" | "failed") || "pending",
+          updated_at: String(order.updated_at || new Date().toISOString()),
           invoice_url: order.invoice_url ? String(order.invoice_url) : null,
           verified_at: order.verified_at ? String(order.verified_at) : null,
           verified_by: order.verified_by ? String(order.verified_by) : null,
@@ -136,6 +139,7 @@ const OverviewPanel: React.FC = () => {
       const platforms: Platform[] = platformsRaw.map(
         (platform: Record<string, unknown>) => ({
           id: String(platform.id || ""),
+          platform: String(platform.platform_name || platform.platform || ""),
           platform_name: String(
             platform.platform_name || platform.platform || ""
           ),
@@ -155,10 +159,10 @@ const OverviewPanel: React.FC = () => {
 
       // Calculate metrics
       const verifiedOrders = orders.filter(
-        (order) => order.status === "Verified"
+        (order) => order.status === "verified"
       );
       const pendingOrders = orders.filter(
-        (order) => order.status === "Pending"
+        (order) => order.status === "pending"
       );
 
       // Calculate sales from verified orders only
@@ -169,7 +173,7 @@ const OverviewPanel: React.FC = () => {
           sum +
           order.items.reduce(
             (itemSum, item) =>
-              itemSum + (item.total_price || item.unit_price * item.quantity),
+              itemSum + (item.total_price || item.unitPrice * item.quantity),
             0
           )
         );
@@ -181,7 +185,7 @@ const OverviewPanel: React.FC = () => {
           sum +
           order.items.reduce(
             (itemSum, item) =>
-              itemSum + (item.total_price || item.unit_price * item.quantity),
+              itemSum + (item.total_price || item.unitPrice * item.quantity),
             0
           )
         );
@@ -225,12 +229,12 @@ const OverviewPanel: React.FC = () => {
       verifiedOrders.forEach((order) => {
         // Platform sales
         order.items.forEach((item) => {
-          const key = item.platform_name;
+          const key = item.platform;
           if (!salesByPlatform[key]) {
             salesByPlatform[key] = { sales: 0, count: 0 };
           }
           salesByPlatform[key].sales +=
-            item.total_price || item.unit_price * item.quantity;
+            item.total_price || item.unitPrice * item.quantity;
           salesByPlatform[key].count += 1;
         });
 
@@ -245,7 +249,7 @@ const OverviewPanel: React.FC = () => {
             order.final_amount ||
             order.items.reduce(
               (sum, item) =>
-                sum + (item.total_price || item.unit_price * item.quantity),
+                sum + (item.total_price || item.unitPrice * item.quantity),
               0
             );
           salesByCustomer[customerKey].sales += orderTotal;

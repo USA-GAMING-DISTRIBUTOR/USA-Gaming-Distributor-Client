@@ -1,7 +1,7 @@
 import React from "react";
-import type { Order } from "../types/app.types";
-import type { Customer } from "../types/app.types";
-import type { Platform } from "../types/app.types";
+import type { Order } from "../types/order";
+import type { Customer } from "../types/customer";
+import type { Platform } from "../types/platform";
 
 interface InvoiceProps {
   order: Order;
@@ -322,7 +322,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
           </thead>
           <tbody>
             {order.items.map((item, idx) => {
-              const platform = platforms.find((p) => p.id === item.platform_id);
+              const platform = platforms.find((p) => p.platform === item.platform);
               const isEvenRow = idx % 2 === 0;
               return (
                 <tr 
@@ -339,7 +339,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       color: "#374151"
                     }}
                   >
-                    {item.platform_name || platform?.platform_name || "Unknown Platform"}
+                    {item.platform || platform?.platform || "Unknown Platform"}
                   </td>
                   <td
                     style={{
@@ -359,7 +359,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                         fontWeight: "600"
                       }}
                     >
-                      {item.account_type}
+                      {platform?.account_type || "Standard"}
                     </span>
                   </td>
                   <td
@@ -380,7 +380,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       color: "#374151"
                     }}
                   >
-                    ${item.unit_price.toFixed(2)}
+                    ${item.unitPrice.toFixed(2)}
                   </td>
                   <td
                     style={{
@@ -438,6 +438,14 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
             </span>
           </div>
           
+          {/* {order.discount_amount > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+              <span style={{ fontSize: "16px", fontWeight: "500", color: "#dc2626" }}>
+                Discount:
+            </span>
+          </div>
+          
+          {/* Discount section commented out until discount_amount is available
           {order.discount_amount > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
               <span style={{ fontSize: "16px", fontWeight: "500", color: "#dc2626" }}>
@@ -448,6 +456,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               </span>
             </div>
           )}
+          */}
           
           <hr style={{ 
             margin: "16px 0", 
@@ -483,7 +492,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                 border: "2px solid #ec4899"
               }}
             >
-              ${order.final_amount.toFixed(2)}
+              ${order.total_amount.toFixed(2)}
             </span>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import type { Customer, CustomerPricing } from "../types/customer";
 import type { Platform } from "../types/platform";
 import { Plus, Edit2, Trash2, Phone, X, DollarSign } from "lucide-react";
+import { LoadingSpinner } from "./common/Loader";
 
 const CustomerPanel: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -52,7 +53,7 @@ const CustomerPanel: React.FC = () => {
       // Transform data to match Platform interface
       const transformedPlatforms = (data || []).map((platform: any) => ({
         id: platform.id,
-        platform_name: platform.platform,
+        platform: platform.platform,
         account_type: platform.account_type || "Standard",
         inventory: platform.inventory,
         cost_price: platform.cost_price,
@@ -68,8 +69,8 @@ const CustomerPanel: React.FC = () => {
 
   const fetchCustomerPricing = async (customerId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("customer_pricing" as any)
+      const { data, error } = await (supabase as any)
+        .from("customer_pricing")
         .select(
           `
           *,
@@ -121,7 +122,7 @@ const CustomerPanel: React.FC = () => {
     if (!selectedCustomerForPricing) return;
 
     try {
-      const { error } = await supabase.from("customer_pricing" as any).insert({
+      const { error } = await (supabase as any).from("customer_pricing").insert({
         customer_id: selectedCustomerForPricing.id,
         platform_id: pricingForm.platform_id,
         min_quantity: pricingForm.min_quantity,
@@ -150,8 +151,8 @@ const CustomerPanel: React.FC = () => {
     if (!selectedCustomerForPricing) return;
 
     try {
-      const { error } = await supabase
-        .from("customer_pricing" as any)
+      const { error } = await (supabase as any)
+        .from("customer_pricing")
         .delete()
         .eq("id", pricingId);
 
@@ -182,13 +183,11 @@ const CustomerPanel: React.FC = () => {
           customer.contact_numbers ||
           (customer.contact_info
             ? typeof customer.contact_info === "string"
-              ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                JSON.parse(customer.contact_info).map(
-                  (info: any) => info.number || info.phone
+              ? JSON.parse(customer.contact_info).map(
+                  (info: { number?: string; phone?: string }) => info.number || info.phone
                 )
-              : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                customer.contact_info.map(
-                  (info: any) => info.number || info.phone
+              : customer.contact_info.map(
+                  (info: { number?: string; phone?: string }) => info.number || info.phone
                 )
             : null),
         created_at: customer.created_at,
@@ -513,7 +512,7 @@ const CustomerPanel: React.FC = () => {
                   disabled={loading}
                   className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {loading && <LoadingSpinner size={16} />}
+                  {loading && <LoadingSpinner size="sm" />}
                   {editingCustomer ? "Update" : "Create"}
                 </button>
               </div>
@@ -573,7 +572,7 @@ const CustomerPanel: React.FC = () => {
                     <option value="">Select Platform</option>
                     {platforms.map((platform) => (
                       <option key={platform.id} value={platform.id}>
-                        {platform.platform_name} ({platform.account_type})
+                        {platform.platform} ({platform.account_type})
                       </option>
                     ))}
                   </select>

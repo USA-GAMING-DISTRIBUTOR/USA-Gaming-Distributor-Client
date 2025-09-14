@@ -8,6 +8,8 @@ export interface Order {
   status: 'pending' | 'processing' | 'verified' | 'completed' | 'replacement' | 'refunded';
   payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
   total_amount: number;
+  discount_amount?: number;
+  final_amount?: number;
   notes: string | null;
   invoice_url: string | null;
   created_at: string | null;

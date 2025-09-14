@@ -90,7 +90,7 @@ const OrderPanel: React.FC = () => {
     customer_id: "",
     items: [],
     payment_method: "Cash",
-    payment_details: { type: "Cash", received_by: "" },
+    payment_details: { type: "Cash", received_by: "" } as any,
     discount_amount: 0,
     notes: "",
   });
@@ -221,12 +221,11 @@ const OrderPanel: React.FC = () => {
               (p) => p.id === item.platform_id
             );
             return {
-              id: String(item.id || ""),
+              order_id: String(item.order_id || order.id || ""),
               platform_id: String(item.platform_id || ""),
-              platform_name: platform?.platform || "Unknown Platform",
-              account_type: platform?.account_type || "Standard",
+              platform: platform?.platform || "Unknown Platform",
               quantity: Number(item.quantity || 0),
-              unit_price: Number(item.unit_price || 0),
+              unitPrice: Number(item.unitPrice || 0),
               total_price: Number(item.total_price || 0),
             };
           });
@@ -234,17 +233,20 @@ const OrderPanel: React.FC = () => {
           return {
             id: String(order.id || ""),
             customer_id: String(order.customer_id || ""),
+            order_number: String(order.order_number || order.id || ""),
             created_at: String(order.created_at || new Date().toISOString()),
+            updated_at: String(order.updated_at || order.created_at || new Date().toISOString()),
             created_by: String(order.created_by || ""),
             items: items,
             payment_method: (order.payment_method as PaymentMethod) || "Cash",
+            payment_status: (order.payment_status as any) || "pending",
             payment_details: (order.payment_details as PaymentDetails) || {
               type: "Cash",
             },
             total_amount: Number(order.total_amount || 0),
             discount_amount: Number(order.discount_amount || 0),
             final_amount: Number(order.final_amount || order.total_amount || 0),
-            status: (order.status as Order["status"]) || "Pending",
+            status: (order.status as Order["status"]) || "pending",
             invoice_url: order.invoice_url ? String(order.invoice_url) : null,
             verified_at: order.verified_at ? String(order.verified_at) : null,
             verified_by: order.verified_by ? String(order.verified_by) : null,
@@ -520,30 +522,30 @@ const OrderPanel: React.FC = () => {
             createForm.payment_details as CryptoPaymentDetails;
           Object.assign(paymentDetailsData, {
             crypto_currency: cryptoDetails.currency,
-            crypto_network: cryptoDetails.network,
-            crypto_username: cryptoDetails.username,
-            crypto_pay_id: cryptoDetails.pay_id,
-            crypto_wallet_address: cryptoDetails.wallet_address,
-            crypto_transaction_hash: cryptoDetails.transaction_hash,
+            crypto_network: (cryptoDetails as any).network,
+            crypto_username: (cryptoDetails as any).username,
+            crypto_pay_id: (cryptoDetails as any).pay_id,
+            crypto_wallet_address: (cryptoDetails as any).wallet_address,
+            crypto_transaction_hash: cryptoDetails.transaction_id,
           });
         } else if (createForm.payment_method === "Bank Transfer") {
           const bankDetails = createForm.payment_details as BankTransferDetails;
           Object.assign(paymentDetailsData, {
-            bank_transaction_reference: bankDetails.transaction_reference,
-            bank_sender_name: bankDetails.sender_name,
-            bank_sender_bank: bankDetails.sender_bank,
-            bank_transaction_time: bankDetails.transaction_time
-              ? new Date(bankDetails.transaction_time).toISOString()
+            bank_transaction_reference: bankDetails.bank_transaction_reference,
+            bank_sender_name: (bankDetails as any).sender_name,
+            bank_sender_bank: (bankDetails as any).sender_bank,
+            bank_transaction_time: (bankDetails as any).transaction_time
+              ? new Date((bankDetails as any).transaction_time).toISOString()
               : null,
-            bank_exchange_rate: bankDetails.exchange_rate,
-            bank_amount_in_currency: bankDetails.amount_in_currency,
+            bank_exchange_rate: (bankDetails as any).exchange_rate,
+            bank_amount_in_currency: bankDetails.bank_amount_in_currency,
             currency: bankDetails.currency || "USD",
           });
         } else if (createForm.payment_method === "Cash") {
           const cashDetails = createForm.payment_details as CashPaymentDetails;
           Object.assign(paymentDetailsData, {
-            cash_received_by: cashDetails.received_by,
-            cash_receipt_number: cashDetails.receipt_number,
+            cash_received_by: (cashDetails as any).received_by,
+            cash_receipt_number: (cashDetails as any).receipt_number,
             notes: cashDetails.notes,
           });
         }
@@ -584,7 +586,7 @@ const OrderPanel: React.FC = () => {
         customer_id: "",
         items: [],
         payment_method: "Cash",
-        payment_details: { type: "Cash", received_by: "" },
+        payment_details: { type: "Cash", received_by: "" } as any,
         discount_amount: 0,
         notes: "",
       });
@@ -616,11 +618,11 @@ const OrderPanel: React.FC = () => {
         .update({
           status: newStatus,
           verified_at:
-            newStatus === "verified" || newStatus === "Verified"
+            newStatus === "verified"
               ? new Date().toISOString()
               : null,
           verified_by:
-            newStatus === "verified" || newStatus === "Verified"
+            newStatus === "verified"
               ? user?.id || "admin"
               : null,
         })
@@ -644,7 +646,7 @@ const OrderPanel: React.FC = () => {
     setLoading(true);
     try {
       // First, get the order items to restore inventory
-      const { data: orderItems, error: itemsError } = await supabase
+      const { data: orderItems, error: itemsError } = await (supabase as any)
         .from("order_items")
         .select("platform_id, quantity")
         .eq("order_id", selectedOrder.id);
@@ -692,7 +694,7 @@ const OrderPanel: React.FC = () => {
       if (orderError) throw orderError;
 
       // Update payment details to show refunded status
-      const { error: paymentError } = await supabase
+      const { error: paymentError } = await (supabase as any)
         .from("payment_details")
         .update({
           amount: 0,
@@ -705,7 +707,7 @@ const OrderPanel: React.FC = () => {
       if (paymentError) throw paymentError;
 
       // Create refund record for audit trail
-      const { error: refundError } = await supabase
+      const { error: refundError } = await (supabase as any)
         .from("refunds_replacements")
         .insert({
           order_id: selectedOrder.id,
@@ -1041,7 +1043,7 @@ const OrderPanel: React.FC = () => {
                           font-size: 12px;
                           font-weight: 600;
                         ">
-                          ${item.account_type}
+                          ${platform?.account_type || "Standard"}
                         </span>
                       </td>
                       <td style="padding: 16px 12px; text-align: center; font-weight: 600; color: #374151;">
@@ -1422,10 +1424,10 @@ const OrderPanel: React.FC = () => {
                         <Copy className="w-4 h-4" />
                       </button>
 
-                      {order.status === "Pending" && (
+                      {order.status === "pending" && (
                         <button
                           onClick={() =>
-                            updateOrderStatus(order.id, "Verified")
+                            updateOrderStatus(order.id, "verified")
                           }
                           className="p-1 text-green-600 hover:bg-green-100 rounded"
                           title="Verify Order"
@@ -1709,9 +1711,9 @@ const OrderPanel: React.FC = () => {
                         </h5>
                       </div>
                       <div className="p-4">
-                        {createForm.items.map((item) => (
+                        {createForm.items.map((item, index) => (
                           <div
-                            key={item.id}
+                            key={`item-${index}`}
                             className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
                           >
                             <div>
@@ -1788,29 +1790,36 @@ const OrderPanel: React.FC = () => {
                       switch (paymentMethod) {
                         case "Crypto":
                           defaultPaymentDetails = {
-                            type: "Crypto",
+                            payment_method: "Crypto",
+                            id: "",
+                            order_id: "",
+                            amount: 0,
                             currency: "USDT",
-                            username: "",
-                            pay_id: "",
-                            network: "TRC20",
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
                           } as CryptoPaymentDetails;
                           break;
                         case "Bank Transfer":
                           defaultPaymentDetails = {
-                            type: "Bank Transfer",
-                            transaction_reference: "",
-                            sender_name: "",
-                            sender_bank: "",
-                            transaction_time: "",
+                            payment_method: "Bank Transfer",
+                            id: "",
+                            order_id: "",
+                            amount: 0,
                             currency: "USD",
-                            amount_in_currency: 0,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
                           } as BankTransferDetails;
                           break;
                         case "Cash":
                         default:
                           defaultPaymentDetails = {
-                            type: "Cash",
-                            received_by: "",
+                            payment_method: "Cash",
+                            id: "",
+                            order_id: "",
+                            amount: 0,
+                            currency: "USD",
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
                           } as CashPaymentDetails;
                           break;
                       }
@@ -1839,14 +1848,14 @@ const OrderPanel: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <select
                         value={
-                          (createForm.payment_details as CryptoPaymentDetails)
+                          (createForm.payment_details as any)
                             .currency || "USDT"
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as CryptoPaymentDetails),
+                              ...(prev.payment_details as any),
                               currency: e.target.value as "USDT" | "BTC",
                             },
                           }))
@@ -1861,14 +1870,14 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Username"
                         value={
-                          (createForm.payment_details as CryptoPaymentDetails)
-                            .username || ""
+                          (createForm.payment_details as any)
+                            ?.username || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as CryptoPaymentDetails),
+                              ...(prev.payment_details as any),
                               username: e.target.value,
                             },
                           }))
@@ -1881,14 +1890,14 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Pay ID"
                         value={
-                          (createForm.payment_details as CryptoPaymentDetails)
+                          (createForm.payment_details as any)
                             .pay_id || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as CryptoPaymentDetails),
+                              ...(prev.payment_details as any),
                               pay_id: e.target.value,
                             },
                           }))
@@ -1899,14 +1908,14 @@ const OrderPanel: React.FC = () => {
 
                       <select
                         value={
-                          (createForm.payment_details as CryptoPaymentDetails)
+                          (createForm.payment_details as any)
                             .network || "TRC20"
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as CryptoPaymentDetails),
+                              ...(prev.payment_details as any),
                               network: e.target.value as "TRC20" | "BEP20",
                             },
                           }))
@@ -1930,14 +1939,14 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Transaction Reference"
                         value={
-                          (createForm.payment_details as BankTransferDetails)
-                            .transaction_reference || ""
+                          (createForm.payment_details as any)
+                            .bank_transaction_reference || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as BankTransferDetails),
+                              ...(prev.payment_details as any),
                               transaction_reference: e.target.value,
                             },
                           }))
@@ -1950,14 +1959,14 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Sender Name"
                         value={
-                          (createForm.payment_details as BankTransferDetails)
+                          (createForm.payment_details as any)
                             .sender_name || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as BankTransferDetails),
+                              ...(prev.payment_details as any),
                               sender_name: e.target.value,
                             },
                           }))
@@ -1970,14 +1979,14 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Sender Bank"
                         value={
-                          (createForm.payment_details as BankTransferDetails)
+                          (createForm.payment_details as any)
                             .sender_bank || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as BankTransferDetails),
+                              ...(prev.payment_details as any),
                               sender_bank: e.target.value,
                             },
                           }))
@@ -1989,14 +1998,14 @@ const OrderPanel: React.FC = () => {
                         type="datetime-local"
                         placeholder="Transaction Time"
                         value={
-                          (createForm.payment_details as BankTransferDetails)
+                          (createForm.payment_details as any)
                             .transaction_time || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as BankTransferDetails),
+                              ...(prev.payment_details as any),
                               transaction_time: e.target.value,
                             },
                           }))
@@ -2007,14 +2016,14 @@ const OrderPanel: React.FC = () => {
 
                       <select
                         value={
-                          (createForm.payment_details as BankTransferDetails)
+                          (createForm.payment_details as any)
                             .currency || "USD"
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as BankTransferDetails),
+                              ...(prev.payment_details as any),
                               currency: e.target.value,
                             },
                           }))
@@ -2031,14 +2040,14 @@ const OrderPanel: React.FC = () => {
                         step="0.01"
                         placeholder="Amount in Local Currency"
                         value={
-                          (createForm.payment_details as BankTransferDetails)
-                            .amount_in_currency || ""
+                          (createForm.payment_details as any)
+                            .bank_amount_in_currency || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as BankTransferDetails),
+                              ...(prev.payment_details as any),
                               amount_in_currency:
                                 parseFloat(e.target.value) || 0,
                             },
@@ -2053,14 +2062,14 @@ const OrderPanel: React.FC = () => {
                         step="0.0001"
                         placeholder="Exchange Rate (optional)"
                         value={
-                          (createForm.payment_details as BankTransferDetails)
+                          (createForm.payment_details as any)
                             .exchange_rate || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as BankTransferDetails),
+                              ...(prev.payment_details as any),
                               exchange_rate:
                                 parseFloat(e.target.value) || undefined,
                             },
@@ -2082,14 +2091,14 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Received By"
                         value={
-                          (createForm.payment_details as CashPaymentDetails)
+                          (createForm.payment_details as any)
                             .received_by || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as CashPaymentDetails),
+                              ...(prev.payment_details as any),
                               received_by: e.target.value,
                             },
                           }))
@@ -2102,14 +2111,14 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Receipt Number (optional)"
                         value={
-                          (createForm.payment_details as CashPaymentDetails)
+                          (createForm.payment_details as any)
                             .receipt_number || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as CashPaymentDetails),
+                              ...(prev.payment_details as any),
                               receipt_number: e.target.value,
                             },
                           }))
@@ -2121,14 +2130,14 @@ const OrderPanel: React.FC = () => {
                         <textarea
                           placeholder="Payment Notes (optional)"
                           value={
-                            (createForm.payment_details as CashPaymentDetails)
+                            (createForm.payment_details as any)
                               .notes || ""
                           }
                           onChange={(e) =>
                             setCreateForm((prev) => ({
                               ...prev,
                               payment_details: {
-                                ...(prev.payment_details as CashPaymentDetails),
+                                ...(prev.payment_details as any),
                                 notes: e.target.value,
                               },
                             }))
@@ -2362,14 +2371,14 @@ const OrderPanel: React.FC = () => {
                             <div className="flex-1">
                               <div className="flex items-center mb-2">
                                 <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mr-3">
-                                  {item.platform_name.charAt(0)}
+                                  {item.platform.charAt(0)}
                                 </div>
                                 <div>
                                   <h5 className="font-semibold text-gray-900">
-                                    {item.platform_name}
+                                    {item.platform}
                                   </h5>
                                   <p className="text-sm text-gray-600">
-                                    {item.account_type} Account
+                                    Account
                                   </p>
                                 </div>
                               </div>
@@ -2378,7 +2387,7 @@ const OrderPanel: React.FC = () => {
                                   Qty: {item.quantity}
                                 </span>
                                 <span className="bg-gray-100 px-2 py-1 rounded">
-                                  ${item.unit_price.toFixed(2)} each
+                                  ${item.unitPrice.toFixed(2)} each
                                 </span>
                               </div>
                             </div>
@@ -2767,8 +2776,7 @@ const OrderPanel: React.FC = () => {
                 >
                   Close
                 </button>
-                {(selectedOrder.status === "pending" ||
-                  selectedOrder.status === "Pending") && (
+                {(selectedOrder?.status === "pending") && (
                   <button
                     onClick={() => {
                       updateOrderStatus(selectedOrder.id, "verified");
@@ -2792,10 +2800,8 @@ const OrderPanel: React.FC = () => {
                     Verify Order
                   </button>
                 )}
-                {(selectedOrder.status === "verified" ||
-                  selectedOrder.status === "Verified" ||
-                  selectedOrder.status === "completed" ||
-                  selectedOrder.status === "Completed") && (
+                {(selectedOrder?.status === "verified" ||
+                  selectedOrder?.status === "completed") && (
                   <>
                     <button
                       onClick={() => setShowRefundModal(true)}

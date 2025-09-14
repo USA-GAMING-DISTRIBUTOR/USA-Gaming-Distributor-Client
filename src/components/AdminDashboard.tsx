@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import EmployeePanel from "./EmployeePanel";
 import PlatformPanel from "./PlatformPanel";
-import ActivityLogPanel from "./ActivityLogPanel";
 import CustomerIssuesPanel from "./CustomerIssuesPanel";
 import CustomerPanel from "./CustomerPanel";
 import OverviewPanel from "./OverviewPanel";
@@ -13,7 +12,6 @@ import {
   Users,
   MessageSquare,
   UserCog,
-  Activity,
   LogOut,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
@@ -42,7 +40,6 @@ const AdminDashboard: React.FC = () => {
     },
     { id: "customer-issues", label: "Customer Issues", icon: MessageSquare },
     { id: "employees", label: "Employees", icon: UserCog },
-    { id: "activity-log", label: "Activity Log", icon: Activity },
   ];
 
   const handleLogout = () => {
@@ -123,14 +120,12 @@ const AdminDashboard: React.FC = () => {
           {activeMenuItem === "platform" && <PlatformPanel />}
           {activeMenuItem === "employees" && <EmployeePanel />}
           {activeMenuItem === "orders" && <OrderPanel />}
-          {activeMenuItem === "activity-log" && <ActivityLogPanel />}
           {activeMenuItem === "customer-issues" && <CustomerIssuesPanel />}
           {activeMenuItem === "customers" && <CustomerPanel />}
           {activeMenuItem !== "overview" &&
             activeMenuItem !== "platform" &&
             activeMenuItem !== "employees" &&
             activeMenuItem !== "orders" &&
-            activeMenuItem !== "activity-log" &&
             activeMenuItem !== "customer-issues" &&
             activeMenuItem !== "customers" && (
               <div className="bg-white rounded-2xl shadow-lg p-8 text-center">

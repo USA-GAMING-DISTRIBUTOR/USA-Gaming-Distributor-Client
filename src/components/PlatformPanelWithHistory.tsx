@@ -536,192 +536,212 @@ const PlatformPanel: React.FC = () => {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Add New Platform</h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Add New Platform</h3>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-white/80 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Platform Name
-                </label>
-                <input
-                  type="text"
-                  name="platform_name"
-                  value={form.platform_name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  required
-                />
-              </div>
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+              <form id="createPlatformForm" onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Platform Name
+                  </label>
+                  <input
+                    type="text"
+                    name="platform_name"
+                    value={form.platform_name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Account Type
-                </label>
-                <input
-                  type="text"
-                  name="account_type"
-                  value={form.account_type}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  placeholder="e.g., Standard, Premium, Enterprise"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Account Type
+                  </label>
+                  <input
+                    type="text"
+                    name="account_type"
+                    value={form.account_type}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="e.g., Standard, Premium, Enterprise"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Initial Inventory
-                </label>
-                <input
-                  type="number"
-                  name="inventory"
-                  value={form.inventory}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="0"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Initial Inventory
+                  </label>
+                  <input
+                    type="number"
+                    name="inventory"
+                    value={form.inventory}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cost Price (in cents)
-                </label>
-                <input
-                  type="number"
-                  name="cost_price"
-                  value={form.cost_price}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cost Price (in cents)
+                  </label>
+                  <input
+                    type="number"
+                    name="cost_price"
+                    value={form.cost_price}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </form>
+            </div>
 
-              <div className="flex space-x-3 pt-4">
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  form="createPlatformForm"
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "Creating..." : "Create Platform"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Edit Modal */}
       {showEditModal && selectedPlatform && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Edit Platform</h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Edit Platform</h3>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-white/80 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Platform Name
-                </label>
-                <input
-                  type="text"
-                  name="platform_name"
-                  value={editForm.platform_name}
-                  onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  required
-                />
-              </div>
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+              <form id="editPlatformForm" onSubmit={handleEditSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Platform Name
+                  </label>
+                  <input
+                    type="text"
+                    name="platform_name"
+                    value={editForm.platform_name}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Account Type
-                </label>
-                <input
-                  type="text"
-                  name="account_type"
-                  value={editForm.account_type}
-                  onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  placeholder="e.g., Standard, Premium, Enterprise"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Account Type
+                  </label>
+                  <input
+                    type="text"
+                    name="account_type"
+                    value={editForm.account_type}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="e.g., Standard, Premium, Enterprise"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Inventory
-                </label>
-                <input
-                  type="number"
-                  name="inventory"
-                  value={editForm.inventory}
-                  onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="0"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Inventory
+                  </label>
+                  <input
+                    type="number"
+                    name="inventory"
+                    value={editForm.inventory}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cost Price (in cents)
-                </label>
-                <input
-                  type="number"
-                  name="cost_price"
-                  value={editForm.cost_price}
-                  onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cost Price (in cents)
+                  </label>
+                  <input
+                    type="number"
+                    name="cost_price"
+                    value={editForm.cost_price}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </form>
+            </div>
 
-              <div className="flex space-x-3 pt-4">
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  form="editPlatformForm"
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "Updating..." : "Update Platform"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

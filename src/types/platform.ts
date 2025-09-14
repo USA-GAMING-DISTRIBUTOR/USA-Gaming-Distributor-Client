@@ -1,7 +1,7 @@
 // Platform types (renamed from Game Coin)
 export interface Platform {
   id: string;
-  platform_name: string; // e.g., PlayStation, Xbox
+  platform: string; // e.g., PlayStation, Xbox
   account_type: string; // Free text input for account types
   inventory: number;
   cost_price: number;

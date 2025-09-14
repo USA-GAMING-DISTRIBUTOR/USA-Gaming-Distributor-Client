@@ -95,10 +95,25 @@ export interface Order {
   customer_id: string
   items: OrderItem[]
   payment_method: string
-  status: string
+  status: 'pending' | 'processing' | 'verified' | 'completed' | 'replacement'
   created_at: string
   created_by: string | null
   invoice_url?: string | null
+}
+
+export interface RefundReplacement {
+  id: string
+  order_id: string
+  type: 'refund' | 'replacement'
+  reason: string
+  amount?: number | null
+  replacement_order_id?: string | null
+  status: 'pending' | 'approved' | 'completed' | 'rejected'
+  notes?: string | null
+  created_by?: string | null
+  processed_by?: string | null
+  created_at: string
+  processed_at?: string | null
 }
 
 // Type conversion helpers

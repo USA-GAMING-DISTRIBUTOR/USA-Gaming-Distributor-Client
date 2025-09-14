@@ -140,13 +140,28 @@ const GameCoinPanel: React.FC = () => {
         </button>
       </div>
       {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.2)" }}
-        >
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Add Platform</h3>
-            <form onSubmit={handleAddCoin} className="space-y-4">
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold">Add Platform</h3>
+                  <p className="text-pink-100 text-sm mt-1">Create a new gaming platform</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="text-pink-100 hover:text-white p-2 rounded-lg hover:bg-pink-600/50 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+            <form id="gamecoin-form" onSubmit={handleAddCoin} className="space-y-4">
               <input
                 name="platform"
                 value={form.platform}
@@ -175,22 +190,28 @@ const GameCoinPanel: React.FC = () => {
                 className="w-full px-3 py-2 border rounded"
                 required
               />
-              <div className="flex justify-end space-x-2 mt-4">
+              </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
                 <button
                   type="button"
-                  className="px-4 py-2 bg-gray-200 rounded"
                   onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-pink-500 text-white rounded"
+                  form="gamecoin-form"
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
                 >
                   Confirm
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

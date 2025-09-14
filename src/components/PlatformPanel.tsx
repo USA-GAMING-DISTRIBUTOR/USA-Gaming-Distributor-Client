@@ -76,24 +76,16 @@ const PlatformPanel: React.FC = () => {
 
     // Transform data to match our updated Platform interface
     const transformedPlatforms: Platform[] = (data || []).map(
-      (platform: Record<string, unknown>) => ({
-        id: String(platform.id || ""),
-        platform_name: String(
-          platform.platform || platform.platform_name || ""
-        ),
-        account_type: String(platform.account_type || "Standard"),
-        inventory: Number(platform.inventory || 0),
-        cost_price: Number(platform.cost_price || 0),
-        created_at: platform.created_at ? String(platform.created_at) : null,
-        updated_at: platform.updated_at
-          ? String(platform.updated_at)
-          : platform.created_at
-          ? String(platform.created_at)
-          : null,
+      (platform: any) => ({
+        id: platform.id,
+        platform: platform.platform, // Database column is already named 'platform'
+        account_type: platform.account_type,
+        inventory: platform.inventory,
+        cost_price: platform.cost_price,
+        created_at: platform.created_at,
+        updated_at: platform.updated_at,
       })
-    );
-
-    setPlatforms(transformedPlatforms);
+    );    setPlatforms(transformedPlatforms);
     setLoading(false);
   };
 
@@ -246,7 +238,7 @@ const PlatformPanel: React.FC = () => {
   const handleEdit = (platform: Platform) => {
     setSelectedPlatform(platform);
     setEditForm({
-      platform_name: platform.platform_name,
+      platform_name: platform.platform, // Map platform to platform_name for the form
       account_type: platform.account_type,
       inventory: platform.inventory,
       cost_price: platform.cost_price,
@@ -528,7 +520,7 @@ const PlatformPanel: React.FC = () => {
                   className="border-b border-gray-100 hover:bg-gray-50"
                 >
                   <td className="py-3 px-4 font-medium">
-                    {platform.platform_name}
+                    {platform.platform}
                   </td>
                   <td className="py-3 px-4">{platform.account_type}</td>
                   <td className="py-3 px-4">
@@ -608,19 +600,28 @@ const PlatformPanel: React.FC = () => {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Add New Platform</h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold">Add New Platform</h3>
+                  <p className="text-pink-100 text-sm mt-1">Create a new gaming platform</p>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-pink-100 hover:text-white p-2 rounded-lg hover:bg-pink-600/50 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+
+            <form id="create-platform-form" onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Platform Name
@@ -680,43 +681,57 @@ const PlatformPanel: React.FC = () => {
                   required
                 />
               </div>
+              </form>
+            </div>
 
-              <div className="flex space-x-3 pt-4">
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  form="create-platform-form"
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "Creating..." : "Create Platform"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Edit Modal */}
       {showEditModal && selectedPlatform && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Edit Platform</h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold">Edit Platform</h3>
+                  <p className="text-pink-100 text-sm mt-1">Update platform information</p>
+                </div>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-pink-100 hover:text-white p-2 rounded-lg hover:bg-pink-600/50 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="space-y-4">
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+
+            <form id="edit-platform-form" onSubmit={handleEditSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Platform Name
@@ -776,63 +791,79 @@ const PlatformPanel: React.FC = () => {
                   required
                 />
               </div>
+              </form>
+            </div>
 
-              <div className="flex space-x-3 pt-4">
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  form="edit-platform-form"
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "Updating..." : "Update Platform"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedPlatform && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-red-600">
-                Confirm Delete
-              </h3>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold">Confirm Delete</h3>
+                  <p className="text-red-100 text-sm mt-1">This action cannot be undone</p>
+                </div>
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="text-red-100 hover:text-white p-2 rounded-lg hover:bg-red-600/50 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
             </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
 
             <p className="text-gray-700 mb-6">
               Are you sure you want to delete the platform "
-              {selectedPlatform.platform_name}"? This action cannot be undone.
+              {selectedPlatform.platform}"? This action cannot be undone.
             </p>
+            </div>
 
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={loading}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                {loading ? "Deleting..." : "Delete Platform"}
-              </button>
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={loading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {loading ? "Deleting..." : "Delete Platform"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -840,21 +871,27 @@ const PlatformPanel: React.FC = () => {
 
       {/* Add Stock Modal */}
       {showPurchaseModal && selectedPlatform && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">
-                Add Stock - {selectedPlatform.platform_name}
-              </h3>
-              <button
-                onClick={() => setShowPurchaseModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">
+                  Add Stock - {selectedPlatform.platform}
+                </h3>
+                <button
+                  onClick={() => setShowPurchaseModal(false)}
+                  className="text-white/80 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handlePurchaseSubmit} className="space-y-4">
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+
+            <form id="addStockForm" onSubmit={handlePurchaseSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Quantity to Add
@@ -953,43 +990,54 @@ const PlatformPanel: React.FC = () => {
                   </span>
                 </p>
               </div>
+            </form>
+            </div>
 
-              <div className="flex space-x-3 pt-4">
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
                 <button
                   type="button"
                   onClick={() => setShowPurchaseModal(false)}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
+                  form="addStockForm"
                   disabled={loading || purchaseForm.quantity <= 0}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "Adding..." : "Add Stock"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Purchase History Modal */}
       {showHistoryModal && selectedPlatform && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">
-                Purchase History - {selectedPlatform.platform_name}
-              </h3>
-              <button
-                onClick={() => setShowHistoryModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">
+                  Purchase History - {selectedPlatform.platform}
+                </h3>
+                <button
+                  onClick={() => setShowHistoryModal(false)}
+                  className="text-white/80 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-6">
 
             {purchaseHistory.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -1063,8 +1111,10 @@ const PlatformPanel: React.FC = () => {
                 </table>
               </div>
             )}
+            </div>
 
-            <div className="flex justify-end pt-4">
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
               <button
                 onClick={() => setShowHistoryModal(false)}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -1078,17 +1128,23 @@ const PlatformPanel: React.FC = () => {
 
       {/* All Purchase History Modal */}
       {showAllHistoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">All Purchase History</h3>
-              <button
-                onClick={() => setShowAllHistoryModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-6xl shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">All Purchase History</h3>
+                <button
+                  onClick={() => setShowAllHistoryModal(false)}
+                  className="text-white/80 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-6">
 
             {allPurchaseHistory.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -1170,8 +1226,10 @@ const PlatformPanel: React.FC = () => {
                 </table>
               </div>
             )}
+            </div>
 
-            <div className="flex justify-between items-center pt-4">
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
               <div className="text-sm text-gray-600">
                 Total Records: {allPurchaseHistory.length} | Total Value: $
                 {allPurchaseHistory

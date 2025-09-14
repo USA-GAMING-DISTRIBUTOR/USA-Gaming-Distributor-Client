@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Edit, Trash2, Plus } from "lucide-react";
+import { Edit, Trash2, Plus, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 interface Employee {
@@ -13,34 +13,55 @@ const EmployeePanel: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState({
     username: "",
     password: "",
     role: "Employee",
   });
-  const [editId, setEditId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ username: "", password: "" });
+  const [editForm, setEditForm] = useState({ 
+    username: "", 
+    password: "",
+    role: "Employee" 
+  });
   const handleEditClick = (emp: Employee) => {
-    setEditId(emp.id);
-    setEditForm({ username: emp.username, password: "" });
+    setSelectedEmployee(emp);
+    setEditForm({ 
+      username: emp.username, 
+      password: "",
+      role: emp.role
+    });
+    setShowEditModal(true);
   };
 
-  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedEmployee(null);
+    setEditForm({ username: "", password: "", role: "Employee" });
+  };
+
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
-  const handleEditSubmit = async () => {
-    if (!editId) return;
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEmployee) return;
 
     setLoading(true);
-    const updateData: { username: string; password?: string } = {
+    const updateData: { username: string; role: string; password?: string } = {
       username: editForm.username,
+      role: editForm.role,
     };
     if (editForm.password) updateData.password = editForm.password;
-    await supabase.from("users").update(updateData).eq("id", editId);
-    setEditId(null);
-    setEditForm({ username: "", password: "" });
-    fetchEmployees();
+    
+    const { error } = await supabase.from("users").update(updateData).eq("id", selectedEmployee.id);
+    
+    if (!error) {
+      handleCloseEditModal();
+      fetchEmployees();
+    }
     setLoading(false);
   };
 
@@ -98,13 +119,28 @@ const EmployeePanel: React.FC = () => {
         </button>
       </div>
       {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.2)" }}
-        >
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Add Employee</h3>
-            <form onSubmit={handleAddEmployee} className="space-y-4">
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold">Add Employee</h3>
+                  <p className="text-pink-100 text-sm mt-1">Create a new employee account</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="text-pink-100 hover:text-white p-2 rounded-lg hover:bg-pink-600/50 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+            <form id="employee-form" onSubmit={handleAddEmployee} className="space-y-4">
               <input
                 name="username"
                 value={form.username}
@@ -132,22 +168,118 @@ const EmployeePanel: React.FC = () => {
                 <option value="Employee">Employee</option>
                 <option value="Admin">Admin</option>
               </select>
-              <div className="flex justify-end space-x-2 mt-4">
+              </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
                 <button
                   type="button"
-                  className="px-4 py-2 bg-gray-200 rounded"
                   onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-pink-500 text-white rounded"
+                  form="employee-form"
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
                 >
                   Confirm
                 </button>
               </div>
-            </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Employee Modal */}
+      {showEditModal && selectedEmployee && (
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Edit Employee</h3>
+                <button
+                  onClick={handleCloseEditModal}
+                  className="text-white/80 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-6">
+              <form id="editEmployeeForm" onSubmit={handleEditSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    name="username"
+                    value={editForm.username}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    New Password (leave blank to keep current)
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={editForm.password}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="Enter new password (optional)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role
+                  </label>
+                  <select
+                    name="role"
+                    value={editForm.role}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="Employee">Employee</option>
+                    <option value="Admin">Admin</option>
+                  </select>
+                </div>
+              </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="editEmployeeForm"
+                  disabled={loading}
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
+                >
+                  {loading ? "Updating..." : "Update Employee"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -162,72 +294,49 @@ const EmployeePanel: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {employees.map((emp) => (
-              <tr key={emp.id} className="border-b hover:bg-gray-50">
-                <td className="py-2 px-4">
-                  {editId === emp.id ? (
-                    <form
-                      className="flex space-x-2"
-                      onSubmit={handleEditSubmit}
-                    >
-                      <input
-                        name="username"
-                        value={editForm.username}
-                        onChange={handleEditInputChange}
-                        className="px-2 py-1 rounded border"
-                        required
-                      />
-                      <input
-                        name="password"
-                        type="password"
-                        value={editForm.password}
-                        onChange={handleEditInputChange}
-                        className="px-2 py-1 rounded border"
-                        placeholder="New password"
-                      />
-                      <button
-                        type="submit"
-                        className="bg-pink-500 text-white px-2 py-1 rounded"
-                        disabled={loading}
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        className="bg-gray-300 text-gray-700 px-2 py-1 rounded"
-                        onClick={() => setEditId(null)}
-                      >
-                        Cancel
-                      </button>
-                    </form>
-                  ) : (
-                    emp.username
-                  )}
-                </td>
-                <td className="py-2 px-4">{emp.role}</td>
-                <td className="py-2 px-4">
-                  {emp.created_at
-                    ? new Date(emp.created_at).toLocaleString()
-                    : "N/A"}
-                </td>
-                <td className="py-2 px-4">
-                  <button
-                    className="p-1 text-blue-500 hover:bg-blue-50 rounded mr-2"
-                    onClick={() => handleEditClick(emp)}
-                    disabled={loading}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    className="p-1 text-red-500 hover:bg-red-50 rounded"
-                    onClick={() => handleDelete(emp.id)}
-                    disabled={loading}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="text-center py-8">
+                  <div className="flex justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+                  </div>
                 </td>
               </tr>
-            ))}
+            ) : employees.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-gray-500">
+                  No employees found
+                </td>
+              </tr>
+            ) : (
+              employees.map((emp) => (
+                <tr key={emp.id} className="border-b hover:bg-gray-50">
+                  <td className="py-2 px-4">{emp.username}</td>
+                  <td className="py-2 px-4">{emp.role}</td>
+                  <td className="py-2 px-4">
+                    {emp.created_at
+                      ? new Date(emp.created_at).toLocaleString()
+                      : "N/A"}
+                  </td>
+                  <td className="py-2 px-4">
+                    <button
+                      className="p-1 text-blue-500 hover:bg-blue-50 rounded mr-2"
+                      onClick={() => handleEditClick(emp)}
+                      disabled={loading}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      className="p-1 text-red-500 hover:bg-red-50 rounded"
+                      onClick={() => handleDelete(emp.id)}
+                      disabled={loading}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

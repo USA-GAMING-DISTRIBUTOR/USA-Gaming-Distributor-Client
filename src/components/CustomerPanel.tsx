@@ -7,7 +7,7 @@ import { Plus, Edit2, Trash2, Phone, X, DollarSign } from "lucide-react";
 const CustomerPanel: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -164,7 +164,7 @@ const CustomerPanel: React.FC = () => {
 
   const fetchCustomers = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       const { data, error } = await supabase
         .from("customers")
         .select("*")
@@ -199,13 +199,14 @@ const CustomerPanel: React.FC = () => {
     } catch (error) {
       console.error("Error fetching customers:", error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setLoading(true);
       // Filter out empty phone numbers
       const validNumbers = formData.contact_numbers.filter(
         (num) => num.trim() !== ""
@@ -234,6 +235,8 @@ const CustomerPanel: React.FC = () => {
       closeModal();
     } catch (error) {
       console.error("Error saving customer:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -241,12 +244,15 @@ const CustomerPanel: React.FC = () => {
     if (!confirm("Are you sure you want to delete this customer?")) return;
 
     try {
+      setLoading(true);
       const { error } = await supabase.from("customers").delete().eq("id", id);
 
       if (error) throw error;
       await fetchCustomers();
     } catch (error) {
       console.error("Error deleting customer:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -304,10 +310,6 @@ const CustomerPanel: React.FC = () => {
     }));
   };
 
-  if (isLoading) {
-    return <div className="p-6">Loading customers...</div>;
-  }
-
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg">
       {/* Header */}
@@ -337,17 +339,22 @@ const CustomerPanel: React.FC = () => {
                   Contact Numbers
                 </th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Pricing
-                </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody>
-              {customers.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-8 text-gray-500">
+                  <td colSpan={3} className="text-center py-8">
+                    <div className="flex justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
+                    </div>
+                  </td>
+                </tr>
+              ) : customers.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="text-center py-8 text-gray-500">
                     No customers found. Add your first customer to get started.
                   </td>
                 </tr>
@@ -376,27 +383,25 @@ const CustomerPanel: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      <button
-                        onClick={() => openPricingModal(customer)}
-                        className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors flex items-center gap-1"
-                        title="Manage pricing for this customer"
-                      >
-                        <DollarSign className="w-3 h-3" />
-                        Pricing
-                      </button>
-                    </td>
-                    <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => openPricingModal(customer)}
+                          className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                          title="Manage pricing for this customer"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => openModal(customer)}
-                          className="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors"
+                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                           title="Edit customer"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(customer.id)}
-                          className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
+                          disabled={loading}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Delete customer"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -413,21 +418,32 @@ const CustomerPanel: React.FC = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">
-                {editingCustomer ? "Edit Customer" : "Add Customer"}
-              </h2>
-              <button
-                onClick={closeModal}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold">
+                    {editingCustomer ? "Edit Customer" : "Add Customer"}
+                  </h2>
+                  <p className="text-pink-100 text-sm mt-1">
+                    {editingCustomer ? "Update customer information" : "Create a new customer"}
+                  </p>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="text-pink-100 hover:text-white p-2 rounded-lg hover:bg-pink-600/50 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+
+            <form id="customer-form" onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Customer Name
@@ -478,43 +494,60 @@ const CustomerPanel: React.FC = () => {
                   Add Contact Number
                 </button>
               </div>
+              </form>
+            </div>
 
-              <div className="flex justify-end gap-3 pt-4">
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <div className="flex space-x-3">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  form="customer-form"
+                  disabled={loading}
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
+                  {loading && <LoadingSpinner size={16} />}
                   {editingCustomer ? "Update" : "Create"}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Pricing Modal */}
       {isPricingModalOpen && selectedCustomerForPricing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">
-                Pricing for {selectedCustomerForPricing.name}
-              </h2>
-              <button
-                onClick={closePricingModal}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold">
+                    Pricing for {selectedCustomerForPricing.name}
+                  </h2>
+                  <p className="text-pink-100 text-sm mt-1">
+                    Set custom pricing for different platforms and quantities
+                  </p>
+                </div>
+                <button
+                  onClick={closePricingModal}
+                  className="text-pink-100 hover:text-white p-2 rounded-lg hover:bg-pink-600/50 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
             {/* Add New Pricing Form */}
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <h3 className="text-md font-medium mb-3">Add New Pricing Tier</h3>
@@ -686,10 +719,13 @@ const CustomerPanel: React.FC = () => {
               </table>
             </div>
 
-            <div className="flex justify-end mt-6">
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
               <button
                 onClick={closePricingModal}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Close
               </button>

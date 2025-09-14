@@ -102,7 +102,7 @@ create table public.orders (
   id uuid primary key default gen_random_uuid(),
   customer_id uuid references public.customers(id) on delete cascade,
   order_number text unique not null,
-  status text not null default 'pending' check (status in ('pending', 'processing', 'verified', 'completed', 'cancelled')),
+  status text not null default 'pending' check (status in ('pending', 'processing', 'verified', 'completed', 'replacement', 'refunded')),
   total_amount decimal(10,2) not null default 0.00,
   payment_method text,
   payment_status text default 'pending' check (payment_status in ('pending', 'completed', 'failed', 'refunded')),
@@ -217,6 +217,29 @@ create index idx_purchase_history_platform_id on public.purchase_history (platfo
 create index idx_purchase_history_created_at on public.purchase_history (created_at);
 create index idx_purchase_history_purchased_by on public.purchase_history (purchased_by);
 
+-- 8. Refunds and Replacements table
+drop table if exists public.refunds_replacements cascade;
+create table public.refunds_replacements (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid references public.orders(id) on delete cascade,
+  type text not null check (type in ('refund', 'replacement')),
+  reason text not null,
+  amount decimal(10,2), -- refund amount (null for replacements)
+  replacement_order_id uuid references public.orders(id), -- new order id for replacements
+  status text not null default 'pending' check (status in ('pending', 'approved', 'completed', 'rejected')),
+  notes text,
+  created_by uuid references public.users(id),
+  processed_by uuid references public.users(id),
+  created_at timestamptz default now(),
+  processed_at timestamptz
+);
+
+-- Refunds and replacements indexes
+create index idx_refunds_replacements_order_id on public.refunds_replacements (order_id);
+create index idx_refunds_replacements_type on public.refunds_replacements (type);
+create index idx_refunds_replacements_status on public.refunds_replacements (status);
+create index idx_refunds_replacements_created_at on public.refunds_replacements (created_at);
+
 -- Enable Row Level Security on all tables
 alter table public.users enable row level security;
 alter table public.game_coins enable row level security;
@@ -226,6 +249,7 @@ alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
 alter table public.payment_details enable row level security;
 alter table public.purchase_history enable row level security;
+alter table public.refunds_replacements enable row level security;
 
 -- Create policies (allowing all operations for now - you can tighten these later)
 -- Users policies
@@ -314,6 +338,17 @@ create policy "purchase_history_select_all" on public.purchase_history for selec
 create policy "purchase_history_insert_all" on public.purchase_history for insert with check (true);
 create policy "purchase_history_update_all" on public.purchase_history for update using (true);
 create policy "purchase_history_delete_all" on public.purchase_history for delete using (true);
+
+-- Refunds and replacements policies
+drop policy if exists "refunds_replacements_select_all" on public.refunds_replacements;
+drop policy if exists "refunds_replacements_insert_all" on public.refunds_replacements;
+drop policy if exists "refunds_replacements_update_all" on public.refunds_replacements;
+drop policy if exists "refunds_replacements_delete_all" on public.refunds_replacements;
+
+create policy "refunds_replacements_select_all" on public.refunds_replacements for select using (true);
+create policy "refunds_replacements_insert_all" on public.refunds_replacements for insert with check (true);
+create policy "refunds_replacements_update_all" on public.refunds_replacements for update using (true);
+create policy "refunds_replacements_delete_all" on public.refunds_replacements for delete using (true);
 
 -- Insert default data
 -- Default superadmin user

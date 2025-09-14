@@ -1,7 +1,7 @@
 import React from "react";
-import type { Order } from "../types/order";
-import type { Customer } from "../types/customer";
-import type { Platform } from "../types/platform";
+import type { Order } from "../types/app.types";
+import type { Customer } from "../types/app.types";
+import type { Platform } from "../types/app.types";
 
 interface InvoiceProps {
   order: Order;
@@ -30,6 +30,23 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getStatusColor = (status: Order["status"]) => {
+    switch (status) {
+      case "pending":
+        return { color: "#d97706", backgroundColor: "#fef3c7" };
+      case "processing":
+        return { color: "#2563eb", backgroundColor: "#dbeafe" };
+      case "verified":
+        return { color: "#059669", backgroundColor: "#d1fae5" };
+      case "completed":
+        return { color: "#047857", backgroundColor: "#d1fae5" };
+      case "replacement":
+        return { color: "#ec4899", backgroundColor: "#fce7f3" };
+      default:
+        return { color: "#6b7280", backgroundColor: "#f3f4f6" };
+    }
   };
 
   return (
@@ -202,13 +219,13 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                 style={{
                   fontSize: "14px",
                   fontWeight: "600",
-                  color: "#059669",
-                  backgroundColor: "#d1fae5",
+                  color: getStatusColor(order.status).color,
+                  backgroundColor: getStatusColor(order.status).backgroundColor,
                   padding: "2px 8px",
                   borderRadius: "4px"
                 }}
               >
-                {order.status}
+                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
               </span>
             </div>
           </div>

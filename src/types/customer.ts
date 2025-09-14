@@ -2,7 +2,7 @@
 export interface Customer {
   id: string;
   name: string;
-  contact_numbers: string[] | null;
+  contact_numbers: string[];
   created_at: string | null;
   updated_at?: string | null;
 }

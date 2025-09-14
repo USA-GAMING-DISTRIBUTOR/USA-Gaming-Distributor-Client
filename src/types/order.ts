@@ -2,63 +2,72 @@
 export interface Order {
   id: string;
   customer_id: string | null;
+  order_number: string;
   items: OrderItem[];
   payment_method: PaymentMethod;
-  payment_details: PaymentDetails;
-  status: 'Pending' | 'Verified' | 'Fulfilled' | 'Cancelled' | 'Refunded';
+  status: 'pending' | 'processing' | 'verified' | 'completed' | 'replacement' | 'refunded';
+  payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
   total_amount: number;
-  discount_amount: number;
-  final_amount: number;
+  notes: string | null;
   invoice_url: string | null;
   created_at: string | null;
-  created_by: string | null;
+  updated_at: string | null;
   verified_at: string | null;
   verified_by: string | null;
-  notes: string | null;
 }
 
 export interface OrderItem {
-  id: string;
+  order_id: string;
   platform_id: string;
-  platform_name: string;
-  account_type: string;
+  platform: string;
   quantity: number;
-  unit_price: number;
+  unitPrice: number;
   total_price: number;
 }
 
 export type PaymentMethod = 'Crypto' | 'Bank Transfer' | 'Cash';
 
+// Payment Details based on database schema
+export interface PaymentDetailsBase {
+  id: string;
+  order_id: string;
+  payment_method: PaymentMethod;
+  transaction_id?: string;
+  amount: number;
+  currency: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CryptoPaymentDetails extends PaymentDetailsBase {
+  payment_method: 'Crypto';
+  crypto_currency?: string; // USDT, BTC, etc.
+  crypto_network?: string; // TRC20, BEP20, Bitcoin
+  crypto_username?: string;
+  crypto_pay_id?: string;
+  crypto_wallet_address?: string;
+  crypto_transaction_hash?: string;
+}
+
+export interface BankTransferDetails extends PaymentDetailsBase {
+  payment_method: 'Bank Transfer';
+  bank_transaction_reference?: string;
+  bank_sender_name?: string;
+  bank_sender_bank?: string;
+  bank_transaction_time?: string;
+  bank_exchange_rate?: number;
+  bank_amount_in_currency?: number;
+}
+
+export interface CashPaymentDetails extends PaymentDetailsBase {
+  payment_method: 'Cash';
+  cash_received_by?: string;
+  cash_receipt_number?: string;
+}
+
 // Payment Details - discriminated union
 export type PaymentDetails = CryptoPaymentDetails | BankTransferDetails | CashPaymentDetails;
-
-export interface CryptoPaymentDetails {
-  type: 'Crypto';
-  currency: 'USDT' | 'BTC';
-  username: string;
-  pay_id: string;
-  network: 'TRC20' | 'BEP20' | 'Bitcoin';
-  transaction_hash?: string;
-  wallet_address?: string;
-}
-
-export interface BankTransferDetails {
-  type: 'Bank Transfer';
-  transaction_reference: string;
-  sender_name: string;
-  sender_bank?: string;
-  transaction_time: string; // Manual entry
-  exchange_rate?: number;
-  currency: string;
-  amount_in_currency: number;
-}
-
-export interface CashPaymentDetails {
-  type: 'Cash';
-  received_by: string;
-  receipt_number?: string;
-  notes?: string;
-}
 
 // Order creation and update types
 export interface OrderCreateData {

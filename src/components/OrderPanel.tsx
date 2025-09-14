@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Plus,
   Edit,
@@ -7,8 +7,12 @@ import {
   Trash2,
   Filter,
   Search,
+  Copy,
+  Download,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import Invoice from './Invoice';
+import { copyInvoiceToClipboard, downloadInvoiceImage } from '../utils/invoiceUtils';
 import type {
   Order,
   OrderItem,
@@ -37,6 +41,11 @@ const OrderPanel: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Invoice state
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const invoiceRef = useRef<HTMLDivElement>(null);
 
   // Filter and search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -506,6 +515,49 @@ const OrderPanel: React.FC = () => {
     }
   };
 
+  // Invoice functions
+  const handleCopyInvoice = async () => {
+    if (!invoiceRef.current) return;
+    
+    setInvoiceLoading(true);
+    try {
+      const success = await copyInvoiceToClipboard(invoiceRef.current);
+      if (success) {
+        // You could add a toast notification here
+        alert('Invoice copied to clipboard!');
+      } else {
+        alert('Failed to copy invoice to clipboard');
+      }
+    } catch (error) {
+      console.error('Error copying invoice:', error);
+      alert('Failed to copy invoice to clipboard');
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
+  const handleDownloadInvoice = async (order: Order) => {
+    if (!invoiceRef.current) return;
+    
+    setInvoiceLoading(true);
+    try {
+      const success = await downloadInvoiceImage(invoiceRef.current, order.id);
+      if (!success) {
+        alert('Failed to download invoice');
+      }
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      alert('Failed to download invoice');
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
+  const openInvoiceModal = (order: Order) => {
+    setSelectedOrder(order);
+    setShowInvoiceModal(true);
+  };
+
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg">
       {error && (
@@ -684,6 +736,14 @@ const OrderPanel: React.FC = () => {
                         title="View Order"
                       >
                         <Eye className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => openInvoiceModal(order)}
+                        className="p-1 text-purple-600 hover:bg-purple-100 rounded"
+                        title="View Invoice"
+                      >
+                        <FileText className="w-4 h-4" />
                       </button>
 
                       {order.status === "Pending" && (
@@ -1774,6 +1834,73 @@ const OrderPanel: React.FC = () => {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Modal */}
+      {showInvoiceModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold">Invoice</h3>
+                <p className="text-purple-100 text-sm mt-1">
+                  Order #{selectedOrder.id.slice(-8)}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleCopyInvoice()}
+                  disabled={invoiceLoading}
+                  className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center disabled:opacity-50"
+                  title="Copy Invoice to Clipboard"
+                >
+                  <Copy className="w-4 h-4 mr-1" />
+                  {invoiceLoading ? 'Copying...' : 'Copy'}
+                </button>
+                <button
+                  onClick={() => handleDownloadInvoice(selectedOrder)}
+                  disabled={invoiceLoading}
+                  className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center disabled:opacity-50"
+                  title="Download Invoice"
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Download
+                </button>
+                <button
+                  onClick={() => setShowInvoiceModal(false)}
+                  className="text-purple-100 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div ref={invoiceRef}>
+                <Invoice 
+                  order={selectedOrder}
+                  customer={customers.find(c => c.id === selectedOrder.customer_id) || null}
+                  platforms={platforms}
+                  paymentDetails={getOrderPaymentDetails(selectedOrder.id)}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowInvoiceModal(false)}
+                className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

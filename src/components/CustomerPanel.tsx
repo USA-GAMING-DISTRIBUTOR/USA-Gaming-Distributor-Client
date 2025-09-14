@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import type { Customer, CustomerPricing, CustomerPricingCreateData } from "../types/customer";
+import type { Customer, CustomerPricing } from "../types/customer";
 import type { Platform } from "../types/platform";
 import { Plus, Edit2, Trash2, Phone, X, DollarSign } from "lucide-react";
 

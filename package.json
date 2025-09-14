@@ -19,6 +19,7 @@
     "@reduxjs/toolkit": "^2.8.2",
     "@supabase/supabase-js": "^2.53.0",
     "@tailwindcss/vite": "^4.1.11",
+    "@types/html2canvas": "^0.5.35",
     "@types/react-router-dom": "^5.3.3",
     "chart.js": "^4.5.0",
     "html2canvas": "^1.4.1",

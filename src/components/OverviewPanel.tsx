@@ -122,6 +122,9 @@ const OverviewPanel: React.FC = () => {
           contact_info: String(
             customer.contact_info || customer.phone || customer.email || ""
           ),
+          contact_numbers: customer.contact_numbers ? 
+            Array.isArray(customer.contact_numbers) ? customer.contact_numbers.map(String) : null 
+            : null,
           email: customer.email ? String(customer.email) : null,
           phone: customer.phone ? String(customer.phone) : null,
           address: customer.address ? String(customer.address) : null,

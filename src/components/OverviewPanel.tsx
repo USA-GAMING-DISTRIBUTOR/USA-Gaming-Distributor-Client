@@ -366,16 +366,16 @@ const OverviewPanel: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-r from-pink-500 to-pink-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm font-medium">Platforms</p>
+              <p className="text-pink-100 text-sm font-medium">Platforms</p>
               <p className="text-2xl font-bold">{metrics.total_platforms}</p>
-              <p className="text-purple-200 text-xs mt-1">
+              <p className="text-pink-200 text-xs mt-1">
                 {metrics.low_stock_platforms} low stock
               </p>
             </div>
-            <Package className="h-8 w-8 text-purple-200" />
+            <Package className="h-8 w-8 text-pink-200" />
           </div>
         </div>
       </div>

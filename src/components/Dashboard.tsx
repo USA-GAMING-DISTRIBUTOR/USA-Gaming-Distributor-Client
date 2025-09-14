@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
       case "SuperAdmin":
-        return "bg-purple-100 text-purple-800";
+        return "bg-pink-100 text-pink-800";
       case "Admin":
         return "bg-violet-100 text-violet-800";
       case "Employee":
@@ -199,9 +199,9 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-purple-50">
+    <div className="min-h-screen bg-pink-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-purple-200">
+      <header className="bg-white shadow-sm border-b border-pink-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -219,7 +219,7 @@ const Dashboard: React.FC = () => {
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-pink-700 hover:text-purple-900 hover:bg-purple-100 rounded-md transition-colors"
+                className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-pink-700 hover:text-pink-900 hover:bg-pink-100 rounded-md transition-colors"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Logout</span>
@@ -240,7 +240,7 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
+              <div className="p-2 bg-pink-100 rounded-lg">
                 <Users className="w-6 h-6 text-pink-600" />
               </div>
               <div className="ml-4">
@@ -283,14 +283,14 @@ const Dashboard: React.FC = () => {
 
         {/* Create User Section */}
         <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-6 py-4 border-b border-purple-200">
+          <div className="px-6 py-4 border-b border-pink-200">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-medium text-pink-900">
                 User Management
               </h2>
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
-                className="flex items-center space-x-2 px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+                className="flex items-center space-x-2 px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 <span>Create User</span>
@@ -299,7 +299,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           {showCreateForm && (
-            <div className="p-6 border-b border-pink-200 bg-purple-50">
+            <div className="p-6 border-b border-pink-200 bg-pink-50">
               <form
                 onSubmit={handleSubmit}
                 className="grid grid-cols-1 md:grid-cols-4 gap-4"
@@ -415,7 +415,7 @@ const Dashboard: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-purple-900">
+                <h3 className="text-lg font-medium text-pink-900">
                   Edit User
                 </h3>
                 <button

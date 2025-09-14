@@ -91,7 +91,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen bg-purple-50">
+    <div className="min-h-screen bg-pink-50">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -110,7 +110,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       >
         <div className="flex flex-col h-full">
           {/* Brand */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-purple-200">
+          <div className="flex items-center justify-between h-16 px-6 border-b border-pink-200">
             <div className="flex items-center">
               <Shield className="w-8 h-8 text-pink-600 mr-3" />
               <span className="text-lg font-semibold text-pink-900">
@@ -138,7 +138,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     ${
                       isActive
                         ? "bg-pink-100 text-pink-700"
-                        : "text-gray-700 hover:bg-purple-100 hover:text-pink-700"
+                        : "text-gray-700 hover:bg-pink-100 hover:text-pink-700"
                     }
                   `}
                 >
@@ -150,10 +150,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </nav>
 
           {/* Logout button with username and role at bottom */}
-          <div className="border-t border-purple-200 p-4 mt-auto">
+          <div className="border-t border-pink-200 p-4 mt-auto">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 text-pink-700 hover:text-purple-900 hover:bg-purple-100 rounded-md transition-colors border border-pink-200 hover:border-purple-300"
+              className="w-full flex items-center px-3 py-2 text-pink-700 hover:text-pink-900 hover:bg-pink-100 rounded-md transition-colors border border-pink-200 hover:border-pink-300"
               title="Logout"
             >
               <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-3">
@@ -165,7 +165,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 <p className="text-sm font-medium text-pink-900">
                   {user?.username}
                 </p>
-                <p className="text-xs text-purple-600">{user?.role}</p>
+                <p className="text-xs text-pink-600">{user?.role}</p>
               </div>
               <Power className="h-5 w-5 ml-2" />
             </button>
@@ -176,7 +176,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
         {/* Mobile menu button */}
-        <div className="lg:hidden bg-white border-b border-purple-200 p-4">
+        <div className="lg:hidden bg-white border-b border-pink-200 p-4">
           <button
             onClick={() => setSidebarOpen(true)}
             className="text-gray-500 hover:text-gray-700"

@@ -286,7 +286,7 @@ const PlatformPanel: React.FC = () => {
         </h2>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+          className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Platform
@@ -300,7 +300,7 @@ const PlatformPanel: React.FC = () => {
           onChange={(e) =>
             setFilter((prev) => ({ ...prev, account_type: e.target.value }))
           }
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
         >
           <option value="all">All Account Types</option>
           {uniqueAccountTypes.map((type) => (
@@ -321,7 +321,7 @@ const PlatformPanel: React.FC = () => {
                 | "out_of_stock",
             }))
           }
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
         >
           <option value="all">All Stock Levels</option>
           <option value="low_stock">Low Stock (&lt; 100)</option>
@@ -359,7 +359,7 @@ const PlatformPanel: React.FC = () => {
               <tr>
                 <td colSpan={6} className="text-center py-8">
                   <div className="flex justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
                   </div>
                 </td>
               </tr>
@@ -471,7 +471,7 @@ const PlatformPanel: React.FC = () => {
                   name="platform_name"
                   value={form.platform_name}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -485,7 +485,7 @@ const PlatformPanel: React.FC = () => {
                   name="account_type"
                   value={form.account_type}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   placeholder="e.g., Standard, Premium, Enterprise"
                   required
                 />
@@ -500,7 +500,7 @@ const PlatformPanel: React.FC = () => {
                   name="inventory"
                   value={form.inventory}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   min="0"
                   required
                 />
@@ -515,7 +515,7 @@ const PlatformPanel: React.FC = () => {
                   name="cost_price"
                   value={form.cost_price}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   min="0"
                   step="0.01"
                   required
@@ -533,7 +533,7 @@ const PlatformPanel: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "Creating..." : "Create Platform"}
                 </button>
@@ -567,7 +567,7 @@ const PlatformPanel: React.FC = () => {
                   name="platform_name"
                   value={editForm.platform_name}
                   onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -581,7 +581,7 @@ const PlatformPanel: React.FC = () => {
                   name="account_type"
                   value={editForm.account_type}
                   onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   placeholder="e.g., Standard, Premium, Enterprise"
                   required
                 />
@@ -596,7 +596,7 @@ const PlatformPanel: React.FC = () => {
                   name="inventory"
                   value={editForm.inventory}
                   onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   min="0"
                   required
                 />
@@ -611,7 +611,7 @@ const PlatformPanel: React.FC = () => {
                   name="cost_price"
                   value={editForm.cost_price}
                   onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   min="0"
                   step="0.01"
                   required
@@ -629,7 +629,7 @@ const PlatformPanel: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "Updating..." : "Update Platform"}
                 </button>
@@ -709,7 +709,7 @@ const PlatformPanel: React.FC = () => {
                       quantity: parseInt(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   min="1"
                   required
                 />
@@ -728,7 +728,7 @@ const PlatformPanel: React.FC = () => {
                       cost_per_unit: parseFloat(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   min="0"
                   step="0.01"
                   required
@@ -748,7 +748,7 @@ const PlatformPanel: React.FC = () => {
                       supplier: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   placeholder="Supplier name"
                 />
               </div>
@@ -766,7 +766,7 @@ const PlatformPanel: React.FC = () => {
                       notes: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   placeholder="Additional notes"
                 />
               </div>

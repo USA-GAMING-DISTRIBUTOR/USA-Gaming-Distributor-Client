@@ -304,7 +304,7 @@ const OrderPanel: React.FC = () => {
       case "Cancelled":
         return "text-red-600 bg-red-100";
       case "Refunded":
-        return "text-purple-600 bg-purple-100";
+        return "text-pink-600 bg-pink-100";
       default:
         return "text-gray-600 bg-gray-100";
     }
@@ -573,7 +573,7 @@ const OrderPanel: React.FC = () => {
         </h2>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+          className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create Order
@@ -589,7 +589,7 @@ const OrderPanel: React.FC = () => {
             placeholder="Search orders..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
           />
         </div>
 
@@ -598,7 +598,7 @@ const OrderPanel: React.FC = () => {
           onChange={(e) =>
             setStatusFilter(e.target.value as Order["status"] | "all")
           }
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
         >
           <option value="all">All Statuses</option>
           <option value="Pending">Pending</option>
@@ -613,7 +613,7 @@ const OrderPanel: React.FC = () => {
           onChange={(e) =>
             setPaymentMethodFilter(e.target.value as PaymentMethod | "all")
           }
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
         >
           <option value="all">All Payment Methods</option>
           <option value="Cash">Cash</option>
@@ -671,7 +671,7 @@ const OrderPanel: React.FC = () => {
               <tr>
                 <td colSpan={8} className="text-center py-8">
                   <div className="flex justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
                   </div>
                 </td>
               </tr>
@@ -740,7 +740,7 @@ const OrderPanel: React.FC = () => {
 
                       <button
                         onClick={() => openInvoiceModal(order)}
-                        className="p-1 text-purple-600 hover:bg-purple-100 rounded"
+                        className="p-1 text-pink-600 hover:bg-pink-100 rounded"
                         title="View Invoice"
                       >
                         <FileText className="w-4 h-4" />
@@ -763,7 +763,7 @@ const OrderPanel: React.FC = () => {
                           onClick={() =>
                             window.open(order.invoice_url!, "_blank")
                           }
-                          className="p-1 text-purple-600 hover:bg-purple-100 rounded"
+                          className="p-1 text-pink-600 hover:bg-pink-100 rounded"
                           title="View Invoice"
                         >
                           <FileText className="w-4 h-4" />
@@ -794,7 +794,7 @@ const OrderPanel: React.FC = () => {
             >
               Previous
             </button>
-            <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded">
+            <span className="px-3 py-1 bg-pink-100 text-pink-800 rounded">
               {currentPage} of {totalPages}
             </span>
             <button
@@ -848,7 +848,7 @@ const OrderPanel: React.FC = () => {
                       }));
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   required
                 >
                   <option value="">Select Customer</option>
@@ -892,7 +892,7 @@ const OrderPanel: React.FC = () => {
                         }));
                       }
                     }}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   >
                     <option value="">Select Platform</option>
                     {platforms.map((platform) => (
@@ -924,7 +924,7 @@ const OrderPanel: React.FC = () => {
                         return updatedItem;
                       });
                     }}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
 
                   <input
@@ -939,7 +939,7 @@ const OrderPanel: React.FC = () => {
                         unit_price: parseFloat(e.target.value) || 0,
                       }))
                     }
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
 
                   <button
@@ -1068,7 +1068,7 @@ const OrderPanel: React.FC = () => {
                       payment_details: defaultPaymentDetails,
                     }));
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   required
                 >
                   <option value="Cash">Cash</option>
@@ -1098,7 +1098,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     >
                       <option value="USDT">USDT</option>
                       <option value="BTC">BTC</option>
@@ -1120,7 +1120,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       required
                     />
 
@@ -1140,7 +1140,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       required
                     />
 
@@ -1161,7 +1161,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     >
                       <option value="TRC20">TRC20</option>
                       <option value="BEP20">BEP20</option>
@@ -1193,7 +1193,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       required
                     />
 
@@ -1213,7 +1213,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       required
                     />
 
@@ -1233,7 +1233,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     />
 
                     <input
@@ -1252,7 +1252,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       required
                     />
 
@@ -1270,7 +1270,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     >
                       <option value="USD">USD</option>
                       <option value="EUR">EUR</option>
@@ -1297,7 +1297,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       required
                     />
 
@@ -1318,7 +1318,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -1346,7 +1346,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       required
                     />
 
@@ -1366,7 +1366,7 @@ const OrderPanel: React.FC = () => {
                           },
                         }))
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     />
 
                     <div className="col-span-2">
@@ -1386,7 +1386,7 @@ const OrderPanel: React.FC = () => {
                           }))
                         }
                         rows={2}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -1407,7 +1407,7 @@ const OrderPanel: React.FC = () => {
                     }))
                   }
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   placeholder="Any additional notes about this order..."
                 />
               </div>
@@ -1424,7 +1424,7 @@ const OrderPanel: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading || createForm.items.length === 0}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Creating..." : "Create Order"}
                 </button>
@@ -1439,17 +1439,17 @@ const OrderPanel: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6">
+            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6">
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-bold">Order Details</h3>
-                  <p className="text-purple-100 text-sm mt-1">
+                  <p className="text-pink-100 text-sm mt-1">
                     Order #{selectedOrder.id.slice(-8)} • {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleDateString() : "N/A"}
                   </p>
                 </div>
                 <button
                   onClick={() => setShowViewModal(false)}
-                  className="text-purple-100 hover:text-white transition-colors"
+                  className="text-pink-100 hover:text-white transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1537,7 +1537,7 @@ const OrderPanel: React.FC = () => {
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center mb-2">
-                                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mr-3">
+                                <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mr-3">
                                   {item.platform_name.charAt(0)}
                                 </div>
                                 <div>
@@ -1825,7 +1825,7 @@ const OrderPanel: React.FC = () => {
                 {selectedOrder.invoice_url && (
                   <button
                     onClick={() => window.open(selectedOrder.invoice_url!, "_blank")}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                    className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors flex items-center"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1844,10 +1844,10 @@ const OrderPanel: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6 flex justify-between items-center">
               <div>
                 <h3 className="text-xl font-bold">Invoice</h3>
-                <p className="text-purple-100 text-sm mt-1">
+                <p className="text-pink-100 text-sm mt-1">
                   Order #{selectedOrder.id.slice(-8)}
                 </p>
               </div>
@@ -1855,7 +1855,7 @@ const OrderPanel: React.FC = () => {
                 <button
                   onClick={() => handleCopyInvoice()}
                   disabled={invoiceLoading}
-                  className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center disabled:opacity-50"
+                  className="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center disabled:opacity-50"
                   title="Copy Invoice to Clipboard"
                 >
                   <Copy className="w-4 h-4 mr-1" />
@@ -1864,7 +1864,7 @@ const OrderPanel: React.FC = () => {
                 <button
                   onClick={() => handleDownloadInvoice(selectedOrder)}
                   disabled={invoiceLoading}
-                  className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center disabled:opacity-50"
+                  className="bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded text-sm transition-colors flex items-center disabled:opacity-50"
                   title="Download Invoice"
                 >
                   <Download className="w-4 h-4 mr-1" />
@@ -1872,7 +1872,7 @@ const OrderPanel: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setShowInvoiceModal(false)}
-                  className="text-purple-100 hover:text-white transition-colors"
+                  className="text-pink-100 hover:text-white transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

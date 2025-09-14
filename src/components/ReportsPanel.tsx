@@ -14,7 +14,15 @@ import {
   ArcElement,
 } from "chart.js";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
 const ReportsPanel: React.FC = () => {
   const [salesData, setSalesData] = useState<any[]>([]);
@@ -68,7 +76,7 @@ const ReportsPanel: React.FC = () => {
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
-          <h3 className="text-md font-bold mb-2">Sales by Game Coin</h3>
+          <h3 className="text-md font-bold mb-2">Sales by Platform</h3>
           <Bar
             data={{
               labels: salesLabels,
@@ -80,7 +88,10 @@ const ReportsPanel: React.FC = () => {
                 },
               ],
             }}
-            options={{ responsive: true, plugins: { legend: { display: false } } }}
+            options={{
+              responsive: true,
+              plugins: { legend: { display: false } },
+            }}
           />
         </div>
         <div>
@@ -92,11 +103,20 @@ const ReportsPanel: React.FC = () => {
                 {
                   label: "Inventory",
                   data: inventoryValues,
-                  backgroundColor: ["#ec4899", "#fbbf24", "#34d399", "#60a5fa", "#f87171"],
+                  backgroundColor: [
+                    "#ec4899",
+                    "#fbbf24",
+                    "#34d399",
+                    "#60a5fa",
+                    "#f87171",
+                  ],
                 },
               ],
             }}
-            options={{ responsive: true, plugins: { legend: { position: "bottom" } } }}
+            options={{
+              responsive: true,
+              plugins: { legend: { position: "bottom" } },
+            }}
           />
         </div>
       </div>

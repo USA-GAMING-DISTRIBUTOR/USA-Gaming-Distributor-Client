@@ -22,17 +22,20 @@ A React + TypeScript authentication system with role-based access control using 
 ## User Roles
 
 ### SuperAdmin
+
 - Full system access
 - Can create Admin and Employee users
 - Complete user management dashboard
 - Default credentials: `superadmin` / `admin123`
 
 ### Admin
+
 - Read-only access to user information
 - Limited dashboard with statistics
 - Cannot create or modify users
 
 ### Employee
+
 - Basic dashboard access
 - Personal task management
 - Time tracking features
@@ -40,6 +43,7 @@ A React + TypeScript authentication system with role-based access control using 
 ## Setup Instructions
 
 ### 1. Clone and Install
+
 ```bash
 git clone <repository-url>
 cd USA-Gaming-Distributor-Client
@@ -166,27 +170,131 @@ You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-re
 
 ```js
 // eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+import reactX from "eslint-plugin-react-x";
+import reactDom from "eslint-plugin-react-dom";
 
 export default tseslint.config([
-  globalIgnores(['dist']),
+  globalIgnores(["dist"]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       // Other configs...
       // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
+      reactX.configs["recommended-typescript"],
       // Enable lint rules for React DOM
       reactDom.configs.recommended,
     ],
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       // other options...
     },
   },
-])
+]);
 ```
+
+## Supabase CLI Workflow
+
+The project includes the Supabase CLI (as a dev dependency) and a lightweight database workflow so you can manage schema and generate TypeScript types locally.
+
+### 1. Auth & Project Link
+
+Install global CLI (optional if you rely on the local binary in node_modules):
+
+```bash
+npm i -g supabase # optional
+```
+
+Login & link (stores access token locally):
+
+```bash
+npm run supabase login
+npm run supabase link --project-ref your-project-ref
+```
+
+Alternatively you can run `npx supabase login` if you prefer no global install. The `project-ref` is the subdomain part of your Supabase URL (`https://<project-ref>.supabase.co`).
+
+### 2. Environment Variables
+
+Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+Vite exposes variables prefixed with `VITE_` to the client bundle.
+
+### 3. Local Migration Development
+
+Create a new migration (you will be prompted for a name):
+
+```bash
+npm run db:new add_products_table
+```
+
+Edit the generated SQL under `supabase/migrations/<timestamp>_add_products_table.sql`.
+
+Push migrations to your linked remote project:
+
+```bash
+npm run db:push
+```
+
+Reset (DANGER: re-applies all migrations & runs `seed.sql`):
+
+```bash
+npm run db:reset
+```
+
+### 4. Seeding
+
+`supabase/seed.sql` runs automatically on `db:reset`. Keep it idempotent (use `where not exists`).
+
+### 5. Type Generation
+
+Generate strongly-typed Database definitions (writes to `src/types/database.types.ts`):
+
+```bash
+npm run db:gen
+```
+
+Then you can import types:
+
+```ts
+import { Database } from "./types/database.types";
+type User = Database["public"]["Tables"]["users"]["Row"];
+```
+
+### 6. Updating the Supabase Client Types
+
+Optionally replace the inline `Database` interface in `src/lib/supabase.ts` with the generated one:
+
+```ts
+import { Database } from "../types/database.types";
+```
+
+### 7. Recommended Workflow Summary
+
+1. Write migration SQL (or generate via `db:new`).
+2. `npm run db:push` to apply to remote.
+3. `npm run db:gen` to refresh TypeScript types.
+4. Update application code with new types / tables.
+5. Commit: migration + type file + related code.
+
+### 8. Realtime & RLS Notes
+
+Current policies are permissive (select/insert/update for all). Harden them before production by scoping to `auth.uid()`, roles, or custom claims. Realtime listens to changes automatically if you subscribe using the Supabase JS client.
+
+### 9. Troubleshooting
+
+| Issue                       | Fix                                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| Permission denied on push   | Ensure project is linked & token has rights (`supabase link`)                            |
+| Types file empty            | Run `npm run db:push` first so introspection sees latest schema                          |
+| Reset fails on foreign keys | Order statements or use `cascade` carefully; prefer additional down migrations if needed |
+
+---
+
+Happy shipping!

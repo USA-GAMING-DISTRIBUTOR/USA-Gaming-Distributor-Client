@@ -6,8 +6,8 @@ interface Issue {
   customer_id: string;
   issue_text: string;
   created_by: string;
-  status: string;
-  created_at: string;
+  status: string | null;
+  created_at: string | null;
 }
 
 const CustomerIssuesPanel: React.FC = () => {
@@ -72,11 +72,15 @@ const CustomerIssuesPanel: React.FC = () => {
           <tbody>
             {issues.map((issue) => (
               <tr key={issue.id} className="border-b hover:bg-gray-50">
-                <td className="py-2 px-4">{new Date(issue.created_at).toLocaleString()}</td>
+                <td className="py-2 px-4">
+                  {issue.created_at
+                    ? new Date(issue.created_at).toLocaleString()
+                    : "N/A"}
+                </td>
                 <td className="py-2 px-4">{issue.customer_id}</td>
                 <td className="py-2 px-4">{issue.issue_text}</td>
                 <td className="py-2 px-4">{issue.created_by}</td>
-                <td className="py-2 px-4">{issue.status}</td>
+                <td className="py-2 px-4">{issue.status || "N/A"}</td>
                 <td className="py-2 px-4">
                   <button
                     className="bg-green-500 text-white px-3 py-1 rounded mr-2"

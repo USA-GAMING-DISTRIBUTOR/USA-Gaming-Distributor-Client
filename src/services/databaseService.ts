@@ -2,18 +2,21 @@ import { supabase } from '../lib/supabase'
 
 export const createUsersTable = async () => {
   try {
-    // Create the users table using Supabase's RPC or direct SQL execution
-    const { error } = await supabase.rpc('create_users_table_if_not_exists')
+    // Check if users table exists by trying to query it
+    const { error } = await supabase
+      .from('users')
+      .select('count')
+      .limit(1)
     
     if (error) {
-      console.log('RPC function not available, table might already exist or need manual creation')
+      console.log('Users table does not exist, needs manual creation')
       return false
     }
     
-    console.log('Users table created successfully')
+    console.log('Users table already exists')
     return true
   } catch (error) {
-    console.error('Error creating users table:', error)
+    console.error('Error checking users table:', error)
     return false
   }
 }

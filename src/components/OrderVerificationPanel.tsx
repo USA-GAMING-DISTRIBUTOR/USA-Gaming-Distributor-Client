@@ -66,6 +66,8 @@ const OrderVerificationPanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [verifyId, setVerifyId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -169,34 +171,24 @@ const OrderVerificationPanel: React.FC = () => {
           </thead>
           <tbody>
             {orders.map((order) => (
-              <tr key={order.id} className="border-b hover:bg-pink-50">
+              <tr
+                key={order.id}
+                className="border-b hover:bg-pink-50 cursor-pointer"
+                onClick={() => {
+                  setDetailOrder(order);
+                  setDetailModalOpen(true);
+                }}
+              >
                 <td className="py-2 px-3 font-medium">{order.id}</td>
                 <td className="py-2 px-3 font-medium">
                   {order.customer?.name || order.customer_id}
                 </td>
-                <td className="py-2 px-3">
-                  {Array.isArray(order.items) ? (
-                    <table className="w-full text-xs bg-white rounded shadow">
-                      <thead>
-                        <tr>
-                          <th className="px-1 py-1 text-left w-20">Coin</th>
-                          <th className="px-1 py-1 text-left w-12">Quantity</th>
-                          <th className="px-1 py-1 text-left w-16">Price</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {order.items.map((item, idx) => (
-                          <tr key={idx}>
-                            <td className="px-1 py-1 font-semibold">
-                              {item.coin_name}
-                            </td>
-                            <td className="px-1 py-1">{item.quantity}</td>
-                            <td className="px-1 py-1">${item.price}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : null}
+                <td className="py-2 px-3 select-none">
+                  {Array.isArray(order.items)
+                    ? `${order.items.length} item${
+                        order.items.length !== 1 ? "s" : ""
+                      }`
+                    : "—"}
                 </td>
                 <td className="py-2 px-3">{order.payment_method}</td>
                 <td className="py-2 px-3">
@@ -229,7 +221,10 @@ const OrderVerificationPanel: React.FC = () => {
                     <span className="text-gray-400">No Invoice</span>
                   )}
                 </td>
-                <td className="py-2 px-3 flex gap-2">
+                <td
+                  className="py-2 px-3 flex gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {order.status !== "verified" && (
                     <button
                       className="bg-blue-500 text-white px-3 py-1 rounded"
@@ -281,7 +276,7 @@ const OrderVerificationPanel: React.FC = () => {
                         <table className="w-full text-xs mb-2">
                           <thead>
                             <tr>
-                              <th className="px-2 py-1 text-left">Coin</th>
+                              <th className="px-2 py-1 text-left">Platform</th>
                               <th className="px-2 py-1 text-left">Quantity</th>
                               <th className="px-2 py-1 text-left">Price</th>
                               <th className="px-2 py-1 text-left">Action</th>
@@ -303,7 +298,7 @@ const OrderVerificationPanel: React.FC = () => {
                                     }}
                                     className="w-full px-2 py-1 border rounded"
                                   >
-                                    <option value="">Select Coin</option>
+                                    <option value="">Select Platform</option>
                                     {coins.map((coin) => (
                                       <option key={coin.id} value={coin.id}>
                                         {coin.platform}
@@ -457,6 +452,134 @@ const OrderVerificationPanel: React.FC = () => {
               >
                 Confirm
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {detailModalOpen && detailOrder && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(6px)",
+            background: "rgba(0,0,0,0.35)",
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
+            <button
+              onClick={() => {
+                setDetailModalOpen(false);
+                setDetailOrder(null);
+              }}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-sm"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-semibold mb-2">Order Details</h3>
+            <div className="mb-4 text-sm grid grid-cols-2 gap-x-4 gap-y-1">
+              <div>
+                <span className="font-semibold">Order ID:</span>{" "}
+                {detailOrder.id}
+              </div>
+              <div>
+                <span className="font-semibold">Created:</span>{" "}
+                {new Date(detailOrder.created_at).toLocaleString()}
+              </div>
+              <div>
+                <span className="font-semibold">Customer:</span>{" "}
+                {detailOrder.customer?.name || detailOrder.customer_id}
+              </div>
+              <div>
+                <span className="font-semibold">Payment:</span>{" "}
+                {detailOrder.payment_method}
+              </div>
+              <div>
+                <span className="font-semibold">Status:</span>{" "}
+                {detailOrder.status}
+              </div>
+              <div>
+                <span className="font-semibold">Created By:</span>{" "}
+                {detailOrder.created_by || "-"}
+              </div>
+              <div className="col-span-2">
+                <span className="font-semibold">Invoice:</span>{" "}
+                {detailOrder.invoice_url ? (
+                  <a
+                    href={detailOrder.invoice_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-pink-500 underline ml-1"
+                  >
+                    View
+                  </a>
+                ) : (
+                  <span className="text-gray-400 ml-1">None</span>
+                )}
+              </div>
+            </div>
+            <h4 className="font-semibold mb-2">Items</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="py-2 px-2 text-left">Platform</th>
+                    <th className="py-2 px-2 text-right">Quantity</th>
+                    <th className="py-2 px-2 text-right">Unit Price</th>
+                    <th className="py-2 px-2 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.isArray(detailOrder.items) &&
+                  detailOrder.items.length > 0 ? (
+                    detailOrder.items.map((item, idx) => {
+                      const total = Number(item.price) * Number(item.quantity);
+                      return (
+                        <tr key={idx} className="border-t">
+                          <td className="py-1 px-2 font-medium">
+                            {item.coin_name || item.coin_id}
+                          </td>
+                          <td className="py-1 px-2 text-right">
+                            {item.quantity}
+                          </td>
+                          <td className="py-1 px-2 text-right">
+                            ${item.price}
+                          </td>
+                          <td className="py-1 px-2 text-right">${total}</td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="py-4 text-center text-gray-500"
+                      >
+                        No items
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t bg-gray-50">
+                    <td
+                      colSpan={3}
+                      className="py-2 px-2 text-right font-semibold"
+                    >
+                      Grand Total
+                    </td>
+                    <td className="py-2 px-2 text-right font-semibold">
+                      $
+                      {Array.isArray(detailOrder.items)
+                        ? detailOrder.items.reduce(
+                            (sum, item) =>
+                              sum + Number(item.price) * Number(item.quantity),
+                            0
+                          )
+                        : 0}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
         </div>

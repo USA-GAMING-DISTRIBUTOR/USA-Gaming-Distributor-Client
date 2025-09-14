@@ -6,7 +6,7 @@ interface Employee {
   id: string;
   username: string;
   role: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 const EmployeePanel: React.FC = () => {
@@ -29,8 +29,9 @@ const EmployeePanel: React.FC = () => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleEditSubmit = async () => {
+    if (!editId) return;
+
     setLoading(true);
     const updateData: { username: string; password?: string } = {
       username: editForm.username,
@@ -205,7 +206,9 @@ const EmployeePanel: React.FC = () => {
                 </td>
                 <td className="py-2 px-4">{emp.role}</td>
                 <td className="py-2 px-4">
-                  {new Date(emp.created_at).toLocaleString()}
+                  {emp.created_at
+                    ? new Date(emp.created_at).toLocaleString()
+                    : "N/A"}
                 </td>
                 <td className="py-2 px-4">
                   <button

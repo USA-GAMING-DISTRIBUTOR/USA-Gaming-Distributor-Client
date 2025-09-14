@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '../types/database.types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
 
-// Database types
-export interface Database {
+// Legacy inline types for backward compatibility (you can remove these if not needed)
+export interface LegacyDatabase {
   public: {
     Tables: {
       users: {

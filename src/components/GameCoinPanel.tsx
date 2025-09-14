@@ -7,7 +7,7 @@ interface Coin {
   platform: string;
   inventory: number;
   cost_price: number;
-  created_at: string;
+  created_at: string | null;
 }
 
 const GameCoinPanel: React.FC = () => {
@@ -100,10 +100,11 @@ const GameCoinPanel: React.FC = () => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
+  const handleEditCoin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editId) return;
+
     setLoading(true);
-    setError(null);
     const { error } = await supabase
       .from("game_coins")
       .update({
@@ -112,6 +113,7 @@ const GameCoinPanel: React.FC = () => {
         cost_price: Number(editForm.cost_price),
       })
       .eq("id", editId);
+
     if (error) {
       setError("Failed to edit game coin: " + error.message);
       setLoading(false);
@@ -129,12 +131,12 @@ const GameCoinPanel: React.FC = () => {
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Game Coins</h2>
+        <h2 className="text-lg font-semibold">Platforms</h2>
         <button
           className="bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center"
           onClick={() => setShowModal(true)}
         >
-          <Plus className="w-4 h-4 mr-2" /> Add Coin
+          <Plus className="w-4 h-4 mr-2" /> Add Platform
         </button>
       </div>
       {showModal && (
@@ -143,7 +145,7 @@ const GameCoinPanel: React.FC = () => {
           style={{ backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.2)" }}
         >
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Add Game Coin</h3>
+            <h3 className="text-lg font-semibold mb-4">Add Platform</h3>
             <form onSubmit={handleAddCoin} className="space-y-4">
               <input
                 name="platform"
@@ -208,10 +210,7 @@ const GameCoinPanel: React.FC = () => {
               <tr key={coin.id} className="border-b hover:bg-gray-50">
                 <td className="py-2 px-4">
                   {editId === coin.id ? (
-                    <form
-                      className="flex space-x-2"
-                      onSubmit={handleEditSubmit}
-                    >
+                    <form className="flex space-x-2" onSubmit={handleEditCoin}>
                       <input
                         name="platform"
                         value={editForm.platform}
@@ -257,7 +256,9 @@ const GameCoinPanel: React.FC = () => {
                 <td className="py-2 px-4">{coin.inventory} Qty</td>
                 <td className="py-2 px-4">$ {coin.cost_price}</td>
                 <td className="py-2 px-4">
-                  {new Date(coin.created_at).toLocaleString()}
+                  {coin.created_at
+                    ? new Date(coin.created_at).toLocaleString()
+                    : "N/A"}
                 </td>
                 <td className="py-2 px-4">
                   <button

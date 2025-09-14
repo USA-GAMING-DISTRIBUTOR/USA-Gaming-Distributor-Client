@@ -11,6 +11,22 @@ import {
   Legend,
   ArcElement,
 } from "chart.js";
+import type { DashboardMetrics, SalesAnalytics } from "../types/analytics";
+import type {
+  Order,
+  OrderItem,
+  PaymentMethod,
+  PaymentDetails,
+} from "../types/order";
+import type { Customer } from "../types/customer";
+import type { Platform } from "../types/platform";
+import {
+  TrendingUp,
+  Users,
+  Package,
+  ShoppingCart,
+  AlertTriangle,
+} from "lucide-react";
 
 ChartJS.register(
   CategoryScale,
@@ -23,204 +39,485 @@ ChartJS.register(
 );
 
 const OverviewPanel: React.FC = () => {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [coins, setCoins] = useState<any[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    total_sales: 0,
+    verified_sales: 0,
+    total_orders: 0,
+    verified_orders: 0,
+    pending_orders: 0,
+    total_customers: 0,
+    active_customers: 0,
+    total_platforms: 0,
+    low_stock_platforms: 0,
+  });
+  const [salesAnalytics, setSalesAnalytics] = useState<SalesAnalytics>({
+    sales_by_platform: [],
+    sales_by_customer: [],
+    daily_sales: [],
+    monthly_sales: [],
+  });
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setError(null);
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("orders")
-        .select("*");
-      if (ordersError) {
-        setError("Failed to fetch orders: " + ordersError.message);
-        return;
-      }
-      setOrders(ordersData || []);
-      const { data: coinsData } = await supabase
-        .from("game_coins")
-        .select("id, platform");
-      setCoins(coinsData || []);
-      const { data: customersData } = await supabase
-        .from("customers")
-        .select("id, name");
-      setCustomers(customersData || []);
-    };
-    fetchData();
+    fetchDashboardData();
+    // Set up real-time updates every 30 seconds
+    const interval = setInterval(fetchDashboardData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Only include verified orders
-  const verifiedOrders = orders.filter((order) => order.status === "verified");
+  const fetchDashboardData = async () => {
+    try {
+      setError(null);
 
-  // Metrics
-  // Use only item.price (not item.price * item.quantity)
-  const totalSales = verifiedOrders.reduce(
-    (sum, order) =>
-      sum + order.items.reduce((s: number, i: any) => s + i.price, 0),
-    0
-  );
-  const totalOrders = verifiedOrders.length;
-  const totalCustomers = customers.length;
-  const totalCoins = coins.length;
+      // Fetch all required data
+      const [ordersData, customersData, platformsData] = await Promise.all([
+        supabase.from("orders").select("*"),
+        supabase.from("customers").select("*"),
+        supabase.from("game_coins").select("*"), // Still using game_coins table name
+      ]);
 
-  // Sales by coin
-  const salesByCoin: Record<string, number> = {};
-  verifiedOrders.forEach((order) => {
-    order.items.forEach((item: any) => {
-      salesByCoin[item.coin_id] = (salesByCoin[item.coin_id] || 0) + item.price;
-    });
-  });
-  const coinLabels = Object.keys(salesByCoin).map(
-    (cid) => coins.find((c: any) => c.id === cid)?.platform || cid
-  );
-  const coinSales = Object.values(salesByCoin);
+      if (ordersData.error)
+        throw new Error("Failed to fetch orders: " + ordersData.error.message);
+      if (customersData.error)
+        throw new Error(
+          "Failed to fetch customers: " + customersData.error.message
+        );
+      if (platformsData.error)
+        throw new Error(
+          "Failed to fetch platforms: " + platformsData.error.message
+        );
 
-  // Sales by customer
-  const salesByCustomer: Record<string, number> = {};
-  verifiedOrders.forEach((order) => {
-    salesByCustomer[order.customer_id] =
-      (salesByCustomer[order.customer_id] || 0) +
-      order.items.reduce((s: number, i: any) => s + i.price, 0);
-  });
-  const customerLabels = Object.keys(salesByCustomer).map(
-    (cid) => customers.find((c: any) => c.id === cid)?.name || cid
-  );
-  const customerSales = Object.values(salesByCustomer);
+      const ordersRaw = ordersData.data || [];
+      const customersRaw = customersData.data || [];
+      const platformsRaw = platformsData.data || [];
+
+      // Transform raw database data to match our types
+      const orders: Order[] = ordersRaw.map(
+        (order: Record<string, unknown>) => ({
+          id: String(order.id || ""),
+          customer_id: String(order.customer_id || ""),
+          created_at: String(order.created_at || new Date().toISOString()),
+          created_by: String(order.created_by || ""),
+          items: Array.isArray(order.items) ? (order.items as OrderItem[]) : [],
+          payment_method: (order.payment_method as PaymentMethod) || "Cash",
+          payment_details: (order.payment_details as PaymentDetails) || {
+            type: "Cash",
+          },
+          total_amount: Number(order.total_amount || 0),
+          discount_amount: Number(order.discount_amount || 0),
+          final_amount: Number(order.final_amount || order.total_amount || 0),
+          status: (order.status as Order["status"]) || "Pending",
+          invoice_url: order.invoice_url ? String(order.invoice_url) : null,
+          verified_at: order.verified_at ? String(order.verified_at) : null,
+          verified_by: order.verified_by ? String(order.verified_by) : null,
+          notes: order.notes ? String(order.notes) : null,
+        })
+      );
+
+      const customers: Customer[] = customersRaw.map(
+        (customer: Record<string, unknown>) => ({
+          id: String(customer.id || ""),
+          name: String(customer.name || ""),
+          contact_info: String(
+            customer.contact_info || customer.phone || customer.email || ""
+          ),
+          email: customer.email ? String(customer.email) : null,
+          phone: customer.phone ? String(customer.phone) : null,
+          address: customer.address ? String(customer.address) : null,
+          created_at: customer.created_at ? String(customer.created_at) : null,
+          updated_at: customer.updated_at ? String(customer.updated_at) : null,
+        })
+      );
+
+      const platforms: Platform[] = platformsRaw.map(
+        (platform: Record<string, unknown>) => ({
+          id: String(platform.id || ""),
+          platform_name: String(
+            platform.platform_name || platform.platform || ""
+          ),
+          account_type:
+            (platform.account_type as Platform["account_type"]) || "Standard",
+          category: String(platform.category || ""),
+          inventory: Number(platform.inventory || 0),
+          cost_price: Number(platform.cost_price || 0),
+          created_at: String(platform.created_at || new Date().toISOString()),
+          updated_at: String(
+            platform.updated_at ||
+              platform.created_at ||
+              new Date().toISOString()
+          ),
+        })
+      );
+
+      // Calculate metrics
+      const verifiedOrders = orders.filter(
+        (order) => order.status === "Verified"
+      );
+      const pendingOrders = orders.filter(
+        (order) => order.status === "Pending"
+      );
+
+      // Calculate sales from verified orders only
+      const totalSales = orders.reduce((sum, order) => {
+        if (order.final_amount) return sum + order.final_amount;
+        // Fallback to items calculation
+        return (
+          sum +
+          order.items.reduce(
+            (itemSum, item) =>
+              itemSum + (item.total_price || item.unit_price * item.quantity),
+            0
+          )
+        );
+      }, 0);
+
+      const verifiedSales = verifiedOrders.reduce((sum, order) => {
+        if (order.final_amount) return sum + order.final_amount;
+        return (
+          sum +
+          order.items.reduce(
+            (itemSum, item) =>
+              itemSum + (item.total_price || item.unit_price * item.quantity),
+            0
+          )
+        );
+      }, 0);
+
+      // Active customers (those with orders in last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const activeCustomers = new Set(
+        orders
+          .filter(
+            (order) =>
+              order.created_at && new Date(order.created_at) > thirtyDaysAgo
+          )
+          .map((order) => order.customer_id)
+      ).size;
+
+      // Low stock platforms (inventory < 100)
+      const lowStockPlatforms = platforms.filter(
+        (platform) => platform.inventory < 100
+      ).length;
+
+      const newMetrics: DashboardMetrics = {
+        total_sales: totalSales,
+        verified_sales: verifiedSales,
+        total_orders: orders.length,
+        verified_orders: verifiedOrders.length,
+        pending_orders: pendingOrders.length,
+        total_customers: customers.length,
+        active_customers: activeCustomers,
+        total_platforms: platforms.length,
+        low_stock_platforms: lowStockPlatforms,
+      };
+
+      // Calculate analytics for charts
+      const salesByPlatform: Record<string, { sales: number; count: number }> =
+        {};
+      const salesByCustomer: Record<string, { sales: number; count: number }> =
+        {};
+
+      verifiedOrders.forEach((order) => {
+        // Platform sales
+        order.items.forEach((item) => {
+          const key = item.platform_name;
+          if (!salesByPlatform[key]) {
+            salesByPlatform[key] = { sales: 0, count: 0 };
+          }
+          salesByPlatform[key].sales +=
+            item.total_price || item.unit_price * item.quantity;
+          salesByPlatform[key].count += 1;
+        });
+
+        // Customer sales
+        const customer = customers.find((c) => c.id === order.customer_id);
+        if (customer) {
+          const customerKey = customer.name;
+          if (!salesByCustomer[customerKey]) {
+            salesByCustomer[customerKey] = { sales: 0, count: 0 };
+          }
+          const orderTotal =
+            order.final_amount ||
+            order.items.reduce(
+              (sum, item) =>
+                sum + (item.total_price || item.unit_price * item.quantity),
+              0
+            );
+          salesByCustomer[customerKey].sales += orderTotal;
+          salesByCustomer[customerKey].count += 1;
+        }
+      });
+
+      const newAnalytics: SalesAnalytics = {
+        sales_by_platform: Object.entries(salesByPlatform)
+          .map(([name, data]) => ({
+            platform_name: name,
+            account_type: "Standard", // Default for now
+            total_sales: data.sales,
+            order_count: data.count,
+            percentage: (data.sales / verifiedSales) * 100,
+          }))
+          .sort((a, b) => b.total_sales - a.total_sales),
+
+        sales_by_customer: Object.entries(salesByCustomer)
+          .map(([name, data]) => ({
+            customer_id: "", // Not needed for display
+            customer_name: name,
+            total_sales: data.sales,
+            order_count: data.count,
+            percentage: (data.sales / verifiedSales) * 100,
+          }))
+          .sort((a, b) => b.total_sales - a.total_sales),
+
+        daily_sales: [], // TODO: Implement daily breakdown
+        monthly_sales: [], // TODO: Implement monthly breakdown
+      };
+
+      setMetrics(newMetrics);
+      setSalesAnalytics(newAnalytics);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch dashboard data"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl p-6 shadow-lg">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="h-80 bg-gray-200 rounded-xl"></div>
+            <div className="h-80 bg-gray-200 rounded-xl"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg">
-      <h2 className="text-lg font-semibold mb-4">Overview & Metrics</h2>
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
-      )}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-pink-100 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-pink-600">
-            ${totalSales.toLocaleString()}
-          </div>
-          <div className="text-xs text-pink-700 mt-1">Total Sales</div>
-        </div>
-        <div className="bg-blue-100 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600">{totalOrders}</div>
-          <div className="text-xs text-blue-700 mt-1">Total Orders</div>
-        </div>
-        <div className="bg-green-100 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-green-600">
-            {totalCustomers}
-          </div>
-          <div className="text-xs text-green-700 mt-1">Customers</div>
-        </div>
-        <div className="bg-yellow-100 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-yellow-600">{totalCoins}</div>
-          <div className="text-xs text-yellow-700 mt-1">Game Coins</div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Dashboard Overview</h2>
+        <div className="flex items-center text-sm text-gray-500">
+          <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+          Real-time updates
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center">
-          <h3 className="text-md font-bold mb-4 text-pink-600">
-            Sales by Game Coin
-          </h3>
-          <Bar
-            data={{
-              labels: coinLabels,
-              datasets: [
-                {
-                  label: "Sales ($)",
-                  data: coinSales,
-                  backgroundColor: [
-                    "#ec4899",
-                    "#fbbf24",
-                    "#34d399",
-                    "#60a5fa",
-                    "#f87171",
-                    "#a3e635",
-                    "#f472b6",
-                  ],
-                  borderRadius: 6,
-                  borderSkipped: false,
-                },
-              ],
-            }}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: {
-                  display: true,
-                  position: "top",
-                  labels: { color: "#333", font: { size: 12 } },
-                },
-                tooltip: {
-                  enabled: true,
-                  backgroundColor: "#fff",
-                  titleColor: "#ec4899",
-                  bodyColor: "#333",
-                  borderColor: "#ec4899",
-                  borderWidth: 1,
-                },
-                title: { display: false },
-              },
-              scales: {
-                x: {
-                  grid: { display: false },
-                  ticks: { color: "#888", font: { size: 12 } },
-                },
-                y: {
-                  grid: { color: "#f3f4f6" },
-                  ticks: { color: "#888", font: { size: 12 } },
-                  beginAtZero: true,
-                },
-              },
-            }}
-            height={260}
-          />
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 text-red-700">
+          <p className="font-medium">Error loading dashboard data</p>
+          <p className="text-sm">{error}</p>
         </div>
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center">
-          <h3 className="text-md font-bold mb-4 text-blue-600">
+      )}
+
+      {/* Key Metrics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        <div className="bg-gradient-to-r from-pink-500 to-pink-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-pink-100 text-sm font-medium">Total Sales</p>
+              <p className="text-2xl font-bold">
+                ${metrics.verified_sales.toLocaleString()}
+              </p>
+              <p className="text-pink-200 text-xs mt-1">Verified orders only</p>
+            </div>
+            <TrendingUp className="h-8 w-8 text-pink-200" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm font-medium">Total Orders</p>
+              <p className="text-2xl font-bold">{metrics.verified_orders}</p>
+              <p className="text-blue-200 text-xs mt-1">
+                {metrics.pending_orders} pending
+              </p>
+            </div>
+            <ShoppingCart className="h-8 w-8 text-blue-200" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm font-medium">Customers</p>
+              <p className="text-2xl font-bold">{metrics.total_customers}</p>
+              <p className="text-green-200 text-xs mt-1">
+                {metrics.active_customers} active
+              </p>
+            </div>
+            <Users className="h-8 w-8 text-green-200" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm font-medium">Platforms</p>
+              <p className="text-2xl font-bold">{metrics.total_platforms}</p>
+              <p className="text-purple-200 text-xs mt-1">
+                {metrics.low_stock_platforms} low stock
+              </p>
+            </div>
+            <Package className="h-8 w-8 text-purple-200" />
+          </div>
+        </div>
+      </div>
+
+      {/* Low Stock Alert */}
+      {metrics.low_stock_platforms > 0 && (
+        <div className="mb-6 p-4 bg-amber-50 border-l-4 border-amber-400">
+          <div className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
+            <p className="text-amber-800 font-medium">
+              {metrics.low_stock_platforms} platform(s) have low inventory (less
+              than 10 items)
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Analytics Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Sales by Platform Bar Chart */}
+        <div className="bg-gray-50 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Sales by Platform
+          </h3>
+          <div className="h-80">
+            <Bar
+              data={{
+                labels: salesAnalytics.sales_by_platform
+                  .slice(0, 6)
+                  .map((item) => item.platform_name),
+                datasets: [
+                  {
+                    label: "Sales ($)",
+                    data: salesAnalytics.sales_by_platform
+                      .slice(0, 6)
+                      .map((item) => item.total_sales),
+                    backgroundColor: [
+                      "#ec4899",
+                      "#8b5cf6",
+                      "#06b6d4",
+                      "#10b981",
+                      "#f59e0b",
+                      "#ef4444",
+                    ],
+                    borderRadius: 8,
+                    borderSkipped: false,
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    backgroundColor: "#fff",
+                    titleColor: "#374151",
+                    bodyColor: "#374151",
+                    borderColor: "#e5e7eb",
+                    borderWidth: 1,
+                  },
+                },
+                scales: {
+                  x: {
+                    grid: { display: false },
+                    ticks: { color: "#6b7280", font: { size: 12 } },
+                  },
+                  y: {
+                    grid: { color: "#f3f4f6" },
+                    ticks: {
+                      color: "#6b7280",
+                      font: { size: 12 },
+                      callback: (value) => `$${Number(value).toLocaleString()}`,
+                    },
+                    beginAtZero: true,
+                  },
+                },
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Sales by Customer Pie Chart */}
+        <div className="bg-gray-50 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
             Sales by Customer
           </h3>
-          <Pie
-            data={{
-              labels: customerLabels,
-              datasets: [
-                {
-                  label: "Sales ($)",
-                  data: customerSales,
-                  backgroundColor: [
-                    "#ec4899",
-                    "#fbbf24",
-                    "#34d399",
-                    "#60a5fa",
-                    "#f87171",
-                    "#a3e635",
-                    "#f472b6",
-                  ],
-                  borderColor: "#fff",
-                  borderWidth: 2,
+          <div className="h-80">
+            <Pie
+              data={{
+                labels: salesAnalytics.sales_by_customer
+                  .slice(0, 6)
+                  .map((item) => item.customer_name),
+                datasets: [
+                  {
+                    data: salesAnalytics.sales_by_customer
+                      .slice(0, 6)
+                      .map((item) => item.total_sales),
+                    backgroundColor: [
+                      "#ec4899",
+                      "#8b5cf6",
+                      "#06b6d4",
+                      "#10b981",
+                      "#f59e0b",
+                      "#ef4444",
+                    ],
+                    borderColor: "#fff",
+                    borderWidth: 2,
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: "right",
+                    labels: {
+                      color: "#374151",
+                      font: { size: 12 },
+                      usePointStyle: true,
+                    },
+                  },
+                  tooltip: {
+                    backgroundColor: "#fff",
+                    titleColor: "#374151",
+                    bodyColor: "#374151",
+                    borderColor: "#e5e7eb",
+                    borderWidth: 1,
+                    callbacks: {
+                      label: (context) => {
+                        const value = context.parsed;
+                        const percentage =
+                          salesAnalytics.sales_by_customer[context.dataIndex]
+                            ?.percentage || 0;
+                        return `$${value.toLocaleString()} (${percentage.toFixed(
+                          1
+                        )}%)`;
+                      },
+                    },
+                  },
                 },
-              ],
-            }}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: {
-                  position: "right",
-                  labels: { color: "#333", font: { size: 12 } },
-                },
-                tooltip: {
-                  enabled: true,
-                  backgroundColor: "#fff",
-                  titleColor: "#2563eb",
-                  bodyColor: "#333",
-                  borderColor: "#2563eb",
-                  borderWidth: 1,
-                },
-                title: { display: false },
-              },
-            }}
-            height={260}
-          />
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

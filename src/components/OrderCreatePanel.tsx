@@ -9,12 +9,12 @@ interface Customer {
   id: string;
   name: string;
 }
-interface Coin {
+interface Platform {
   id: string;
   platform: string;
 }
 interface OrderItem {
-  coin_id: string;
+  platform_id: string;
   quantity: number;
   price: number;
 }
@@ -24,9 +24,11 @@ const paymentMethods = ["Cash", "Card", "Bank Transfer"];
 const OrderCreatePanel: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [coins, setCoins] = useState<(Coin & { inventory?: number })[]>([]);
+  const [platforms, setPlatforms] = useState<
+    (Platform & { inventory?: number })[]
+  >([]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
-    { coin_id: "", quantity: 1, price: 0 },
+    { platform_id: "", quantity: 1, price: 0 },
   ]);
   const [customerId, setCustomerId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState(paymentMethods[0]);
@@ -36,6 +38,8 @@ const OrderCreatePanel: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [copyingId, setCopyingId] = useState<string | null>(null);
+  const [itemsModalOpen, setItemsModalOpen] = useState(false);
+  const [itemsModalOrder, setItemsModalOrder] = useState<any | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [lastOrder, setLastOrder] = useState<any | null>(null);
 
@@ -45,10 +49,10 @@ const OrderCreatePanel: React.FC = () => {
         .from("customers")
         .select("id, name");
       setCustomers(customerData || []);
-      const { data: coinData } = await supabase
+      const { data: platformData } = await supabase
         .from("game_coins")
         .select("id, platform, inventory");
-      setCoins(coinData || []);
+      setPlatforms(platformData || []);
       const { data: ordersData } = await supabase
         .from("orders")
         .select("*")
@@ -67,13 +71,18 @@ const OrderCreatePanel: React.FC = () => {
       items.map((item, i) => (i === idx ? { ...item, [field]: value } : item))
     );
     // Validate quantity for this item
-    if (field === "quantity" || field === "coin_id") {
-      const coinId = field === "coin_id" ? value : orderItems[idx].coin_id;
+    if (field === "quantity" || field === "platform_id") {
+      const platformId =
+        field === "platform_id" ? value : orderItems[idx].platform_id;
       const quantity = field === "quantity" ? value : orderItems[idx].quantity;
-      const coin = coins.find((c) => c.id === coinId);
+      const platform = platforms.find((c) => c.id === platformId);
       let errors = [...itemErrors];
-      if (coin && coin.inventory !== undefined && quantity > coin.inventory) {
-        errors[idx] = `Max: ${coin.inventory}`;
+      if (
+        platform &&
+        platform.inventory !== undefined &&
+        quantity > platform.inventory
+      ) {
+        errors[idx] = `Max: ${platform.inventory}`;
       } else {
         errors[idx] = "";
       }
@@ -82,7 +91,7 @@ const OrderCreatePanel: React.FC = () => {
   };
 
   const handleAddOrderItem = () => {
-    setOrderItems([...orderItems, { coin_id: "", quantity: 1, price: 0 }]);
+    setOrderItems([...orderItems, { platform_id: "", quantity: 1, price: 0 }]);
   };
 
   const handleRemoveOrderItem = (idx: number) => {
@@ -102,7 +111,7 @@ const OrderCreatePanel: React.FC = () => {
     if (
       !customerId ||
       orderItems.some(
-        (item) => !item.coin_id || item.quantity < 1 || item.price < 0
+        (item) => !item.platform_id || item.quantity < 1 || item.price < 0
       )
     ) {
       setError("Please fill all fields correctly.");
@@ -111,13 +120,13 @@ const OrderCreatePanel: React.FC = () => {
     }
     // Validate all quantities against inventory before submitting
     orderItems.forEach((item, idx) => {
-      const coin = coins.find((c) => c.id === item.coin_id);
+      const platform = platforms.find((c) => c.id === item.platform_id);
       if (
-        coin &&
-        coin.inventory !== undefined &&
-        item.quantity > coin.inventory
+        platform &&
+        platform.inventory !== undefined &&
+        item.quantity > platform.inventory
       ) {
-        errors[idx] = `Max: ${coin.inventory}`;
+        errors[idx] = `Max: ${platform.inventory}`;
       } else {
         errors[idx] = "";
       }
@@ -134,7 +143,7 @@ const OrderCreatePanel: React.FC = () => {
       .insert([
         {
           customer_id: customerId,
-          items: orderItems,
+          items: JSON.stringify(orderItems),
           payment_method: paymentMethod,
           status: "Pending",
           created_at: new Date().toISOString(),
@@ -151,14 +160,15 @@ const OrderCreatePanel: React.FC = () => {
     }
     setLastOrder(orderData[0]);
     // Update coin inventory in DB
+    // Update platform inventory in DB
     for (const item of orderItems) {
-      const coin = coins.find((c) => c.id === item.coin_id);
-      if (coin && coin.inventory !== undefined) {
-        const newInventory = coin.inventory - item.quantity;
+      const platform = platforms.find((p) => p.id === item.platform_id);
+      if (platform && platform.inventory !== undefined) {
+        const newInventory = platform.inventory - item.quantity;
         await supabase
-          .from("game_coins")
+          .from("game_coins") // TODO: rename table to platforms in schema later
           .update({ inventory: newInventory })
-          .eq("id", coin.id);
+          .eq("id", platform.id);
       }
     }
     // Wait for invoice to render
@@ -209,7 +219,7 @@ const OrderCreatePanel: React.FC = () => {
           setError("Invoice generation error: " + err.message);
         }
       }
-      setOrderItems([{ coin_id: "", quantity: 1, price: 0 }]);
+      setOrderItems([{ platform_id: "", quantity: 1, price: 0 }]);
       setCustomerId("");
       setPaymentMethod(paymentMethods[0]);
       setLoading(false);
@@ -272,19 +282,23 @@ const OrderCreatePanel: React.FC = () => {
                 {orderItems.map((item, idx) => (
                   <div key={idx} className="flex space-x-2 mb-2 items-center">
                     <div className="flex flex-col">
-                      <label className="text-xs mb-1">Coin</label>
+                      <label className="text-xs mb-1">Platform</label>
                       <select
-                        value={item.coin_id}
+                        value={item.platform_id}
                         onChange={(e) =>
-                          handleOrderItemChange(idx, "coin_id", e.target.value)
+                          handleOrderItemChange(
+                            idx,
+                            "platform_id",
+                            e.target.value
+                          )
                         }
                         className="px-2 py-1 rounded border"
                         required
                       >
-                        <option value="">Select coin</option>
-                        {coins.map((coin) => (
-                          <option key={coin.id} value={coin.id}>
-                            {coin.platform}
+                        <option value="">Select platform</option>
+                        {platforms.map((platform) => (
+                          <option key={platform.id} value={platform.id}>
+                            {platform.platform}
                           </option>
                         ))}
                       </select>
@@ -456,7 +470,7 @@ const OrderCreatePanel: React.FC = () => {
                       textAlign: "left",
                     }}
                   >
-                    Coin
+                    Platform
                   </th>
                   <th
                     style={{
@@ -490,9 +504,10 @@ const OrderCreatePanel: React.FC = () => {
               <tbody>
                 {Array.isArray(lastOrder.items) &&
                   lastOrder.items.map((item: any, idx: number) => {
-                    const coinName =
-                      coins.find((coin) => coin.id === item.coin_id)
-                        ?.platform || item.coin_id;
+                    // Support legacy coin_id field if platform_id not present
+                    const id = item.platform_id || item.coin_id;
+                    const platformEntry = platforms.find((p) => p.id === id);
+                    const platformName = platformEntry?.platform || id || "—";
                     const total = Number(item.price) * Number(item.quantity);
                     return (
                       <tr key={idx}>
@@ -502,7 +517,7 @@ const OrderCreatePanel: React.FC = () => {
                             padding: "8px",
                           }}
                         >
-                          {coinName}
+                          {platformName}
                         </td>
                         <td
                           style={{
@@ -577,7 +592,7 @@ const OrderCreatePanel: React.FC = () => {
           <thead>
             <tr className="border-b bg-gray-50">
               <th className="py-2 px-3 text-left w-32">Customer</th>
-              <th className="py-2 px-3 text-left w-56">Items</th>
+              <th className="py-2 px-3 text-left w-40">Items</th>
               <th className="py-2 px-3 text-left w-32">Payment</th>
               <th className="py-2 px-3 text-left w-24">Status</th>
               <th className="py-2 px-3 text-left w-40">Created At</th>
@@ -586,39 +601,34 @@ const OrderCreatePanel: React.FC = () => {
           </thead>
           <tbody>
             {orders.map((order) => (
-              <tr key={order.id} className="border-b hover:bg-pink-50">
+              <tr
+                key={order.id}
+                className="border-b hover:bg-pink-50 cursor-pointer"
+                onClick={() => {
+                  setItemsModalOrder(order);
+                  setItemsModalOpen(true);
+                }}
+              >
                 <td className="py-2 px-3 font-medium">
                   {customers.find((c) => c.id === order.customer_id)?.name ||
                     order.customer_id}
                 </td>
-                <td className="py-2 px-3">
-                  {Array.isArray(order.items) ? (
-                    <table className="w-full text-xs bg-white rounded shadow">
-                      <thead>
-                        <tr>
-                          <th className="px-1 py-1 text-left w-20">Coin</th>
-                          <th className="px-1 py-1 text-left w-12">Quantity</th>
-                          <th className="px-1 py-1 text-left w-16">Price</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {order.items.map((item: any, idx: number) => (
-                          <tr key={idx}>
-                            <td className="px-1 py-1 font-semibold">
-                              {coins.find((coin) => coin.id === item.coin_id)
-                                ?.platform || item.coin_id}
-                            </td>
-                            <td className="px-1 py-1">{item.quantity}</td>
-                            <td className="px-1 py-1">${item.price}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : null}
+                <td className="py-2 px-3 select-none">
+                  {Array.isArray(order.items)
+                    ? `${order.items.length} item${
+                        order.items.length !== 1 ? "s" : ""
+                      }`
+                    : "—"}
                 </td>
                 <td className="py-2 px-3">{order.payment_method}</td>
                 <td className="py-2 px-3">{order.status}</td>
-                <td className="py-2 px-3">
+                <td
+                  className="py-2 px-3"
+                  onClick={(e) => {
+                    // Prevent row click from opening modal when interacting with invoice actions
+                    e.stopPropagation();
+                  }}
+                >
                   {new Date(order.created_at).toLocaleString()}
                 </td>
                 <td className="py-2 px-3">
@@ -685,6 +695,136 @@ const OrderCreatePanel: React.FC = () => {
           </tbody>
         </table>
       </div>
+      {itemsModalOpen && itemsModalOrder && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(6px)",
+            background: "rgba(0,0,0,0.35)",
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl p-6 relative">
+            <button
+              onClick={() => {
+                setItemsModalOpen(false);
+                setItemsModalOrder(null);
+              }}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-sm"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+            <h3 className="text-lg font-semibold mb-2">Order Details</h3>
+            <div className="mb-4 text-sm grid grid-cols-2 gap-x-4 gap-y-1">
+              <div>
+                <span className="font-semibold">Order ID:</span>{" "}
+                {itemsModalOrder.id}
+              </div>
+              <div>
+                <span className="font-semibold">Created:</span>{" "}
+                {new Date(itemsModalOrder.created_at).toLocaleString()}
+              </div>
+              <div>
+                <span className="font-semibold">Customer:</span>{" "}
+                {customers.find((c) => c.id === itemsModalOrder.customer_id)
+                  ?.name || itemsModalOrder.customer_id}
+              </div>
+              <div>
+                <span className="font-semibold">Payment:</span>{" "}
+                {itemsModalOrder.payment_method}
+              </div>
+              <div>
+                <span className="font-semibold">Status:</span>{" "}
+                {itemsModalOrder.status}
+              </div>
+              <div>
+                <span className="font-semibold">Invoice:</span>{" "}
+                {itemsModalOrder.invoice_url ? (
+                  <a
+                    href={itemsModalOrder.invoice_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-pink-500 underline ml-1"
+                  >
+                    View
+                  </a>
+                ) : (
+                  <span className="text-gray-400 ml-1">None</span>
+                )}
+              </div>
+            </div>
+            <h4 className="font-semibold mb-2">Items</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="py-2 px-2 text-left">Platform</th>
+                    <th className="py-2 px-2 text-right">Quantity</th>
+                    <th className="py-2 px-2 text-right">Unit Price</th>
+                    <th className="py-2 px-2 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.isArray(itemsModalOrder.items) &&
+                  itemsModalOrder.items.length > 0 ? (
+                    itemsModalOrder.items.map((item: any, idx: number) => {
+                      const id = item.platform_id || item.coin_id;
+                      const platformName =
+                        platforms.find((p) => p.id === id)?.platform ||
+                        id ||
+                        "—";
+                      const total = Number(item.price) * Number(item.quantity);
+                      return (
+                        <tr key={idx} className="border-t">
+                          <td className="py-1 px-2 font-medium">
+                            {platformName}
+                          </td>
+                          <td className="py-1 px-2 text-right">
+                            {item.quantity}
+                          </td>
+                          <td className="py-1 px-2 text-right">
+                            ${item.price}
+                          </td>
+                          <td className="py-1 px-2 text-right">${total}</td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="py-4 text-center text-gray-500"
+                      >
+                        No items
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t bg-gray-50">
+                    <td
+                      colSpan={3}
+                      className="py-2 px-2 text-right font-semibold"
+                    >
+                      Grand Total
+                    </td>
+                    <td className="py-2 px-2 text-right font-semibold">
+                      $
+                      {Array.isArray(itemsModalOrder.items)
+                        ? itemsModalOrder.items.reduce(
+                            (sum: number, item: any) =>
+                              sum + Number(item.price) * Number(item.quantity),
+                            0
+                          )
+                        : 0}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

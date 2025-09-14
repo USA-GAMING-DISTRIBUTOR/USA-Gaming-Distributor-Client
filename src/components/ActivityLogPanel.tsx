@@ -4,9 +4,9 @@ import { supabase } from "../lib/supabase";
 interface Log {
   id: string;
   action: string;
-  user_id: string;
-  details: string;
-  timestamp: string;
+  user_id: string | null;
+  details: string | null;
+  timestamp: string | null;
 }
 
 const ActivityLogPanel: React.FC = () => {
@@ -50,11 +50,13 @@ const ActivityLogPanel: React.FC = () => {
             {logs.map((log) => (
               <tr key={log.id} className="border-b hover:bg-gray-50">
                 <td className="py-2 px-4">
-                  {new Date(log.timestamp).toLocaleString()}
+                  {log.timestamp
+                    ? new Date(log.timestamp).toLocaleString()
+                    : "N/A"}
                 </td>
-                <td className="py-2 px-4">{log.user_id}</td>
+                <td className="py-2 px-4">{log.user_id || "N/A"}</td>
                 <td className="py-2 px-4">{log.action}</td>
-                <td className="py-2 px-4">{log.details}</td>
+                <td className="py-2 px-4">{log.details || "N/A"}</td>
               </tr>
             ))}
           </tbody>

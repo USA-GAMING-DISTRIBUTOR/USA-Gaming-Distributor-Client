@@ -11,7 +11,8 @@ const CustomerPanel: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [selectedCustomerForPricing, setSelectedCustomerForPricing] = useState<Customer | null>(null);
+  const [selectedCustomerForPricing, setSelectedCustomerForPricing] =
+    useState<Customer | null>(null);
   const [customerPricing, setCustomerPricing] = useState<CustomerPricing[]>([]);
   const [formData, setFormData] = useState<{
     name: string;
@@ -45,9 +46,9 @@ const CustomerPanel: React.FC = () => {
         .from("game_coins")
         .select("*")
         .order("platform");
-      
+
       if (error) throw error;
-      
+
       // Transform data to match Platform interface
       const transformedPlatforms = (data || []).map((platform: any) => ({
         id: platform.id,
@@ -58,7 +59,7 @@ const CustomerPanel: React.FC = () => {
         created_at: platform.created_at,
         updated_at: platform.updated_at || null,
       }));
-      
+
       setPlatforms(transformedPlatforms);
     } catch (error) {
       console.error("Error fetching platforms:", error);
@@ -69,25 +70,27 @@ const CustomerPanel: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from("customer_pricing" as any)
-        .select(`
+        .select(
+          `
           *,
           game_coins!platform_id (
             platform,
             account_type
           )
-        `)
+        `
+        )
         .eq("customer_id", customerId)
         .order("min_quantity");
-      
+
       if (error) throw error;
-      
+
       // Transform data to include platform_name
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transformedPricing = (data || []).map((pricing: any) => ({
         ...pricing,
         platform_name: pricing.game_coins?.platform || "Unknown Platform",
       }));
-      
+
       setCustomerPricing(transformedPricing);
     } catch (error) {
       console.error("Error fetching customer pricing:", error);
@@ -118,16 +121,14 @@ const CustomerPanel: React.FC = () => {
     if (!selectedCustomerForPricing) return;
 
     try {
-      const { error } = await supabase
-        .from("customer_pricing" as any)
-        .insert({
-          customer_id: selectedCustomerForPricing.id,
-          platform_id: pricingForm.platform_id,
-          min_quantity: pricingForm.min_quantity,
-          max_quantity: pricingForm.max_quantity,
-          unit_price: pricingForm.unit_price,
-          is_default: pricingForm.is_default,
-        });
+      const { error } = await supabase.from("customer_pricing" as any).insert({
+        customer_id: selectedCustomerForPricing.id,
+        platform_id: pricingForm.platform_id,
+        min_quantity: pricingForm.min_quantity,
+        max_quantity: pricingForm.max_quantity,
+        unit_price: pricingForm.unit_price,
+        is_default: pricingForm.is_default,
+      });
 
       if (error) throw error;
 
@@ -316,7 +317,7 @@ const CustomerPanel: React.FC = () => {
         </h2>
         <button
           onClick={() => openModal()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           Add Customer
@@ -356,12 +357,13 @@ const CustomerPanel: React.FC = () => {
                     key={customer.id}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
-                    <td className="py-3 px-4 font-medium">
-                      {customer.name}
-                    </td>
+                    <td className="py-3 px-4 font-medium">{customer.name}</td>
                     <td className="py-3 px-4">
                       {customer.contact_numbers?.map((number, index) => (
-                        <div key={index} className="flex items-center gap-2 mb-1">
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 mb-1"
+                        >
                           <Phone className="w-3 h-3 text-gray-400" />
                           <span className="text-gray-600">{number}</span>
                         </div>
@@ -516,14 +518,22 @@ const CustomerPanel: React.FC = () => {
             {/* Add New Pricing Form */}
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <h3 className="text-md font-medium mb-3">Add New Pricing Tier</h3>
-              <form onSubmit={handlePricingSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <form
+                onSubmit={handlePricingSubmit}
+                className="grid grid-cols-1 md:grid-cols-5 gap-4"
+              >
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Platform
                   </label>
                   <select
                     value={pricingForm.platform_id}
-                    onChange={(e) => setPricingForm(prev => ({ ...prev, platform_id: e.target.value }))}
+                    onChange={(e) =>
+                      setPricingForm((prev) => ({
+                        ...prev,
+                        platform_id: e.target.value,
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
@@ -543,7 +553,12 @@ const CustomerPanel: React.FC = () => {
                     type="number"
                     min="1"
                     value={pricingForm.min_quantity}
-                    onChange={(e) => setPricingForm(prev => ({ ...prev, min_quantity: parseInt(e.target.value) || 1 }))}
+                    onChange={(e) =>
+                      setPricingForm((prev) => ({
+                        ...prev,
+                        min_quantity: parseInt(e.target.value) || 1,
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -556,7 +571,14 @@ const CustomerPanel: React.FC = () => {
                     type="number"
                     min="1"
                     value={pricingForm.max_quantity || ""}
-                    onChange={(e) => setPricingForm(prev => ({ ...prev, max_quantity: e.target.value ? parseInt(e.target.value) : null }))}
+                    onChange={(e) =>
+                      setPricingForm((prev) => ({
+                        ...prev,
+                        max_quantity: e.target.value
+                          ? parseInt(e.target.value)
+                          : null,
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Optional"
                   />
@@ -570,7 +592,12 @@ const CustomerPanel: React.FC = () => {
                     step="0.01"
                     min="0"
                     value={pricingForm.unit_price}
-                    onChange={(e) => setPricingForm(prev => ({ ...prev, unit_price: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) =>
+                      setPricingForm((prev) => ({
+                        ...prev,
+                        unit_price: parseFloat(e.target.value) || 0,
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -611,7 +638,10 @@ const CustomerPanel: React.FC = () => {
                 <tbody>
                   {customerPricing.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-gray-500">
+                      <td
+                        colSpan={5}
+                        className="text-center py-8 text-gray-500"
+                      >
                         No pricing tiers set for this customer.
                       </td>
                     </tr>
@@ -626,11 +656,11 @@ const CustomerPanel: React.FC = () => {
                         </td>
                         <td className="py-3 px-4">
                           {pricing.min_quantity}
-                          {pricing.max_quantity ? ` - ${pricing.max_quantity}` : '+'}
+                          {pricing.max_quantity
+                            ? ` - ${pricing.max_quantity}`
+                            : "+"}
                         </td>
-                        <td className="py-3 px-4">
-                          ${pricing.unit_price}
-                        </td>
+                        <td className="py-3 px-4">${pricing.unit_price}</td>
                         <td className="py-3 px-4">
                           {pricing.is_default ? (
                             <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">

@@ -536,6 +536,357 @@ const OrderPanel: React.FC = () => {
     }
   };
 
+  const handleCopyInvoiceFromTable = async (order: Order) => {
+    setInvoiceLoading(true);
+    
+    try {
+      // Create a temporary container for the invoice
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '-9999px';
+      tempContainer.style.width = '800px'; // Set proper width for rendering
+      document.body.appendChild(tempContainer);
+
+      // Create the invoice HTML directly
+      const customer = customers.find(c => c.id === order.customer_id);
+      const orderPaymentDetails = getOrderPaymentDetails(order.id);
+      
+      // Create invoice HTML content
+      const invoiceHTML = `
+        <div style="
+          background: #ffffff;
+          padding: 40px;
+          border-radius: 20px;
+          box-shadow: 0 10px 40px rgba(236, 72, 153, 0.15);
+          max-width: 800px;
+          margin: 0 auto;
+          font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          border: 2px solid #fce7f3;
+          line-height: 1.6;
+        ">
+          <!-- Header -->
+          <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            padding-bottom: 24px;
+            border-bottom: 3px solid #ec4899;
+          ">
+            <div style="display: flex; align-items: center;">
+              <div>
+                <div style="
+                  font-weight: 800;
+                  font-size: 28px;
+                  color: #ec4899;
+                  margin-bottom: 4px;
+                  letter-spacing: -0.5px;
+                ">
+                  USA Gaming Distributor
+                </div>
+                <div style="font-size: 14px; color: #6b7280; margin-bottom: 2px;">
+                  📧 support@usagaming.com | 📞 +1-800-123-4567
+                </div>
+                <div style="font-size: 14px; color: #6b7280;">
+                  📍 123 Main Street, New York, NY 10001
+                </div>
+              </div>
+            </div>
+            
+            <div style="text-align: right;">
+              <div style="
+                font-size: 32px;
+                font-weight: 800;
+                color: #1f2937;
+                margin-bottom: 8px;
+                letter-spacing: -1px;
+              ">
+                INVOICE
+              </div>
+              <div style="
+                background-color: #fce7f3;
+                color: #be185d;
+                padding: 8px 16px;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                display: inline-block;
+              ">
+                #${order.id.slice(-8).toUpperCase()}
+              </div>
+            </div>
+          </div>
+
+          <!-- Customer and Invoice Info -->
+          <div style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 32px;
+          ">
+            <!-- Bill To -->
+            <div>
+              <div style="
+                font-size: 18px;
+                font-weight: 700;
+                color: #1f2937;
+                margin-bottom: 12px;
+                border-bottom: 2px solid #fce7f3;
+                padding-bottom: 8px;
+              ">
+                📋 Bill To
+              </div>
+              <div style="font-size: 16px; font-weight: 600; color: #374151; margin-bottom: 8px;">
+                ${customer?.name || "Unknown Customer"}
+              </div>
+              ${customer?.contact_numbers && customer.contact_numbers.length > 0 ? `
+                <div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">
+                  📞 ${customer.contact_numbers[0]}
+                </div>
+              ` : ''}
+              <div style="font-size: 12px; color: #9ca3af; margin-top: 8px;">
+                Customer ID: ${customer?.id.slice(-8).toUpperCase() || "N/A"}
+              </div>
+            </div>
+
+            <!-- Invoice Info -->
+            <div>
+              <div style="
+                font-size: 18px;
+                font-weight: 700;
+                color: #1f2937;
+                margin-bottom: 12px;
+                border-bottom: 2px solid #fce7f3;
+                padding-bottom: 8px;
+              ">
+                📄 Invoice Details
+              </div>
+              <div style="display: grid; gap: 8px;">
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="font-size: 14px; color: #6b7280; font-weight: 500;">Date:</span>
+                  <span style="font-size: 14px; font-weight: 600; color: #374151;">
+                    ${order.created_at ? new Date(order.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : "N/A"}
+                  </span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="font-size: 14px; color: #6b7280; font-weight: 500;">Payment Method:</span>
+                  <span style="
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #374151;
+                    background-color: #fce7f3;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                  ">
+                    ${order.payment_method}
+                  </span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="font-size: 14px; color: #6b7280; font-weight: 500;">Status:</span>
+                  <span style="
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #059669;
+                    background-color: #d1fae5;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                  ">
+                    ${order.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div style="margin-bottom: 32px;">
+            <div style="
+              font-size: 18px;
+              font-weight: 700;
+              color: #1f2937;
+              margin-bottom: 16px;
+              border-bottom: 2px solid #fce7f3;
+              padding-bottom: 8px;
+            ">
+              🛒 Order Items
+            </div>
+            
+            <table style="
+              width: 100%;
+              font-size: 14px;
+              border-collapse: collapse;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            ">
+              <thead>
+                <tr style="background-color: #ec4899; color: white;">
+                  <th style="padding: 16px 12px; text-align: left; font-weight: 600; font-size: 14px; letter-spacing: 0.5px;">Platform</th>
+                  <th style="padding: 16px 12px; text-align: center; font-weight: 600; font-size: 14px; letter-spacing: 0.5px;">Account Type</th>
+                  <th style="padding: 16px 12px; text-align: center; font-weight: 600; font-size: 14px; letter-spacing: 0.5px;">Qty</th>
+                  <th style="padding: 16px 12px; text-align: right; font-weight: 600; font-size: 14px; letter-spacing: 0.5px;">Unit Price</th>
+                  <th style="padding: 16px 12px; text-align: right; font-weight: 600; font-size: 14px; letter-spacing: 0.5px;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${order.items.map((item, idx) => {
+                  const platform = platforms.find((p) => p.id === item.platform_id);
+                  const isEvenRow = idx % 2 === 0;
+                  return `
+                    <tr style="background-color: ${isEvenRow ? '#fdf2f8' : '#ffffff'}; border-bottom: 1px solid #fce7f3;">
+                      <td style="padding: 16px 12px; font-weight: 600; color: #374151;">
+                        ${item.platform_name || platform?.platform_name || "Unknown Platform"}
+                      </td>
+                      <td style="padding: 16px 12px; text-align: center; color: #6b7280; font-weight: 500;">
+                        <span style="
+                          background-color: #fce7f3;
+                          color: #be185d;
+                          padding: 4px 8px;
+                          border-radius: 6px;
+                          font-size: 12px;
+                          font-weight: 600;
+                        ">
+                          ${item.account_type}
+                        </span>
+                      </td>
+                      <td style="padding: 16px 12px; text-align: center; font-weight: 600; color: #374151;">
+                        ${item.quantity}
+                      </td>
+                      <td style="padding: 16px 12px; text-align: right; font-weight: 600; color: #374151;">
+                        $${item.unit_price.toFixed(2)}
+                      </td>
+                      <td style="padding: 16px 12px; text-align: right; font-weight: 700; color: #059669; font-size: 15px;">
+                        $${item.total_price.toFixed(2)}
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Totals -->
+          <div style="display: flex; justify-content: flex-end; margin-bottom: 32px;">
+            <div style="
+              background-color: #fdf2f8;
+              padding: 24px;
+              border-radius: 16px;
+              border: 2px solid #fce7f3;
+              min-width: 300px;
+            ">
+              <div style="
+                font-size: 18px;
+                font-weight: 700;
+                color: #1f2937;
+                margin-bottom: 16px;
+                text-align: center;
+              ">
+                💰 Summary
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <span style="font-size: 16px; font-weight: 500; color: #6b7280;">Subtotal:</span>
+                <span style="font-size: 16px; font-weight: 600; color: #374151;">$${order.total_amount.toFixed(2)}</span>
+              </div>
+              
+              ${order.discount_amount > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                  <span style="font-size: 16px; font-weight: 500; color: #dc2626;">Discount:</span>
+                  <span style="font-size: 16px; font-weight: 600; color: #dc2626;">-$${order.discount_amount.toFixed(2)}</span>
+                </div>
+              ` : ''}
+              
+              <hr style="margin: 16px 0; border: none; border-top: 2px solid #ec4899; opacity: 0.6;" />
+              
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 20px; font-weight: 800; color: #1f2937;">Grand Total:</span>
+                <span style="
+                  font-size: 24px;
+                  font-weight: 800;
+                  color: #ec4899;
+                  background-color: white;
+                  padding: 8px 16px;
+                  border-radius: 8px;
+                  border: 2px solid #ec4899;
+                ">
+                  $${order.final_amount.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="border-top: 3px solid #ec4899; padding-top: 24px; text-align: center;">
+            <div style="
+              background-color: #fdf2f8;
+              padding: 20px;
+              border-radius: 16px;
+              border: 2px solid #fce7f3;
+            ">
+              <div style="
+                font-size: 18px;
+                font-weight: 700;
+                color: #ec4899;
+                margin-bottom: 8px;
+              ">
+                🎮 Thank You for Your Purchase!
+              </div>
+              <div style="
+                font-size: 14px;
+                color: #6b7280;
+                margin-bottom: 12px;
+                line-height: 1.6;
+              ">
+                Your gaming accounts will be delivered within 24 hours.<br />
+                For any questions or support, please don't hesitate to contact us.
+              </div>
+              <div style="
+                display: flex;
+                justify-content: center;
+                gap: 24px;
+                font-size: 13px;
+                color: #9ca3af;
+              ">
+                <div>📧 support@usagaming.com</div>
+                <div>📞 +1-800-123-4567</div>
+                <div>💬 Live Chat Available 24/7</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      tempContainer.innerHTML = invoiceHTML;
+
+      // Use html2canvas to convert to image and copy
+      const success = await copyInvoiceToClipboard(tempContainer);
+      
+      if (success) {
+        alert('Invoice copied to clipboard!');
+      } else {
+        alert('Failed to copy invoice to clipboard');
+      }
+
+    } catch (error) {
+      console.error('Error copying invoice:', error);
+      alert('Failed to copy invoice to clipboard');
+    } finally {
+      // Clean up
+      const tempContainer = document.querySelector('div[style*="position: absolute"][style*="-9999px"]');
+      if (tempContainer) {
+        document.body.removeChild(tempContainer);
+      }
+      setInvoiceLoading(false);
+    }
+  };
+
   const handleDownloadInvoice = async (order: Order) => {
     if (!invoiceRef.current) return;
     
@@ -744,6 +1095,14 @@ const OrderPanel: React.FC = () => {
                         title="View Invoice"
                       >
                         <FileText className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => handleCopyInvoiceFromTable(order)}
+                        className="p-1 text-green-600 hover:bg-green-100 rounded"
+                        title="Copy Invoice to Clipboard"
+                      >
+                        <Copy className="w-4 h-4" />
                       </button>
 
                       {order.status === "Pending" && (

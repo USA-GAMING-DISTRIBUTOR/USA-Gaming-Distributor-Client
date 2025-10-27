@@ -625,11 +625,11 @@ const OrderPanel: React.FC = () => {
       });
       setShowCreateModal(false);
 
-      // Show success message with auto-verification status
-      const successMessage = isAdminUser
-        ? "Order created and automatically verified (Admin privilege)"
-        : "Order created successfully";
-      alert(successMessage);
+      // // Show success message with auto-verification status
+      // const successMessage = isAdminUser
+      //   ? "Order created and automatically verified (Admin privilege)"
+      //   : "Order created successfully";
+      // alert(successMessage);
 
       fetchData();
     } catch (err) {

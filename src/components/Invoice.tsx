@@ -20,15 +20,20 @@ interface InvoiceProps {
   };
 }
 
-const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDetails }) => {
+const Invoice: React.FC<InvoiceProps> = ({
+  order,
+  customer,
+  platforms,
+  paymentDetails,
+}) => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -78,28 +83,34 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
           <img
             src="/usa-gaming-logo.jpg"
             alt="USA Gaming Distributor Logo"
-            style={{ 
-              height: "64px", 
+            style={{
+              height: "64px",
               width: "64px",
-              marginRight: "20px", 
+              marginRight: "20px",
               borderRadius: "12px",
               objectFit: "cover",
-              border: "2px solid #fce7f3"
+              border: "2px solid #fce7f3",
             }}
           />
           <div>
             <div
-              style={{ 
-                fontWeight: "800", 
-                fontSize: "28px", 
+              style={{
+                fontWeight: "800",
+                fontSize: "28px",
                 color: "#ec4899",
                 marginBottom: "4px",
-                letterSpacing: "-0.5px"
+                letterSpacing: "-0.5px",
               }}
             >
               USA Gaming Distributor
             </div>
-            <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "2px" }}>
+            <div
+              style={{
+                fontSize: "14px",
+                color: "#6b7280",
+                marginBottom: "2px",
+              }}
+            >
               📧 support@usagaming.com | 📞 +1-800-123-4567
             </div>
             <div style={{ fontSize: "14px", color: "#6b7280" }}>
@@ -107,7 +118,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
             </div>
           </div>
         </div>
-        
+
         <div style={{ textAlign: "right" }}>
           <div
             style={{
@@ -115,7 +126,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               fontWeight: "800",
               color: "#1f2937",
               marginBottom: "8px",
-              letterSpacing: "-1px"
+              letterSpacing: "-1px",
             }}
           >
             INVOICE
@@ -128,7 +139,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               borderRadius: "8px",
               fontSize: "16px",
               fontWeight: "600",
-              display: "inline-block"
+              display: "inline-block",
             }}
           >
             #{order.id.slice(-8).toUpperCase()}
@@ -154,21 +165,40 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               color: "#1f2937",
               marginBottom: "12px",
               borderBottom: "2px solid #fce7f3",
-              paddingBottom: "8px"
+              paddingBottom: "8px",
             }}
           >
             📋 Bill To
           </div>
-          <div style={{ fontSize: "16px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
+          <div
+            style={{
+              fontSize: "16px",
+              fontWeight: "600",
+              color: "#374151",
+              marginBottom: "8px",
+            }}
+          >
             {customer?.name || "Unknown Customer"}
           </div>
           {customer?.contact_numbers && customer.contact_numbers.length > 0 && (
-            <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>
+            <div
+              style={{
+                fontSize: "14px",
+                color: "#6b7280",
+                marginBottom: "4px",
+              }}
+            >
               � {customer.contact_numbers[0]}
             </div>
           )}
           {customer?.contact_numbers && customer.contact_numbers.length > 1 && (
-            <div style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>
+            <div
+              style={{
+                fontSize: "14px",
+                color: "#6b7280",
+                marginBottom: "4px",
+              }}
+            >
               📞 {customer.contact_numbers[1]}
             </div>
           )}
@@ -186,20 +216,42 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               color: "#1f2937",
               marginBottom: "12px",
               borderBottom: "2px solid #fce7f3",
-              paddingBottom: "8px"
+              paddingBottom: "8px",
             }}
           >
             📄 Invoice Details
           </div>
           <div style={{ display: "grid", gap: "8px" }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "14px", color: "#6b7280", fontWeight: "500" }}>Date:</span>
-              <span style={{ fontSize: "14px", fontWeight: "600", color: "#374151" }}>
+              <span
+                style={{
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  fontWeight: "500",
+                }}
+              >
+                Date:
+              </span>
+              <span
+                style={{
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#374151",
+                }}
+              >
                 {formatDate(order.created_at)}
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "14px", color: "#6b7280", fontWeight: "500" }}>Payment Method:</span>
+              <span
+                style={{
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  fontWeight: "500",
+                }}
+              >
+                Payment Method:
+              </span>
               <span
                 style={{
                   fontSize: "14px",
@@ -207,14 +259,22 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                   color: "#374151",
                   backgroundColor: "#fce7f3",
                   padding: "2px 8px",
-                  borderRadius: "4px"
+                  borderRadius: "4px",
                 }}
               >
                 {order.payment_method}
               </span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontSize: "14px", color: "#6b7280", fontWeight: "500" }}>Status:</span>
+              <span
+                style={{
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  fontWeight: "500",
+                }}
+              >
+                Status:
+              </span>
               <span
                 style={{
                   fontSize: "14px",
@@ -222,7 +282,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                   color: getStatusColor(order.status).color,
                   backgroundColor: getStatusColor(order.status).backgroundColor,
                   padding: "2px 8px",
-                  borderRadius: "4px"
+                  borderRadius: "4px",
                 }}
               >
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -231,7 +291,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
           </div>
         </div>
       </div>
-      
+
       {/* Items Table */}
       <div
         style={{
@@ -245,12 +305,12 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
             color: "#1f2937",
             marginBottom: "16px",
             borderBottom: "2px solid #fce7f3",
-            paddingBottom: "8px"
+            paddingBottom: "8px",
           }}
         >
           🛒 Order Items
         </div>
-        
+
         <table
           style={{
             width: "100%",
@@ -269,7 +329,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                   textAlign: "left",
                   fontWeight: "600",
                   fontSize: "14px",
-                  letterSpacing: "0.5px"
+                  letterSpacing: "0.5px",
                 }}
               >
                 Platform
@@ -280,7 +340,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                   textAlign: "center",
                   fontWeight: "600",
                   fontSize: "14px",
-                  letterSpacing: "0.5px"
+                  letterSpacing: "0.5px",
                 }}
               >
                 Account Type
@@ -291,7 +351,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                   textAlign: "center",
                   fontWeight: "600",
                   fontSize: "14px",
-                  letterSpacing: "0.5px"
+                  letterSpacing: "0.5px",
                 }}
               >
                 Qty
@@ -302,7 +362,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                   textAlign: "right",
                   fontWeight: "600",
                   fontSize: "14px",
-                  letterSpacing: "0.5px"
+                  letterSpacing: "0.5px",
                 }}
               >
                 Unit Price
@@ -313,7 +373,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                   textAlign: "right",
                   fontWeight: "600",
                   fontSize: "14px",
-                  letterSpacing: "0.5px"
+                  letterSpacing: "0.5px",
                 }}
               >
                 Total
@@ -322,21 +382,23 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
           </thead>
           <tbody>
             {order.items.map((item, idx) => {
-              const platform = platforms.find((p) => p.platform === item.platform);
+              const platform = platforms.find(
+                (p) => p.platform === item.platform
+              );
               const isEvenRow = idx % 2 === 0;
               return (
-                <tr 
+                <tr
                   key={idx}
-                  style={{ 
+                  style={{
                     backgroundColor: isEvenRow ? "#fdf2f8" : "#ffffff",
-                    borderBottom: "1px solid #fce7f3"
+                    borderBottom: "1px solid #fce7f3",
                   }}
                 >
                   <td
                     style={{
                       padding: "16px 12px",
                       fontWeight: "600",
-                      color: "#374151"
+                      color: "#374151",
                     }}
                   >
                     {item.platform || platform?.platform || "Unknown Platform"}
@@ -346,7 +408,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       padding: "16px 12px",
                       textAlign: "center",
                       color: "#6b7280",
-                      fontWeight: "500"
+                      fontWeight: "500",
                     }}
                   >
                     <span
@@ -356,7 +418,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                         padding: "4px 8px",
                         borderRadius: "6px",
                         fontSize: "12px",
-                        fontWeight: "600"
+                        fontWeight: "600",
                       }}
                     >
                       {platform?.account_type || "Standard"}
@@ -367,7 +429,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       padding: "16px 12px",
                       textAlign: "center",
                       fontWeight: "600",
-                      color: "#374151"
+                      color: "#374151",
                     }}
                   >
                     {item.quantity}
@@ -377,7 +439,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       padding: "16px 12px",
                       textAlign: "right",
                       fontWeight: "600",
-                      color: "#374151"
+                      color: "#374151",
                     }}
                   >
                     ${item.unitPrice.toFixed(2)}
@@ -388,7 +450,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       textAlign: "right",
                       fontWeight: "700",
                       color: "#059669",
-                      fontSize: "15px"
+                      fontSize: "15px",
                     }}
                   >
                     ${item.total_price.toFixed(2)}
@@ -399,13 +461,13 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
           </tbody>
         </table>
       </div>
-      
+
       {/* Totals */}
       <div
         style={{
           display: "flex",
           justifyContent: "flex-end",
-          marginBottom: "32px"
+          marginBottom: "32px",
         }}
       >
         <div
@@ -414,7 +476,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
             padding: "24px",
             borderRadius: "16px",
             border: "2px solid #fce7f3",
-            minWidth: "300px"
+            minWidth: "300px",
           }}
         >
           <div
@@ -423,21 +485,31 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               fontWeight: "700",
               color: "#1f2937",
               marginBottom: "16px",
-              textAlign: "center"
+              textAlign: "center",
             }}
           >
             💰 Summary
           </div>
-          
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-            <span style={{ fontSize: "16px", fontWeight: "500", color: "#6b7280" }}>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "12px",
+            }}
+          >
+            <span
+              style={{ fontSize: "16px", fontWeight: "500", color: "#6b7280" }}
+            >
               Subtotal:
             </span>
-            <span style={{ fontSize: "16px", fontWeight: "600", color: "#374151" }}>
+            <span
+              style={{ fontSize: "16px", fontWeight: "600", color: "#374151" }}
+            >
               ${order.total_amount.toFixed(2)}
             </span>
           </div>
-          
+
           {/* {order.discount_amount > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
               <span style={{ fontSize: "16px", fontWeight: "500", color: "#dc2626" }}>
@@ -457,26 +529,28 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
             </div>
           )}
           */}
-          
-          <hr style={{ 
-            margin: "16px 0", 
-            border: "none", 
-            borderTop: "2px solid #ec4899",
-            opacity: 0.6
-          }} />
-          
-          <div 
-            style={{ 
-              display: "flex", 
+
+          <hr
+            style={{
+              margin: "16px 0",
+              border: "none",
+              borderTop: "2px solid #ec4899",
+              opacity: 0.6,
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
               justifyContent: "space-between",
-              alignItems: "center"
+              alignItems: "center",
             }}
           >
             <span
               style={{
                 fontSize: "20px",
                 fontWeight: "800",
-                color: "#1f2937"
+                color: "#1f2937",
               }}
             >
               Grand Total:
@@ -489,7 +563,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                 backgroundColor: "white",
                 padding: "8px 16px",
                 borderRadius: "8px",
-                border: "2px solid #ec4899"
+                border: "2px solid #ec4899",
               }}
             >
               ${order.total_amount.toFixed(2)}
@@ -506,7 +580,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
             padding: "24px",
             borderRadius: "16px",
             border: "2px solid #e2e8f0",
-            marginBottom: "32px"
+            marginBottom: "32px",
           }}
         >
           <div
@@ -516,15 +590,28 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               color: "#1f2937",
               marginBottom: "16px",
               display: "flex",
-              alignItems: "center"
+              alignItems: "center",
             }}
           >
             💳 Payment Information
           </div>
-          
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "16px",
+            }}
+          >
             <div>
-              <div style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#374151",
+                  marginBottom: "8px",
+                }}
+              >
                 Payment Method
               </div>
               <div
@@ -534,16 +621,23 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                   backgroundColor: "#fce7f3",
                   padding: "8px 12px",
                   borderRadius: "8px",
-                  fontWeight: "600"
+                  fontWeight: "600",
                 }}
               >
                 {paymentDetails.payment_method}
               </div>
             </div>
-            
+
             {paymentDetails.transaction_id && (
               <div>
-                <div style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px",
+                  }}
+                >
                   Transaction ID
                 </div>
                 <div
@@ -554,31 +648,48 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                     backgroundColor: "#f1f5f9",
                     padding: "8px 12px",
                     borderRadius: "8px",
-                    wordBreak: "break-all"
+                    wordBreak: "break-all",
                   }}
                 >
                   {paymentDetails.transaction_id}
                 </div>
               </div>
             )}
-            
+
             {paymentDetails.crypto_currency && (
               <div>
-                <div style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px",
+                  }}
+                >
                   Cryptocurrency
                 </div>
                 <div style={{ fontSize: "14px", color: "#6b7280" }}>
                   {paymentDetails.crypto_currency}
                   {paymentDetails.crypto_network && (
-                    <span style={{ color: "#9ca3af" }}> ({paymentDetails.crypto_network})</span>
+                    <span style={{ color: "#9ca3af" }}>
+                      {" "}
+                      ({paymentDetails.crypto_network})
+                    </span>
                   )}
                 </div>
               </div>
             )}
-            
+
             {paymentDetails.bank_transaction_reference && (
               <div>
-                <div style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px",
+                  }}
+                >
                   Bank Reference
                 </div>
                 <div
@@ -588,17 +699,24 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                     fontFamily: "monospace",
                     backgroundColor: "#f1f5f9",
                     padding: "8px 12px",
-                    borderRadius: "8px"
+                    borderRadius: "8px",
                   }}
                 >
                   {paymentDetails.bank_transaction_reference}
                 </div>
               </div>
             )}
-            
+
             {paymentDetails.cash_received_by && (
               <div>
-                <div style={{ fontSize: "14px", fontWeight: "600", color: "#374151", marginBottom: "8px" }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px",
+                  }}
+                >
                   Received By
                 </div>
                 <div style={{ fontSize: "14px", color: "#6b7280" }}>
@@ -609,13 +727,13 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
           </div>
         </div>
       )}
-      
+
       {/* Footer */}
       <div
         style={{
           borderTop: "3px solid #ec4899",
           paddingTop: "24px",
-          textAlign: "center"
+          textAlign: "center",
         }}
       >
         <div
@@ -623,7 +741,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
             backgroundColor: "#fdf2f8",
             padding: "20px",
             borderRadius: "16px",
-            border: "2px solid #fce7f3"
+            border: "2px solid #fce7f3",
           }}
         >
           <div
@@ -631,7 +749,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               fontSize: "18px",
               fontWeight: "700",
               color: "#ec4899",
-              marginBottom: "8px"
+              marginBottom: "8px",
             }}
           >
             🎮 Thank You for Your Purchase!
@@ -641,7 +759,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               fontSize: "14px",
               color: "#6b7280",
               marginBottom: "12px",
-              lineHeight: "1.6"
+              lineHeight: "1.6",
             }}
           >
             Your gaming accounts will be delivered within 24 hours.
@@ -654,7 +772,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               justifyContent: "center",
               gap: "24px",
               fontSize: "13px",
-              color: "#9ca3af"
+              color: "#9ca3af",
             }}
           >
             <div>📧 support@usagaming.com</div>
@@ -666,7 +784,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               marginTop: "16px",
               fontSize: "12px",
               color: "#9ca3af",
-              fontStyle: "italic"
+              fontStyle: "italic",
             }}
           >
             Invoice generated on {formatDate(new Date().toISOString())}

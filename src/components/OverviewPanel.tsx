@@ -109,7 +109,12 @@ const OverviewPanel: React.FC = () => {
           discount_amount: Number(order.discount_amount || 0),
           final_amount: Number(order.final_amount || order.total_amount || 0),
           status: (order.status as Order["status"]) || "pending",
-          payment_status: (order.payment_status as "pending" | "completed" | "refunded" | "failed") || "pending",
+          payment_status:
+            (order.payment_status as
+              | "pending"
+              | "completed"
+              | "refunded"
+              | "failed") || "pending",
           updated_at: String(order.updated_at || new Date().toISOString()),
           invoice_url: order.invoice_url ? String(order.invoice_url) : null,
           verified_at: order.verified_at ? String(order.verified_at) : null,
@@ -125,8 +130,10 @@ const OverviewPanel: React.FC = () => {
           contact_info: String(
             customer.contact_info || customer.phone || customer.email || ""
           ),
-          contact_numbers: customer.contact_numbers ? 
-            Array.isArray(customer.contact_numbers) ? customer.contact_numbers.map(String) : null 
+          contact_numbers: customer.contact_numbers
+            ? Array.isArray(customer.contact_numbers)
+              ? customer.contact_numbers.map(String)
+              : null
             : null,
           email: customer.email ? String(customer.email) : null,
           phone: customer.phone ? String(customer.phone) : null,
@@ -154,6 +161,7 @@ const OverviewPanel: React.FC = () => {
               platform.created_at ||
               new Date().toISOString()
           ),
+          deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
         })
       );
 

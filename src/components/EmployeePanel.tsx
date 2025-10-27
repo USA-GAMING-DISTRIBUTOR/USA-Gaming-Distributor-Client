@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Edit, Trash2, Plus, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import Pagination from "./common/Pagination";
 
 interface Employee {
   id: string;
@@ -14,23 +15,29 @@ const EmployeePanel: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null
+  );
   const [form, setForm] = useState({
     username: "",
     password: "",
     role: "Employee",
   });
-  const [editForm, setEditForm] = useState({ 
-    username: "", 
-    password: "",
-    role: "Employee" 
+  const [editForm, setEditForm] = useState({
+  username: "",
+  password: "",
+  role: "Employee",
   });
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
   const handleEditClick = (emp: Employee) => {
     setSelectedEmployee(emp);
-    setEditForm({ 
-      username: emp.username, 
+    setEditForm({
+      username: emp.username,
       password: "",
-      role: emp.role
+      role: emp.role,
     });
     setShowEditModal(true);
   };
@@ -41,7 +48,9 @@ const EmployeePanel: React.FC = () => {
     setEditForm({ username: "", password: "", role: "Employee" });
   };
 
-  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleEditInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
@@ -55,9 +64,12 @@ const EmployeePanel: React.FC = () => {
       role: editForm.role,
     };
     if (editForm.password) updateData.password = editForm.password;
-    
-    const { error } = await supabase.from("users").update(updateData).eq("id", selectedEmployee.id);
-    
+
+    const { error } = await supabase
+      .from("users")
+      .update(updateData)
+      .eq("id", selectedEmployee.id);
+
     if (!error) {
       handleCloseEditModal();
       fetchEmployees();
@@ -78,6 +90,20 @@ const EmployeePanel: React.FC = () => {
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+  // Pagination logic
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedEmployees = employees.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -126,7 +152,9 @@ const EmployeePanel: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-bold">Add Employee</h3>
-                  <p className="text-pink-100 text-sm mt-1">Create a new employee account</p>
+                  <p className="text-pink-100 text-sm mt-1">
+                    Create a new employee account
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -140,34 +168,38 @@ const EmployeePanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
-            <form id="employee-form" onSubmit={handleAddEmployee} className="space-y-4">
-              <input
-                name="username"
-                value={form.username}
-                onChange={handleInputChange}
-                placeholder="Username"
-                className="w-full px-3 py-2 border rounded"
-                required
-              />
-              <input
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleInputChange}
-                placeholder="Password"
-                className="w-full px-3 py-2 border rounded"
-                required
-              />
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border rounded"
-                required
+              <form
+                id="employee-form"
+                onSubmit={handleAddEmployee}
+                className="space-y-4"
               >
-                <option value="Employee">Employee</option>
-                <option value="Admin">Admin</option>
-              </select>
+                <input
+                  name="username"
+                  value={form.username}
+                  onChange={handleInputChange}
+                  placeholder="Username"
+                  className="w-full px-3 py-2 border rounded"
+                  required
+                />
+                <input
+                  name="password"
+                  type="password"
+                  value={form.password}
+                  onChange={handleInputChange}
+                  placeholder="Password"
+                  className="w-full px-3 py-2 border rounded"
+                  required
+                />
+                <select
+                  name="role"
+                  value={form.role}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border rounded"
+                  required
+                >
+                  <option value="Employee">Employee</option>
+                  <option value="Admin">Admin</option>
+                </select>
               </form>
             </div>
 
@@ -213,7 +245,11 @@ const EmployeePanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
-              <form id="editEmployeeForm" onSubmit={handleEditSubmit} className="space-y-4">
+              <form
+                id="editEmployeeForm"
+                onSubmit={handleEditSubmit}
+                className="space-y-4"
+              >
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Username
@@ -284,13 +320,21 @@ const EmployeePanel: React.FC = () => {
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="py-2 px-4 text-left">Username</th>
-              <th className="py-2 px-4 text-left">Role</th>
-              <th className="py-2 px-4 text-left">Created At</th>
-              <th className="py-2 px-4 text-left"></th>
+      <table className="w-full border-collapse">
+      <thead>
+      <tr className="border-b border-gray-200">
+      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+        Username
+      </th>
+      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+          Role
+          </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                Created At
+              </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -309,37 +353,55 @@ const EmployeePanel: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              employees.map((emp) => (
-                <tr key={emp.id} className="border-b hover:bg-gray-50">
-                  <td className="py-2 px-4">{emp.username}</td>
-                  <td className="py-2 px-4">{emp.role}</td>
-                  <td className="py-2 px-4">
-                    {emp.created_at
-                      ? new Date(emp.created_at).toLocaleString()
+              paginatedEmployees.map((emp) => (
+              <tr
+              key={emp.id}
+              className="border-b border-gray-100 hover:bg-gray-50"
+              >
+              <td className="py-3 px-4 font-medium">{emp.username}</td>
+              <td className="py-3 px-4">{emp.role}</td>
+              <td className="py-3 px-4">
+                {emp.created_at
+                  ? new Date(emp.created_at).toLocaleString()
                       : "N/A"}
                   </td>
-                  <td className="py-2 px-4">
-                    <button
-                      className="p-1 text-blue-500 hover:bg-blue-50 rounded mr-2"
-                      onClick={() => handleEditClick(emp)}
-                      disabled={loading}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="p-1 text-red-500 hover:bg-red-50 rounded"
-                      onClick={() => handleDelete(emp.id)}
-                      disabled={loading}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))
+            <td className="py-3 px-4">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleEditClick(emp)}
+                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                title="Edit Employee"
+                  disabled={loading}
+                >
+                <Edit className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(emp.id)}
+                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+              title="Delete Employee"
+              disabled={loading}
+              >
+                <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </td>
+            </tr>
+            ))
             )}
-          </tbody>
+            </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {employees.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={employees.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   );
 };

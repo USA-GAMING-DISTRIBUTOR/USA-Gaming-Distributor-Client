@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from "react";
 import {
-  Users,
-  Plus,
-  LogOut,
-  Shield,
-  UserCheck,
-  User as UserIcon,
-  Edit,
-  X,
+Users,
+Plus,
+LogOut,
+Shield,
+UserCheck,
+User as UserIcon,
+Edit,
+X,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import { logout, createUser, updateUser, clearError } from "../store/authSlice";
 import type { UserRole, CreateUserFormData } from "../types/auth";
 import { validateUserCreate, validateUserUpdate } from "../utils/FormValidator";
 import LoadingSpinner from "./LoadingSpinner";
+import Pagination from "./common/Pagination";
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -41,11 +42,29 @@ const Dashboard: React.FC = () => {
     {}
   );
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
+
   useEffect(() => {
     if (error) {
       dispatch(clearError());
     }
   }, [dispatch, error]);
+
+  // Pagination logic
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = users.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -537,30 +556,33 @@ const Dashboard: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900">All Users</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created At
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created By
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+          <table className="w-full border-collapse">
+          <thead>
+          <tr className="border-b border-gray-200">
+          <th className="text-left py-3 px-4 font-semibold text-gray-700">
+          User
+          </th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-700">
+          Role
+          </th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-700">
+          Created At
+          </th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-700">
+          Created By
+          </th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-700">
+          Actions
+          </th>
+          </tr>
+          </thead>
+          <tbody>
+                {paginatedUsers.map((u) => (
+                <tr
+                key={u.id}
+                    className="border-b border-gray-100 hover:bg-gray-50"
+                  >
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {getRoleIcon(u.role)}
                         <div className="ml-4">
@@ -580,7 +602,7 @@ const Dashboard: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(u.created_at).toLocaleDateString()}
+                    {new Date(u.created_at).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {u.created_by
@@ -603,6 +625,17 @@ const Dashboard: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {users.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalItems={users.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          )}
         </div>
       </main>
     </div>

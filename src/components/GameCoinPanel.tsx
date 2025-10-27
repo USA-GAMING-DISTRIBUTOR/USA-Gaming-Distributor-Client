@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Edit, Trash2, Plus } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import Pagination from "./common/Pagination";
 
 interface Coin {
   id: string;
@@ -27,6 +28,10 @@ const GameCoinPanel: React.FC = () => {
   });
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
+
   const fetchCoins = async () => {
     setLoading(true);
     setError(null);
@@ -45,6 +50,20 @@ const GameCoinPanel: React.FC = () => {
   useEffect(() => {
     fetchCoins();
   }, []);
+
+  // Pagination logic
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCoins = coins.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -147,7 +166,9 @@ const GameCoinPanel: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-bold">Add Platform</h3>
-                  <p className="text-pink-100 text-sm mt-1">Create a new gaming platform</p>
+                  <p className="text-pink-100 text-sm mt-1">
+                    Create a new gaming platform
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -161,35 +182,39 @@ const GameCoinPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
-            <form id="gamecoin-form" onSubmit={handleAddCoin} className="space-y-4">
-              <input
-                name="platform"
-                value={form.platform}
-                onChange={handleInputChange}
-                placeholder="Platform"
-                className="w-full px-3 py-2 border rounded"
-                required
-              />
-              <input
-                name="inventory"
-                value={form.inventory}
-                onChange={handleInputChange}
-                placeholder="Inventory"
-                type="number"
-                min={0}
-                className="w-full px-3 py-2 border rounded"
-                required
-              />
-              <input
-                name="cost_price"
-                value={form.cost_price}
-                onChange={handleInputChange}
-                placeholder="Cost Price"
-                type="number"
-                min={0}
-                className="w-full px-3 py-2 border rounded"
-                required
-              />
+              <form
+                id="gamecoin-form"
+                onSubmit={handleAddCoin}
+                className="space-y-4"
+              >
+                <input
+                  name="platform"
+                  value={form.platform}
+                  onChange={handleInputChange}
+                  placeholder="Platform"
+                  className="w-full px-3 py-2 border rounded"
+                  required
+                />
+                <input
+                  name="inventory"
+                  value={form.inventory}
+                  onChange={handleInputChange}
+                  placeholder="Inventory"
+                  type="number"
+                  min={0}
+                  className="w-full px-3 py-2 border rounded"
+                  required
+                />
+                <input
+                  name="cost_price"
+                  value={form.cost_price}
+                  onChange={handleInputChange}
+                  placeholder="Cost Price"
+                  type="number"
+                  min={0}
+                  className="w-full px-3 py-2 border rounded"
+                  required
+                />
               </form>
             </div>
 
@@ -227,7 +252,7 @@ const GameCoinPanel: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {coins.map((coin) => (
+            {paginatedCoins.map((coin) => (
               <tr key={coin.id} className="border-b hover:bg-gray-50">
                 <td className="py-2 px-4">
                   {editId === coin.id ? (
@@ -302,6 +327,17 @@ const GameCoinPanel: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {coins.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={coins.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   );
 };

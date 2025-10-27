@@ -4,6 +4,7 @@ import type { Customer, CustomerPricing } from "../types/customer";
 import type { Platform } from "../types/platform";
 import { Plus, Edit2, Trash2, Phone, X, DollarSign } from "lucide-react";
 import { LoadingSpinner } from "./common/Loader";
+import Pagination from "./common/Pagination";
 
 const CustomerPanel: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -15,6 +16,14 @@ const CustomerPanel: React.FC = () => {
   const [selectedCustomerForPricing, setSelectedCustomerForPricing] =
     useState<Customer | null>(null);
   const [customerPricing, setCustomerPricing] = useState<CustomerPricing[]>([]);
+
+  // Pagination state
+  const [customersPage, setCustomersPage] = useState(1);
+  const [customersItemsPerPage, setCustomersItemsPerPage] = useState(8);
+
+  // Customer pricing pagination state
+  const [pricingPage, setPricingPage] = useState(1);
+  const [pricingItemsPerPage, setPricingItemsPerPage] = useState(8);
   const [formData, setFormData] = useState<{
     name: string;
     contact_numbers: string[];
@@ -35,6 +44,34 @@ const CustomerPanel: React.FC = () => {
     unit_price: 0,
     is_default: false,
   });
+
+  // Customers pagination logic
+  const customersStartIndex = (customersPage - 1) * customersItemsPerPage;
+  const customersEndIndex = customersStartIndex + customersItemsPerPage;
+  const paginatedCustomers = customers.slice(customersStartIndex, customersEndIndex);
+
+  const handleCustomersPageChange = (page: number) => {
+    setCustomersPage(page);
+  };
+
+  const handleCustomersItemsPerPageChange = (newItemsPerPage: number) => {
+    setCustomersItemsPerPage(newItemsPerPage);
+    setCustomersPage(1);
+  };
+
+  // Customer pricing pagination logic
+  const pricingStartIndex = (pricingPage - 1) * pricingItemsPerPage;
+  const pricingEndIndex = pricingStartIndex + pricingItemsPerPage;
+  const paginatedCustomerPricing = customerPricing.slice(pricingStartIndex, pricingEndIndex);
+
+  const handlePricingPageChange = (page: number) => {
+    setPricingPage(page);
+  };
+
+  const handlePricingItemsPerPageChange = (newItemsPerPage: number) => {
+    setPricingItemsPerPage(newItemsPerPage);
+    setPricingPage(1);
+  };
 
   useEffect(() => {
     fetchCustomers();
@@ -59,6 +96,7 @@ const CustomerPanel: React.FC = () => {
         cost_price: platform.cost_price,
         created_at: platform.created_at,
         updated_at: platform.updated_at || null,
+        deleted_at: platform.deleted_at || null,
       }));
 
       setPlatforms(transformedPlatforms);
@@ -122,14 +160,16 @@ const CustomerPanel: React.FC = () => {
     if (!selectedCustomerForPricing) return;
 
     try {
-      const { error } = await (supabase as any).from("customer_pricing").insert({
-        customer_id: selectedCustomerForPricing.id,
-        platform_id: pricingForm.platform_id,
-        min_quantity: pricingForm.min_quantity,
-        max_quantity: pricingForm.max_quantity,
-        unit_price: pricingForm.unit_price,
-        is_default: pricingForm.is_default,
-      });
+      const { error } = await (supabase as any)
+        .from("customer_pricing")
+        .insert({
+          customer_id: selectedCustomerForPricing.id,
+          platform_id: pricingForm.platform_id,
+          min_quantity: pricingForm.min_quantity,
+          max_quantity: pricingForm.max_quantity,
+          unit_price: pricingForm.unit_price,
+          is_default: pricingForm.is_default,
+        });
 
       if (error) throw error;
 
@@ -184,10 +224,12 @@ const CustomerPanel: React.FC = () => {
           (customer.contact_info
             ? typeof customer.contact_info === "string"
               ? JSON.parse(customer.contact_info).map(
-                  (info: { number?: string; phone?: string }) => info.number || info.phone
+                  (info: { number?: string; phone?: string }) =>
+                    info.number || info.phone
                 )
               : customer.contact_info.map(
-                  (info: { number?: string; phone?: string }) => info.number || info.phone
+                  (info: { number?: string; phone?: string }) =>
+                    info.number || info.phone
                 )
             : null),
         created_at: customer.created_at,
@@ -358,7 +400,7 @@ const CustomerPanel: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                customers.map((customer) => (
+                paginatedCustomers.map((customer) => (
                   <tr
                     key={customer.id}
                     className="border-b border-gray-100 hover:bg-gray-50"
@@ -413,6 +455,17 @@ const CustomerPanel: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Customers Pagination */}
+        {customers.length > 0 && (
+          <Pagination
+            currentPage={customersPage}
+            totalItems={customers.length}
+            itemsPerPage={customersItemsPerPage}
+            onPageChange={handleCustomersPageChange}
+            onItemsPerPageChange={handleCustomersItemsPerPageChange}
+          />
+        )}
       </div>
 
       {/* Modal */}
@@ -427,7 +480,9 @@ const CustomerPanel: React.FC = () => {
                     {editingCustomer ? "Edit Customer" : "Add Customer"}
                   </h2>
                   <p className="text-pink-100 text-sm mt-1">
-                    {editingCustomer ? "Update customer information" : "Create a new customer"}
+                    {editingCustomer
+                      ? "Update customer information"
+                      : "Create a new customer"}
                   </p>
                 </div>
                 <button
@@ -441,58 +496,61 @@ const CustomerPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
+              <form
+                id="customer-form"
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Customer Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
 
-            <form id="customer-form" onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Customer Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contact Numbers
-                </label>
-                {formData.contact_numbers.map((number, index) => (
-                  <div key={index} className="flex items-center gap-2 mb-2">
-                    <input
-                      type="tel"
-                      placeholder="Phone number"
-                      value={number}
-                      onChange={(e) =>
-                        updateContactNumber(index, e.target.value)
-                      }
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    {formData.contact_numbers.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeContactNumber(index)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addContactNumber}
-                  className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
-                >
-                  <Plus className="w-3 h-3" />
-                  Add Contact Number
-                </button>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Contact Numbers
+                  </label>
+                  {formData.contact_numbers.map((number, index) => (
+                    <div key={index} className="flex items-center gap-2 mb-2">
+                      <input
+                        type="tel"
+                        placeholder="Phone number"
+                        value={number}
+                        onChange={(e) =>
+                          updateContactNumber(index, e.target.value)
+                        }
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      {formData.contact_numbers.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeContactNumber(index)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addContactNumber}
+                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Contact Number
+                  </button>
+                </div>
               </form>
             </div>
 
@@ -547,177 +605,189 @@ const CustomerPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
-            {/* Add New Pricing Form */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h3 className="text-md font-medium mb-3">Add New Pricing Tier</h3>
-              <form
-                onSubmit={handlePricingSubmit}
-                className="grid grid-cols-1 md:grid-cols-5 gap-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Platform
-                  </label>
-                  <select
-                    value={pricingForm.platform_id}
-                    onChange={(e) =>
-                      setPricingForm((prev) => ({
-                        ...prev,
-                        platform_id: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select Platform</option>
-                    {platforms.map((platform) => (
-                      <option key={platform.id} value={platform.id}>
-                        {platform.platform} ({platform.account_type})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Min Quantity
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={pricingForm.min_quantity}
-                    onChange={(e) =>
-                      setPricingForm((prev) => ({
-                        ...prev,
-                        min_quantity: parseInt(e.target.value) || 1,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Quantity
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={pricingForm.max_quantity || ""}
-                    onChange={(e) =>
-                      setPricingForm((prev) => ({
-                        ...prev,
-                        max_quantity: e.target.value
-                          ? parseInt(e.target.value)
-                          : null,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Unit Price ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={pricingForm.unit_price}
-                    onChange={(e) =>
-                      setPricingForm((prev) => ({
-                        ...prev,
-                        unit_price: parseFloat(e.target.value) || 0,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div className="flex items-end">
-                  <button
-                    type="submit"
-                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    Add Pricing
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Existing Pricing Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+              {/* Add New Pricing Form */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="text-md font-medium mb-3">
+                  Add New Pricing Tier
+                </h3>
+                <form
+                  onSubmit={handlePricingSubmit}
+                  className="grid grid-cols-1 md:grid-cols-5 gap-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Platform
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Quantity Range
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Unit Price
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Default
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customerPricing.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="text-center py-8 text-gray-500"
-                      >
-                        No pricing tiers set for this customer.
-                      </td>
+                    </label>
+                    <select
+                      value={pricingForm.platform_id}
+                      onChange={(e) =>
+                        setPricingForm((prev) => ({
+                          ...prev,
+                          platform_id: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select Platform</option>
+                      {platforms.map((platform) => (
+                        <option key={platform.id} value={platform.id}>
+                          {platform.platform} ({platform.account_type})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Min Quantity
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={pricingForm.min_quantity}
+                      onChange={(e) =>
+                        setPricingForm((prev) => ({
+                          ...prev,
+                          min_quantity: parseInt(e.target.value) || 1,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Max Quantity
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={pricingForm.max_quantity || ""}
+                      onChange={(e) =>
+                        setPricingForm((prev) => ({
+                          ...prev,
+                          max_quantity: e.target.value
+                            ? parseInt(e.target.value)
+                            : null,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Unit Price ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={pricingForm.unit_price}
+                      onChange={(e) =>
+                        setPricingForm((prev) => ({
+                          ...prev,
+                          unit_price: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      Add Pricing
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Existing Pricing Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Platform
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Quantity Range
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Unit Price
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Default
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Actions
+                      </th>
                     </tr>
-                  ) : (
-                    customerPricing.map((pricing) => (
-                      <tr
-                        key={pricing.id}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
-                        <td className="py-3 px-4 font-medium">
-                          {pricing.platform_name}
-                        </td>
-                        <td className="py-3 px-4">
-                          {pricing.min_quantity}
-                          {pricing.max_quantity
-                            ? ` - ${pricing.max_quantity}`
-                            : "+"}
-                        </td>
-                        <td className="py-3 px-4">${pricing.unit_price}</td>
-                        <td className="py-3 px-4">
-                          {pricing.is_default ? (
-                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                              Default
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <button
-                            onClick={() => handleDeletePricing(pricing.id)}
-                            className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
-                            title="Delete pricing tier"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                  </thead>
+                  <tbody>
+                    {customerPricing.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="text-center py-8 text-gray-500"
+                        >
+                          No pricing tiers set for this customer.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : (
+                      paginatedCustomerPricing.map((pricing) => (
+                        <tr
+                          key={pricing.id}
+                          className="border-b border-gray-100 hover:bg-gray-50"
+                        >
+                          <td className="py-3 px-4 font-medium">
+                            {pricing.platform_name}
+                          </td>
+                          <td className="py-3 px-4">
+                            {pricing.min_quantity}
+                            {pricing.max_quantity
+                              ? ` - ${pricing.max_quantity}`
+                              : "+"}
+                          </td>
+                          <td className="py-3 px-4">${pricing.unit_price}</td>
+                          <td className="py-3 px-4">
+                            {pricing.is_default ? (
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                                Default
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={() => handleDeletePricing(pricing.id)}
+                              className="text-red-600 hover:text-red-800 p-1 rounded transition-colors"
+                              title="Delete pricing tier"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
+              {/* Customer Pricing Pagination */}
+              {customerPricing.length > 0 && (
+                <Pagination
+                  currentPage={pricingPage}
+                  totalItems={customerPricing.length}
+                  itemsPerPage={pricingItemsPerPage}
+                  onPageChange={handlePricingPageChange}
+                  onItemsPerPageChange={handlePricingItemsPerPageChange}
+                />
+              )}
             </div>
 
             {/* Modal Footer */}

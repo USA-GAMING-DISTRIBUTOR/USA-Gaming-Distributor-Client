@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import Pagination from "./common/Pagination";
 
 interface Issue {
   id: string;
@@ -14,6 +15,10 @@ const CustomerIssuesPanel: React.FC = () => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
 
   const fetchIssues = async () => {
     setLoading(true);
@@ -34,6 +39,20 @@ const CustomerIssuesPanel: React.FC = () => {
   useEffect(() => {
     fetchIssues();
   }, []);
+
+  // Pagination logic
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedIssues = issues.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   const handleStatusChange = async (id: string, status: string) => {
     setLoading(true);
@@ -58,30 +77,45 @@ const CustomerIssuesPanel: React.FC = () => {
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="py-2 px-4 text-left">Created At</th>
-              <th className="py-2 px-4 text-left">Customer</th>
-              <th className="py-2 px-4 text-left">Issue</th>
-              <th className="py-2 px-4 text-left">Created By</th>
-              <th className="py-2 px-4 text-left">Status</th>
-              <th className="py-2 px-4 text-left">Actions</th>
+      <table className="w-full border-collapse">
+      <thead>
+      <tr className="border-b border-gray-200">
+      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+        Created At
+      </th>
+      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+        Customer
+      </th>
+        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+            Issue
+          </th>
+        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+        Created By
+      </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                Status
+              </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
-            {issues.map((issue) => (
-              <tr key={issue.id} className="border-b hover:bg-gray-50">
-                <td className="py-2 px-4">
-                  {issue.created_at
-                    ? new Date(issue.created_at).toLocaleString()
-                    : "N/A"}
+            {paginatedIssues.map((issue) => (
+              <tr
+                key={issue.id}
+                className="border-b border-gray-100 hover:bg-gray-50"
+              >
+                <td className="py-3 px-4">
+                {issue.created_at
+                ? new Date(issue.created_at).toLocaleString()
+                : "N/A"}
                 </td>
-                <td className="py-2 px-4">{issue.customer_id}</td>
-                <td className="py-2 px-4">{issue.issue_text}</td>
-                <td className="py-2 px-4">{issue.created_by}</td>
-                <td className="py-2 px-4">{issue.status || "N/A"}</td>
-                <td className="py-2 px-4">
+                <td className="py-3 px-4">{issue.customer_id}</td>
+                <td className="py-3 px-4">{issue.issue_text}</td>
+                <td className="py-3 px-4">{issue.created_by}</td>
+                <td className="py-3 px-4">{issue.status || "N/A"}</td>
+                <td className="py-3 px-4">
                   <button
                     className="bg-green-500 text-white px-3 py-1 rounded mr-2"
                     onClick={() => handleStatusChange(issue.id, "Resolved")}
@@ -102,6 +136,17 @@ const CustomerIssuesPanel: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {issues.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={issues.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   );
 };

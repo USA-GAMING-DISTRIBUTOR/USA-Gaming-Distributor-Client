@@ -12,6 +12,7 @@ import {
 import { supabase } from "../lib/supabase";
 import type { Platform, PlatformCreateData } from "../types/platform";
 import type { PurchaseHistory } from "../types/purchaseHistory";
+import Pagination from "./common/Pagination";
 
 const PlatformPanel: React.FC = () => {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -29,6 +30,8 @@ const PlatformPanel: React.FC = () => {
   const [allPurchaseHistory, setAllPurchaseHistory] = useState<
     PurchaseHistory[]
   >([]);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [deletedPlatforms, setDeletedPlatforms] = useState<Platform[]>([]);
 
   const [form, setForm] = useState<PlatformCreateData>({
     platform_name: "",
@@ -60,12 +63,27 @@ const PlatformPanel: React.FC = () => {
     stock_status: "all",
   });
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Purchase History pagination state
+  const [purchaseHistoryPage, setPurchaseHistoryPage] = useState(1);
+  const [purchaseHistoryItemsPerPage, setPurchaseHistoryItemsPerPage] =
+    useState(8);
+
+  // All Purchase History pagination state
+  const [allPurchaseHistoryPage, setAllPurchaseHistoryPage] = useState(1);
+  const [allPurchaseHistoryItemsPerPage, setAllPurchaseHistoryItemsPerPage] =
+    useState(8);
+
   const fetchPlatforms = async () => {
     setLoading(true);
     setError(null);
     const { data, error: fetchError } = await supabase
       .from("game_coins")
       .select("*")
+      .is("deleted_at", null)
       .order("platform", { ascending: true });
 
     if (fetchError) {
@@ -84,8 +102,10 @@ const PlatformPanel: React.FC = () => {
         cost_price: platform.cost_price,
         created_at: platform.created_at,
         updated_at: platform.updated_at,
+        deleted_at: platform.deleted_at,
       })
-    );    setPlatforms(transformedPlatforms);
+    );
+    setPlatforms(transformedPlatforms);
     setLoading(false);
   };
 
@@ -286,9 +306,9 @@ const PlatformPanel: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
       .from("game_coins")
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq("id", selectedPlatform.id);
 
     if (deleteError) {
@@ -301,6 +321,63 @@ const PlatformPanel: React.FC = () => {
     setSelectedPlatform(null);
     fetchPlatforms();
     setLoading(false);
+  };
+
+  const fetchDeletedPlatforms = async () => {
+    setLoading(true);
+    const { data, error: fetchError } = await supabase
+      .from("game_coins")
+      .select("*")
+      .not("deleted_at", "is", null)
+      .order("platform", { ascending: true });
+
+    if (fetchError) {
+      setError("Failed to fetch deleted platforms: " + fetchError.message);
+      setLoading(false);
+      return;
+    }
+
+    const transformedPlatforms: Platform[] = (data || []).map(
+      (platform: any) => ({
+        id: platform.id,
+        platform: platform.platform,
+        account_type: platform.account_type,
+        inventory: platform.inventory,
+        cost_price: platform.cost_price,
+        created_at: platform.created_at,
+        updated_at: platform.updated_at,
+        deleted_at: platform.deleted_at,
+      })
+    );
+    setDeletedPlatforms(transformedPlatforms);
+    setLoading(false);
+  };
+
+  const handleRestoreClick = async (platform: Platform) => {
+    setSelectedPlatform(platform);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: restoreError } = await (supabase as any)
+        .from("game_coins")
+        .update({ deleted_at: null })
+        .eq("id", platform.id);
+
+      if (restoreError) {
+        throw new Error("Failed to restore platform: " + restoreError.message);
+      }
+
+      // Refresh data
+      await Promise.all([fetchPlatforms(), fetchDeletedPlatforms()]);
+
+      setShowRestoreModal(false);
+      setSelectedPlatform(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openPurchaseModal = (platform: Platform) => {
@@ -400,6 +477,67 @@ const PlatformPanel: React.FC = () => {
     return matchesAccountType && matchesStockStatus;
   });
 
+  // Pagination logic
+  const totalFilteredPlatforms = filteredPlatforms.length;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedPlatforms = filteredPlatforms.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, itemsPerPage]);
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
+  // Purchase History pagination logic
+  const purchaseHistoryStartIndex =
+    (purchaseHistoryPage - 1) * purchaseHistoryItemsPerPage;
+  const purchaseHistoryEndIndex =
+    purchaseHistoryStartIndex + purchaseHistoryItemsPerPage;
+  const paginatedPurchaseHistory = purchaseHistory.slice(
+    purchaseHistoryStartIndex,
+    purchaseHistoryEndIndex
+  );
+
+  const handlePurchaseHistoryPageChange = (page: number) => {
+    setPurchaseHistoryPage(page);
+  };
+
+  const handlePurchaseHistoryItemsPerPageChange = (newItemsPerPage: number) => {
+    setPurchaseHistoryItemsPerPage(newItemsPerPage);
+    setPurchaseHistoryPage(1);
+  };
+
+  // All Purchase History pagination logic
+  const allPurchaseHistoryStartIndex =
+    (allPurchaseHistoryPage - 1) * allPurchaseHistoryItemsPerPage;
+  const allPurchaseHistoryEndIndex =
+    allPurchaseHistoryStartIndex + allPurchaseHistoryItemsPerPage;
+  const paginatedAllPurchaseHistory = allPurchaseHistory.slice(
+    allPurchaseHistoryStartIndex,
+    allPurchaseHistoryEndIndex
+  );
+
+  const handleAllPurchaseHistoryPageChange = (page: number) => {
+    setAllPurchaseHistoryPage(page);
+  };
+
+  const handleAllPurchaseHistoryItemsPerPageChange = (
+    newItemsPerPage: number
+  ) => {
+    setAllPurchaseHistoryItemsPerPage(newItemsPerPage);
+    setAllPurchaseHistoryPage(1);
+  };
+
   // Get unique account types for filter dropdown
   const uniqueAccountTypes = [...new Set(platforms.map((p) => p.account_type))];
 
@@ -426,6 +564,16 @@ const PlatformPanel: React.FC = () => {
           >
             <History className="w-4 h-4 mr-2" />
             View All History
+          </button>
+          <button
+            onClick={() => {
+              fetchDeletedPlatforms();
+              setShowRestoreModal(true);
+            }}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center mr-2"
+          >
+            <History className="w-4 h-4 mr-2" />
+            Restore Platforms
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
@@ -514,14 +662,12 @@ const PlatformPanel: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              filteredPlatforms.map((platform) => (
+              paginatedPlatforms.map((platform) => (
                 <tr
                   key={platform.id}
                   className="border-b border-gray-100 hover:bg-gray-50"
                 >
-                  <td className="py-3 px-4 font-medium">
-                    {platform.platform}
-                  </td>
+                  <td className="py-3 px-4 font-medium">{platform.platform}</td>
                   <td className="py-3 px-4">{platform.account_type}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center">
@@ -598,6 +744,15 @@ const PlatformPanel: React.FC = () => {
         </table>
       </div>
 
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalItems={totalFilteredPlatforms}
+        itemsPerPage={itemsPerPage}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+      />
+
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
@@ -607,7 +762,9 @@ const PlatformPanel: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-bold">Add New Platform</h3>
-                  <p className="text-pink-100 text-sm mt-1">Create a new gaming platform</p>
+                  <p className="text-pink-100 text-sm mt-1">
+                    Create a new gaming platform
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -620,67 +777,70 @@ const PlatformPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
+              <form
+                id="create-platform-form"
+                onSubmit={handleSubmit}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Platform Name
+                  </label>
+                  <input
+                    type="text"
+                    name="platform_name"
+                    value={form.platform_name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    required
+                  />
+                </div>
 
-            <form id="create-platform-form" onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Platform Name
-                </label>
-                <input
-                  type="text"
-                  name="platform_name"
-                  value={form.platform_name}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Account Type
+                  </label>
+                  <input
+                    type="text"
+                    name="account_type"
+                    value={form.account_type}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="e.g., Standard, Premium, Enterprise"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Account Type
-                </label>
-                <input
-                  type="text"
-                  name="account_type"
-                  value={form.account_type}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  placeholder="e.g., Standard, Premium, Enterprise"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Initial Inventory
+                  </label>
+                  <input
+                    type="number"
+                    name="inventory"
+                    value={form.inventory}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Initial Inventory
-                </label>
-                <input
-                  type="number"
-                  name="inventory"
-                  value={form.inventory}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cost Price (in cents)
-                </label>
-                <input
-                  type="number"
-                  name="cost_price"
-                  value={form.cost_price}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cost Price (in cents)
+                  </label>
+                  <input
+                    type="number"
+                    name="cost_price"
+                    value={form.cost_price}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
               </form>
             </div>
 
@@ -717,7 +877,9 @@ const PlatformPanel: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-bold">Edit Platform</h3>
-                  <p className="text-pink-100 text-sm mt-1">Update platform information</p>
+                  <p className="text-pink-100 text-sm mt-1">
+                    Update platform information
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowEditModal(false)}
@@ -730,67 +892,70 @@ const PlatformPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
+              <form
+                id="edit-platform-form"
+                onSubmit={handleEditSubmit}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Platform Name
+                  </label>
+                  <input
+                    type="text"
+                    name="platform_name"
+                    value={editForm.platform_name}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    required
+                  />
+                </div>
 
-            <form id="edit-platform-form" onSubmit={handleEditSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Platform Name
-                </label>
-                <input
-                  type="text"
-                  name="platform_name"
-                  value={editForm.platform_name}
-                  onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Account Type
+                  </label>
+                  <input
+                    type="text"
+                    name="account_type"
+                    value={editForm.account_type}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="e.g., Standard, Premium, Enterprise"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Account Type
-                </label>
-                <input
-                  type="text"
-                  name="account_type"
-                  value={editForm.account_type}
-                  onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  placeholder="e.g., Standard, Premium, Enterprise"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Inventory
+                  </label>
+                  <input
+                    type="number"
+                    name="inventory"
+                    value={editForm.inventory}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Inventory
-                </label>
-                <input
-                  type="number"
-                  name="inventory"
-                  value={editForm.inventory}
-                  onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cost Price (in cents)
-                </label>
-                <input
-                  type="number"
-                  name="cost_price"
-                  value={editForm.cost_price}
-                  onChange={handleEditInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cost Price (in cents)
+                  </label>
+                  <input
+                    type="number"
+                    name="cost_price"
+                    value={editForm.cost_price}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
               </form>
             </div>
 
@@ -827,7 +992,9 @@ const PlatformPanel: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-bold">Confirm Delete</h3>
-                  <p className="text-red-100 text-sm mt-1">This action cannot be undone</p>
+                  <p className="text-red-100 text-sm mt-1">
+                    This action cannot be undone
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowDeleteModal(false)}
@@ -840,11 +1007,10 @@ const PlatformPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
-
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to delete the platform "
-              {selectedPlatform.platform}"? This action cannot be undone.
-            </p>
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete the platform "
+                {selectedPlatform.platform}"? This action cannot be undone.
+              </p>
             </div>
 
             {/* Modal Footer */}
@@ -890,107 +1056,110 @@ const PlatformPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
+              <form
+                id="addStockForm"
+                onSubmit={handlePurchaseSubmit}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Quantity to Add
+                  </label>
+                  <input
+                    type="number"
+                    value={purchaseForm.quantity}
+                    onChange={(e) =>
+                      setPurchaseForm((prev) => ({
+                        ...prev,
+                        quantity: parseInt(e.target.value) || 0,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="1"
+                    required
+                  />
+                </div>
 
-            <form id="addStockForm" onSubmit={handlePurchaseSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quantity to Add
-                </label>
-                <input
-                  type="number"
-                  value={purchaseForm.quantity}
-                  onChange={(e) =>
-                    setPurchaseForm((prev) => ({
-                      ...prev,
-                      quantity: parseInt(e.target.value) || 0,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="1"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cost per Unit
+                  </label>
+                  <input
+                    type="number"
+                    value={purchaseForm.cost_per_unit}
+                    onChange={(e) =>
+                      setPurchaseForm((prev) => ({
+                        ...prev,
+                        cost_per_unit: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cost per Unit
-                </label>
-                <input
-                  type="number"
-                  value={purchaseForm.cost_per_unit}
-                  onChange={(e) =>
-                    setPurchaseForm((prev) => ({
-                      ...prev,
-                      cost_per_unit: parseFloat(e.target.value) || 0,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Supplier
+                  </label>
+                  <input
+                    type="text"
+                    value={purchaseForm.supplier}
+                    onChange={(e) =>
+                      setPurchaseForm((prev) => ({
+                        ...prev,
+                        supplier: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="Supplier name"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Supplier
-                </label>
-                <input
-                  type="text"
-                  value={purchaseForm.supplier}
-                  onChange={(e) =>
-                    setPurchaseForm((prev) => ({
-                      ...prev,
-                      supplier: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  placeholder="Supplier name"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes
+                  </label>
+                  <input
+                    type="text"
+                    value={purchaseForm.notes}
+                    onChange={(e) =>
+                      setPurchaseForm((prev) => ({
+                        ...prev,
+                        notes: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="Additional notes"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes
-                </label>
-                <input
-                  type="text"
-                  value={purchaseForm.notes}
-                  onChange={(e) =>
-                    setPurchaseForm((prev) => ({
-                      ...prev,
-                      notes: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  placeholder="Additional notes"
-                />
-              </div>
-
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-600">
-                  Current Stock:{" "}
-                  <span className="font-medium">
-                    {selectedPlatform.inventory}
-                  </span>
-                </p>
-                <p className="text-sm text-gray-600">
-                  After Addition:{" "}
-                  <span className="font-medium">
-                    {selectedPlatform.inventory + purchaseForm.quantity}
-                  </span>
-                </p>
-                <p className="text-sm text-gray-600">
-                  Total Cost:{" "}
-                  <span className="font-medium">
-                    $
-                    {(
-                      purchaseForm.quantity * purchaseForm.cost_per_unit
-                    ).toFixed(2)}
-                  </span>
-                </p>
-              </div>
-            </form>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    Current Stock:{" "}
+                    <span className="font-medium">
+                      {selectedPlatform.inventory}
+                    </span>
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    After Addition:{" "}
+                    <span className="font-medium">
+                      {selectedPlatform.inventory + purchaseForm.quantity}
+                    </span>
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Total Cost:{" "}
+                    <span className="font-medium">
+                      $
+                      {(
+                        purchaseForm.quantity * purchaseForm.cost_per_unit
+                      ).toFixed(2)}
+                    </span>
+                  </p>
+                </div>
+              </form>
             </div>
 
             {/* Modal Footer */}
@@ -1038,79 +1207,89 @@ const PlatformPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
-
-            {purchaseHistory.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <History className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No purchase history found for this platform.</p>
-                <p className="text-sm mt-2">
-                  Add stock to start tracking purchase history.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Date
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Quantity
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Cost/Unit
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Total Cost
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Supplier
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Inventory Change
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Notes
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {purchaseHistory.map((purchase) => (
-                      <tr
-                        key={purchase.id}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
-                        <td className="py-3 px-4">
-                          {new Date(purchase.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-4 font-medium">
-                          {purchase.quantity}
-                        </td>
-                        <td className="py-3 px-4">
-                          ${purchase.cost_per_unit.toFixed(2)}
-                        </td>
-                        <td className="py-3 px-4 font-medium">
-                          ${purchase.total_cost.toFixed(2)}
-                        </td>
-                        <td className="py-3 px-4">
-                          {purchase.supplier || "-"}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="text-sm text-gray-600">
-                            {purchase.previous_inventory} →{" "}
-                            {purchase.new_inventory}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {purchase.notes || "-"}
-                        </td>
+              {purchaseHistory.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <History className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>No purchase history found for this platform.</p>
+                  <p className="text-sm mt-2">
+                    Add stock to start tracking purchase history.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Date
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Quantity
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Cost/Unit
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Total Cost
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Supplier
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Inventory Change
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Notes
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody>
+                      {paginatedPurchaseHistory.map((purchase) => (
+                        <tr
+                          key={purchase.id}
+                          className="border-b border-gray-100 hover:bg-gray-50"
+                        >
+                          <td className="py-3 px-4">
+                          {new Date(purchase.created_at).toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 font-medium">
+                            {purchase.quantity}
+                          </td>
+                          <td className="py-3 px-4">
+                            ${purchase.cost_per_unit.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 font-medium">
+                            ${purchase.total_cost.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4">
+                            {purchase.supplier || "-"}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="text-sm text-gray-600">
+                              {purchase.previous_inventory} →{" "}
+                              {purchase.new_inventory}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {purchase.notes || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Purchase History Pagination */}
+              {purchaseHistory.length > 0 && (
+                <Pagination
+                  currentPage={purchaseHistoryPage}
+                  totalItems={purchaseHistory.length}
+                  itemsPerPage={purchaseHistoryItemsPerPage}
+                  onPageChange={handlePurchaseHistoryPageChange}
+                  onItemsPerPageChange={handlePurchaseHistoryItemsPerPageChange}
+                />
+              )}
             </div>
 
             {/* Modal Footer */}
@@ -1145,87 +1324,99 @@ const PlatformPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
-
-            {allPurchaseHistory.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <History className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No purchase history found.</p>
-                <p className="text-sm mt-2">
-                  Start adding stock to platforms to see purchase history.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Date
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Platform
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Quantity
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Cost/Unit
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Total Cost
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Supplier
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Inventory Change
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Notes
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allPurchaseHistory.map((purchase) => (
-                      <tr
-                        key={purchase.id}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
-                        <td className="py-3 px-4">
-                          {new Date(purchase.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-4 font-medium">
-                          <span className="text-pink-600">
-                            {purchase.platform_name || "Unknown Platform"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 font-medium">
-                          {purchase.quantity}
-                        </td>
-                        <td className="py-3 px-4">
-                          ${purchase.cost_per_unit.toFixed(2)}
-                        </td>
-                        <td className="py-3 px-4 font-medium">
-                          ${purchase.total_cost.toFixed(2)}
-                        </td>
-                        <td className="py-3 px-4">
-                          {purchase.supplier || "-"}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="text-sm text-gray-600">
-                            {purchase.previous_inventory} →{" "}
-                            {purchase.new_inventory}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {purchase.notes || "-"}
-                        </td>
+              {allPurchaseHistory.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <History className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>No purchase history found.</p>
+                  <p className="text-sm mt-2">
+                    Start adding stock to platforms to see purchase history.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Date
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Platform
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Quantity
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Cost/Unit
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Total Cost
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Supplier
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Inventory Change
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                          Notes
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody>
+                      {paginatedAllPurchaseHistory.map((purchase) => (
+                        <tr
+                          key={purchase.id}
+                          className="border-b border-gray-100 hover:bg-gray-50"
+                        >
+                          <td className="py-3 px-4">
+                          {new Date(purchase.created_at).toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 font-medium">
+                            <span className="text-pink-600">
+                              {purchase.platform_name || "Unknown Platform"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-medium">
+                            {purchase.quantity}
+                          </td>
+                          <td className="py-3 px-4">
+                            ${purchase.cost_per_unit.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 font-medium">
+                            ${purchase.total_cost.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4">
+                            {purchase.supplier || "-"}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="text-sm text-gray-600">
+                              {purchase.previous_inventory} →{" "}
+                              {purchase.new_inventory}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-gray-600">
+                            {purchase.notes || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* All Purchase History Pagination */}
+              {allPurchaseHistory.length > 0 && (
+                <Pagination
+                  currentPage={allPurchaseHistoryPage}
+                  totalItems={allPurchaseHistory.length}
+                  itemsPerPage={allPurchaseHistoryItemsPerPage}
+                  onPageChange={handleAllPurchaseHistoryPageChange}
+                  onItemsPerPageChange={
+                    handleAllPurchaseHistoryItemsPerPageChange
+                  }
+                />
+              )}
             </div>
 
             {/* Modal Footer */}
@@ -1238,6 +1429,99 @@ const PlatformPanel: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowAllHistoryModal(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Platforms Modal */}
+      {showRestoreModal && (
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold">
+                    Restore Deleted Platforms
+                  </h3>
+                  <p className="text-blue-100 text-sm mt-1">
+                    Select platforms to restore
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowRestoreModal(false)}
+                  className="text-blue-100 hover:text-white p-2 rounded-lg hover:bg-blue-600/50 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {deletedPlatforms.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No deleted platforms found</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {deletedPlatforms.map((platform) => (
+                    <div
+                      key={platform.id}
+                      className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">
+                            {platform.platform}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Account Type: {platform.account_type}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                          Deleted:{" "}
+                          {new Date(
+                          platform.deleted_at!
+                          ).toLocaleString()}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRestoreClick(platform)}
+                          disabled={loading}
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                          </svg>
+                          {loading ? "Restoring..." : "Restore"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowRestoreModal(false)}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Close

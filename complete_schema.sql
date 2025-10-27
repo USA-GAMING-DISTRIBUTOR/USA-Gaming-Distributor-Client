@@ -36,13 +36,15 @@ create table public.game_coins (
   inventory integer not null default 0,
   cost_price decimal(10,2) not null default 0.00,
   created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  deleted_at timestamptz -- Soft delete timestamp (null = not deleted)
 );
 
 -- Game coins indexes
 create index idx_game_coins_platform on public.game_coins (platform);
 create index idx_game_coins_account_type on public.game_coins (account_type);
 create index idx_game_coins_inventory on public.game_coins (inventory);
+create index idx_game_coins_deleted_at on public.game_coins (deleted_at);
 
 -- Game coins trigger
 create trigger update_game_coins_updated_at
@@ -109,6 +111,7 @@ create table public.orders (
   notes text,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
+  created_by uuid references public.users(id) not null,
   verified_at timestamptz,
   verified_by uuid references public.users(id)
 );
@@ -118,6 +121,7 @@ create index idx_orders_customer_id on public.orders (customer_id);
 create index idx_orders_status on public.orders (status);
 create index idx_orders_payment_status on public.orders (payment_status);
 create index idx_orders_created_at on public.orders (created_at);
+create index idx_orders_created_by on public.orders (created_by);
 create index idx_orders_order_number on public.orders (order_number);
 
 -- Orders trigger
@@ -170,6 +174,8 @@ create table public.payment_details (
   bank_transaction_time timestamptz,
   bank_exchange_rate decimal(10,4),
   bank_amount_in_currency decimal(10,2),
+  bank_purpose text,
+  bank_transaction_type text,
   
   -- Cash payment specific fields
   cash_received_by text,
@@ -189,6 +195,8 @@ create index idx_payment_details_transaction_id on public.payment_details (trans
 create index idx_payment_details_crypto_currency on public.payment_details (crypto_currency);
 create index idx_payment_details_crypto_transaction_hash on public.payment_details (crypto_transaction_hash);
 create index idx_payment_details_bank_transaction_reference on public.payment_details (bank_transaction_reference);
+create index idx_payment_details_bank_purpose on public.payment_details (bank_purpose);
+create index idx_payment_details_bank_transaction_type on public.payment_details (bank_transaction_type);
 
 -- Payment details trigger
 create trigger update_payment_details_updated_at
@@ -268,9 +276,11 @@ drop policy if exists "game_coins_insert_all" on public.game_coins;
 drop policy if exists "game_coins_update_all" on public.game_coins;
 drop policy if exists "game_coins_delete_all" on public.game_coins;
 
-create policy "game_coins_select_all" on public.game_coins for select using (true);
+create policy "game_coins_select_all" on public.game_coins for select using (deleted_at is null);
+create policy "game_coins_select_deleted" on public.game_coins for select using (deleted_at is not null);
 create policy "game_coins_insert_all" on public.game_coins for insert with check (true);
 create policy "game_coins_update_all" on public.game_coins for update using (true);
+create policy "game_coins_update_soft_delete" on public.game_coins for update using (true) with check (true);
 create policy "game_coins_delete_all" on public.game_coins for delete using (true);
 
 -- Customers policies
@@ -374,6 +384,16 @@ insert into public.customers (name, contact_numbers)
 select 'Jane Smith', ARRAY['555-0102', '555-0302']
 where not exists (select 1 from public.customers where name = 'Jane Smith');
 
-insert into public.customers (name, contact_numbers) 
+insert into public.customers (name, contact_numbers)
 select 'Mike Johnson', ARRAY['555-0103']
 where not exists (select 1 from public.customers where name = 'Mike Johnson');
+
+-- Add created_by column to orders table if it doesn't exist (for existing databases)
+alter table public.orders add column if not exists created_by uuid references public.users(id);
+-- Set default value for existing records (use superadmin if exists, otherwise first admin)
+update public.orders set created_by = (
+  select id from public.users where role = 'SuperAdmin' limit 1
+) where created_by is null;
+-- Make created_by NOT NULL for new records
+alter table public.orders alter column created_by set not null;
+create index if not exists idx_orders_created_by on public.orders (created_by);

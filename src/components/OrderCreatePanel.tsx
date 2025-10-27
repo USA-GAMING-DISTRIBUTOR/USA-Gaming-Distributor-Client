@@ -4,6 +4,7 @@ import LoadingSpinner from "./LoadingSpinner";
 import html2canvas from "html2canvas";
 import { Plus, Trash2 } from "lucide-react";
 import { useAppSelector } from "../hooks/redux";
+import Pagination from "./common/Pagination";
 
 interface Customer {
   id: string;
@@ -37,6 +38,10 @@ const OrderCreatePanel: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
   const [copyingId, setCopyingId] = useState<string | null>(null);
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
   const [itemsModalOrder, setItemsModalOrder] = useState<any | null>(null);
@@ -61,6 +66,20 @@ const OrderCreatePanel: React.FC = () => {
     };
     fetchData();
   }, []);
+
+  // Pagination logic
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = orders.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
 
   const handleOrderItemChange = (
     idx: number,
@@ -600,7 +619,7 @@ const OrderCreatePanel: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order) => (
+            {paginatedOrders.map((order) => (
               <tr
                 key={order.id}
                 className="border-b hover:bg-pink-50 cursor-pointer"
@@ -695,6 +714,18 @@ const OrderCreatePanel: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {orders.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={orders.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
+
       {itemsModalOpen && itemsModalOrder && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"

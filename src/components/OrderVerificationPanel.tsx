@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import Pagination from "./common/Pagination";
 
 interface Order {
   id: string;
@@ -57,6 +58,10 @@ const OrderVerificationPanel: React.FC = () => {
     setLoading(false);
   };
   const [orders, setOrders] = useState<Order[]>([]);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8);
   // ...existing code...
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>(
     []
@@ -124,6 +129,20 @@ const OrderVerificationPanel: React.FC = () => {
     fetchOrders();
   }, []);
 
+  // Pagination logic
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = orders.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
   const handleVerifyClick = (id: string) => {
     setVerifyId(id);
     setShowModal(true);
@@ -155,58 +174,76 @@ const OrderVerificationPanel: React.FC = () => {
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full table-auto text-sm">
-          <thead>
-            <tr className="border-b bg-gray-50">
-              <th className="py-2 px-3 text-left w-24">Order ID</th>
-              <th className="py-2 px-3 text-left w-32">Customer</th>
-              <th className="py-2 px-3 text-left w-56">Items</th>
-              <th className="py-2 px-3 text-left w-24">Payment Method</th>
-              <th className="py-2 px-3 text-left w-20">Status</th>
-              <th className="py-2 px-3 text-left w-32">Created By</th>
-              <th className="py-2 px-3 text-left w-32">Created At</th>
-              <th className="py-2 px-3 text-left w-24">Invoice</th>
-              <th className="py-2 px-3 text-left w-24">Action</th>
+      <table className="w-full border-collapse">
+      <thead>
+      <tr className="border-b border-gray-200">
+      <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">
+        Order ID
+      </th>
+      <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">
+        Customer
+      </th>
+      <th className="text-left py-3 px-4 font-semibold text-gray-700 w-56">
+        Items
+      </th>
+        <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">
+            Payment Method
+              </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-20">
+                Status
+              </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">
+                Created By
+              </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">
+                Created At
+              </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">
+                Invoice
+              </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody>
-            {orders.map((order) => (
+            {paginatedOrders.map((order) => (
               <tr
                 key={order.id}
-                className="border-b hover:bg-pink-50 cursor-pointer"
+                className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                 onClick={() => {
                   setDetailOrder(order);
                   setDetailModalOpen(true);
                 }}
               >
-                <td className="py-2 px-3 font-medium">{order.id}</td>
-                <td className="py-2 px-3 font-medium">
+                <td className="py-3 px-4 font-medium">{order.id}</td>
+                <td className="py-3 px-4 font-medium">
                   {order.customer?.name || order.customer_id}
                 </td>
-                <td className="py-2 px-3 select-none">
+                <td className="py-3 px-4">
                   {Array.isArray(order.items)
                     ? `${order.items.length} item${
                         order.items.length !== 1 ? "s" : ""
                       }`
                     : "—"}
                 </td>
-                <td className="py-2 px-3">{order.payment_method}</td>
-                <td className="py-2 px-3">
-                  {order.status === "verified" ? (
-                    <span className="text-green-600 font-semibold">
-                      Verified
-                    </span>
-                  ) : (
-                    <span className="text-yellow-600 font-semibold">
-                      Pending
-                    </span>
-                  )}
+                <td className="py-3 px-4">{order.payment_method}</td>
+                <td className="py-3 px-4">
+                {order.status === "verified" ? (
+                <span className="text-green-600 font-semibold">
+                Verified
+                </span>
+                ) : (
+                <span className="text-yellow-600 font-semibold">
+                Pending
+                </span>
+                )}
                 </td>
-                <td className="py-2 px-3">{order.created_by}</td>
-                <td className="py-2 px-3">
-                  {new Date(order.created_at).toLocaleString()}
+                <td className="py-3 px-4">{order.created_by}</td>
+                <td className="py-3 px-4">
+                {new Date(order.created_at).toLocaleString()}
                 </td>
-                <td className="py-2 px-3">
+                <td className="py-3 px-4">
                   {order.invoice_url ? (
                     <a
                       href={order.invoice_url}
@@ -428,6 +465,18 @@ const OrderVerificationPanel: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {orders.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalItems={orders.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
+
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
@@ -519,13 +568,21 @@ const OrderVerificationPanel: React.FC = () => {
             </div>
             <h4 className="font-semibold mb-2">Items</h4>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm border">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="py-2 px-2 text-left">Platform</th>
-                    <th className="py-2 px-2 text-right">Quantity</th>
-                    <th className="py-2 px-2 text-right">Unit Price</th>
-                    <th className="py-2 px-2 text-right">Total</th>
+            <table className="w-full border-collapse">
+            <thead>
+            <tr className="border-b border-gray-200">
+            <th className="text-left py-3 px-4 font-semibold text-gray-700">
+              Platform
+            </th>
+            <th className="text-right py-3 px-4 font-semibold text-gray-700">
+                Quantity
+                </th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">
+                      Unit Price
+                    </th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">
+                      Total
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -534,17 +591,20 @@ const OrderVerificationPanel: React.FC = () => {
                     detailOrder.items.map((item, idx) => {
                       const total = Number(item.price) * Number(item.quantity);
                       return (
-                        <tr key={idx} className="border-t">
-                          <td className="py-1 px-2 font-medium">
-                            {item.coin_name || item.coin_id}
-                          </td>
-                          <td className="py-1 px-2 text-right">
-                            {item.quantity}
-                          </td>
-                          <td className="py-1 px-2 text-right">
+                        <tr
+                        key={idx}
+                        className="border-b border-gray-100 hover:bg-gray-50"
+                        >
+                        <td className="py-3 px-4 font-medium">
+                        {item.coin_name || item.coin_id}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                        {item.quantity}
+                        </td>
+                        <td className="py-3 px-4 text-right">
                             ${item.price}
                           </td>
-                          <td className="py-1 px-2 text-right">${total}</td>
+                          <td className="py-3 px-4 text-right">${total}</td>
                         </tr>
                       );
                     })

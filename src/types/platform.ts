@@ -5,6 +5,7 @@ export interface Platform {
   account_type: string; // Free text input for account types
   inventory: number;
   cost_price: number;
+  low_stock_alert: number; // Low stock alert threshold
   created_at: string | null;
   updated_at: string | null;
   deleted_at: string | null; // Soft delete timestamp
@@ -15,6 +16,7 @@ export interface PlatformCreateData {
   account_type: string;
   inventory: number;
   cost_price: number;
+  low_stock_alert: number;
 }
 
 export interface PlatformUpdateData extends Partial<PlatformCreateData> {

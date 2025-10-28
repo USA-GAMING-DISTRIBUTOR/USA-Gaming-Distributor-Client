@@ -144,25 +144,25 @@ const OverviewPanel: React.FC = () => {
       );
 
       const platforms: Platform[] = platformsRaw.map(
-        (platform: Record<string, unknown>) => ({
-          id: String(platform.id || ""),
-          platform: String(platform.platform_name || platform.platform || ""),
-          platform_name: String(
-            platform.platform_name || platform.platform || ""
-          ),
-          account_type:
-            (platform.account_type as Platform["account_type"]) || "Standard",
-          category: String(platform.category || ""),
-          inventory: Number(platform.inventory || 0),
-          cost_price: Number(platform.cost_price || 0),
-          created_at: String(platform.created_at || new Date().toISOString()),
-          updated_at: String(
-            platform.updated_at ||
-              platform.created_at ||
-              new Date().toISOString()
-          ),
-          deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
-        })
+      (platform: Record<string, unknown>) => ({
+      id: String(platform.id || ""),
+      platform: String(platform.platform_name || platform.platform || ""),
+      platform_name: String(
+      platform.platform_name || platform.platform || ""
+      ),
+      account_type:
+      (platform.account_type as Platform["account_type"]) || "Standard",
+      inventory: Number(platform.inventory || 0),
+      cost_price: Number(platform.cost_price || 0),
+      low_stock_alert: Number(platform.low_stock_alert || 10),
+      created_at: String(platform.created_at || new Date().toISOString()),
+      updated_at: String(
+      platform.updated_at ||
+      platform.created_at ||
+      new Date().toISOString()
+      ),
+      deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
+      })
       );
 
       // Calculate metrics

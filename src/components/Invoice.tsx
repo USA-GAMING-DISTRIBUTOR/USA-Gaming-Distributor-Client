@@ -14,9 +14,21 @@ interface InvoiceProps {
     currency: string;
     crypto_currency?: string;
     crypto_network?: string;
+    crypto_username?: string;
+    crypto_wallet_address?: string;
+    crypto_transaction_hash?: string;
     bank_transaction_reference?: string;
+    bank_sender_name?: string;
+    bank_sender_bank?: string;
+    bank_purpose?: string;
+    bank_transaction_type?: string;
+    bank_transaction_time?: string;
+    bank_amount_in_currency?: string;
+    bank_exchange_rate?: string;
     cash_received_by?: string;
-    [key: string]: unknown;
+    cash_receipt_number?: string;
+    notes?: string;
+    created_at?: string;
   };
 }
 
@@ -35,23 +47,6 @@ const Invoice: React.FC<InvoiceProps> = ({
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
-
-  const getStatusColor = (status: Order["status"]) => {
-    switch (status) {
-      case "pending":
-        return { color: "#d97706", backgroundColor: "#fef3c7" };
-      case "processing":
-        return { color: "#2563eb", backgroundColor: "#dbeafe" };
-      case "verified":
-        return { color: "#059669", backgroundColor: "#d1fae5" };
-      case "completed":
-        return { color: "#047857", backgroundColor: "#d1fae5" };
-      case "replacement":
-        return { color: "#ec4899", backgroundColor: "#fce7f3" };
-      default:
-        return { color: "#6b7280", backgroundColor: "#f3f4f6" };
-    }
   };
 
   return (
@@ -265,29 +260,6 @@ const Invoice: React.FC<InvoiceProps> = ({
                 {order.payment_method}
               </span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  fontWeight: "500",
-                }}
-              >
-                Status:
-              </span>
-              <span
-                style={{
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  color: getStatusColor(order.status).color,
-                  backgroundColor: getStatusColor(order.status).backgroundColor,
-                  padding: "2px 8px",
-                  borderRadius: "4px",
-                }}
-              >
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-              </span>
-            </div>
           </div>
         </div>
       </div>
@@ -333,17 +305,6 @@ const Invoice: React.FC<InvoiceProps> = ({
                 }}
               >
                 Platform
-              </th>
-              <th
-                style={{
-                  padding: "16px 12px",
-                  textAlign: "center",
-                  fontWeight: "600",
-                  fontSize: "14px",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Account Type
               </th>
               <th
                 style={{
@@ -402,27 +363,6 @@ const Invoice: React.FC<InvoiceProps> = ({
                     }}
                   >
                     {item.platform || platform?.platform || "Unknown Platform"}
-                  </td>
-                  <td
-                    style={{
-                      padding: "16px 12px",
-                      textAlign: "center",
-                      color: "#6b7280",
-                      fontWeight: "500",
-                    }}
-                  >
-                    <span
-                      style={{
-                        backgroundColor: "#fce7f3",
-                        color: "#be185d",
-                        padding: "4px 8px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                      }}
-                    >
-                      {platform?.account_type || "Standard"}
-                    </span>
                   </td>
                   <td
                     style={{
@@ -596,132 +536,407 @@ const Invoice: React.FC<InvoiceProps> = ({
             💳 Payment Information
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "16px",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  color: "#374151",
-                  marginBottom: "8px",
-                }}
-              >
-                Payment Method
-              </div>
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  backgroundColor: "#fce7f3",
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  fontWeight: "600",
-                }}
-              >
-                {paymentDetails.payment_method}
-              </div>
-            </div>
-
+          <div style={{ marginBottom: "16px" }}>
+            {/* Basic Payment Info */}
             {paymentDetails.transaction_id && (
-              <div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: "600",
-                    color: "#374151",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Transaction ID
-                </div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#6b7280",
-                    fontFamily: "monospace",
-                    backgroundColor: "#f1f5f9",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    wordBreak: "break-all",
-                  }}
-                >
-                  {paymentDetails.transaction_id}
+              <div
+                style={{
+                  backgroundColor: "#ffffff",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: "1px solid #e2e8f0",
+                  marginBottom: "16px",
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      fontWeight: "600",
+                      color: "#374151",
+                      fontSize: "13px",
+                      marginRight: "8px",
+                    }}
+                  >
+                    Transaction ID:
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "monospace",
+                      fontSize: "12px",
+                      backgroundColor: "#f1f5f9",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {paymentDetails.transaction_id}
+                  </span>
                 </div>
               </div>
             )}
 
-            {paymentDetails.crypto_currency && (
-              <div>
+            {/* Method-specific details */}
+            {order.payment_method === "Crypto" && (
+              <div
+                style={{
+                  backgroundColor: "#ffffff",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: "1px solid #e2e8f0",
+                  marginBottom: "16px",
+                }}
+              >
                 <div
                   style={{
-                    fontSize: "14px",
+                    fontSize: "16px",
                     fontWeight: "600",
-                    color: "#374151",
-                    marginBottom: "8px",
+                    color: "#ea580c",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
-                  Cryptocurrency
+                  <span style={{ marginRight: "8px" }}>₿</span>
+                  Crypto Payment
                 </div>
-                <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                  {paymentDetails.crypto_currency}
-                  {paymentDetails.crypto_network && (
-                    <span style={{ color: "#9ca3af" }}>
-                      {" "}
-                      ({paymentDetails.crypto_network})
-                    </span>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr",
+                    gap: "8px",
+                    fontSize: "13px",
+                  }}
+                >
+                  {paymentDetails.crypto_currency && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Type:
+                      </span>
+                      <span
+                        style={{
+                          marginLeft: "8px",
+                          backgroundColor: "#fed7aa",
+                          color: "#c2410c",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        {paymentDetails.crypto_currency}
+                      </span>
+                    </div>
+                  )}
+                  {paymentDetails.crypto_username && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Username:
+                      </span>
+                      <span style={{ marginLeft: "8px" }}>
+                        {paymentDetails.crypto_username}
+                      </span>
+                    </div>
+                  )}
+                  {paymentDetails.crypto_wallet_address && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Wallet Address:
+                      </span>
+                      <div
+                        style={{
+                          marginTop: "4px",
+                          fontFamily: "monospace",
+                          fontSize: "11px",
+                          backgroundColor: "#f1f5f9",
+                          padding: "6px 8px",
+                          borderRadius: "4px",
+                          wordBreak: "break-all",
+                          color: "#374151",
+                        }}
+                      >
+                        {paymentDetails.crypto_wallet_address}
+                      </div>
+                    </div>
+                  )}
+                  {paymentDetails.crypto_transaction_hash && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Transaction Hash:
+                      </span>
+                      <div
+                        style={{
+                          marginTop: "4px",
+                          fontFamily: "monospace",
+                          fontSize: "11px",
+                          backgroundColor: "#f1f5f9",
+                          padding: "6px 8px",
+                          borderRadius: "4px",
+                          wordBreak: "break-all",
+                          color: "#374151",
+                        }}
+                      >
+                        {paymentDetails.crypto_transaction_hash}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
             )}
 
-            {paymentDetails.bank_transaction_reference && (
-              <div>
+            {order.payment_method === "Bank Transfer" && (
+              <div
+                style={{
+                  backgroundColor: "#ffffff",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: "1px solid #e2e8f0",
+                  marginBottom: "16px",
+                }}
+              >
                 <div
                   style={{
-                    fontSize: "14px",
+                    fontSize: "16px",
                     fontWeight: "600",
-                    color: "#374151",
-                    marginBottom: "8px",
+                    color: "#2563eb",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
-                  Bank Reference
+                  <span style={{ marginRight: "8px" }}>🏦</span>
+                  Bank Transfer
                 </div>
                 <div
                   style={{
-                    fontSize: "12px",
-                    color: "#6b7280",
-                    fontFamily: "monospace",
-                    backgroundColor: "#f1f5f9",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "12px",
+                    fontSize: "13px",
                   }}
                 >
-                  {paymentDetails.bank_transaction_reference}
+                  {paymentDetails.bank_transaction_reference && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Reference Number:
+                      </span>
+                      <div
+                        style={{
+                          marginTop: "2px",
+                          fontFamily: "monospace",
+                          fontSize: "12px",
+                          backgroundColor: "#f1f5f9",
+                          padding: "4px 6px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {paymentDetails.bank_transaction_reference}
+                      </div>
+                    </div>
+                  )}
+                  {paymentDetails.bank_sender_name && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Sender:
+                      </span>
+                      <div style={{ marginTop: "2px" }}>
+                        {paymentDetails.bank_sender_name}
+                      </div>
+                    </div>
+                  )}
+                  {paymentDetails.bank_sender_bank && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Institution:
+                      </span>
+                      <div style={{ marginTop: "2px" }}>
+                        {paymentDetails.bank_sender_bank}
+                      </div>
+                    </div>
+                  )}
+                  {paymentDetails.bank_purpose && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Purpose:
+                      </span>
+                      <div style={{ marginTop: "2px" }}>
+                        {paymentDetails.bank_purpose}
+                      </div>
+                    </div>
+                  )}
+                  {paymentDetails.bank_transaction_type && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Transaction Type:
+                      </span>
+                      <div style={{ marginTop: "2px" }}>
+                        {paymentDetails.bank_transaction_type}
+                      </div>
+                    </div>
+                  )}
+                  {paymentDetails.bank_transaction_time && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Transaction Time:
+                      </span>
+                      <div style={{ marginTop: "2px", fontSize: "12px" }}>
+                        {new Date(
+                          paymentDetails.bank_transaction_time
+                        ).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                  {paymentDetails.bank_amount_in_currency && (
+                    <div style={{ gridColumn: "span 2" }}>
+                      <div
+                        style={{
+                          backgroundColor: "#f8fafc",
+                          padding: "8px 12px",
+                          borderRadius: "8px",
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <span style={{ fontWeight: "600", color: "#374151" }}>
+                          Local Amount:
+                        </span>
+                        <div
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "700",
+                            color: "#1f2937",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {paymentDetails.bank_amount_in_currency}{" "}
+                          {paymentDetails.currency}
+                        </div>
+                        {paymentDetails.bank_exchange_rate && (
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              color: "#6b7280",
+                              marginTop: "2px",
+                            }}
+                          >
+                            Rate: {paymentDetails.bank_exchange_rate}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {paymentDetails.cash_received_by && (
-              <div>
+            {order.payment_method === "Cash" && (
+              <div
+                style={{
+                  backgroundColor: "#ffffff",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: "1px solid #e2e8f0",
+                  marginBottom: "16px",
+                }}
+              >
                 <div
                   style={{
-                    fontSize: "14px",
+                    fontSize: "16px",
                     fontWeight: "600",
-                    color: "#374151",
-                    marginBottom: "8px",
+                    color: "#059669",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
                   }}
                 >
-                  Received By
+                  <span style={{ marginRight: "8px" }}>💵</span>
+                  Cash Payment
                 </div>
-                <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                  {paymentDetails.cash_received_by}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "12px",
+                    fontSize: "13px",
+                  }}
+                >
+                  {paymentDetails.cash_received_by && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Received By:
+                      </span>
+                      <div style={{ marginTop: "2px" }}>
+                        {paymentDetails.cash_received_by}
+                      </div>
+                    </div>
+                  )}
+                  {paymentDetails.cash_receipt_number && (
+                    <div>
+                      <span style={{ fontWeight: "600", color: "#374151" }}>
+                        Receipt #:
+                      </span>
+                      <div
+                        style={{
+                          marginTop: "2px",
+                          fontFamily: "monospace",
+                          fontSize: "12px",
+                          backgroundColor: "#f1f5f9",
+                          padding: "4px 6px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {paymentDetails.cash_receipt_number}
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* Additional Notes */}
+            {paymentDetails.notes && (
+              <div
+                style={{
+                  backgroundColor: "#fef3c7",
+                  border: "1px solid #f59e0b",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  marginBottom: "16px",
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: "600",
+                    color: "#92400e",
+                    fontSize: "13px",
+                  }}
+                >
+                  Payment Notes:
+                </span>
+                <p
+                  style={{
+                    color: "#78350f",
+                    fontSize: "13px",
+                    marginTop: "4px",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {paymentDetails.notes}
+                </p>
+              </div>
+            )}
+
+            {/* Timestamp */}
+            {paymentDetails.created_at && (
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "#6b7280",
+                  textAlign: "right",
+                  borderTop: "1px solid #e2e8f0",
+                  paddingTop: "8px",
+                }}
+              >
+                <span style={{ fontWeight: "600" }}>Recorded:</span>{" "}
+                {new Date(paymentDetails.created_at).toLocaleString()}
               </div>
             )}
           </div>

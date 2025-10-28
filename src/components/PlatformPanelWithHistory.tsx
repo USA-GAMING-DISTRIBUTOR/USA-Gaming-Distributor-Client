@@ -26,17 +26,19 @@ const PlatformPanel: React.FC = () => {
   const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistory[]>([]);
 
   const [form, setForm] = useState<PlatformCreateData>({
-    platform_name: "",
-    account_type: "",
-    inventory: 0,
-    cost_price: 0,
+  platform_name: "",
+  account_type: "",
+  inventory: 0,
+  cost_price: 0,
+    low_stock_alert: 10,
   });
 
   const [editForm, setEditForm] = useState<PlatformCreateData>({
-    platform_name: "",
-    account_type: "",
-    inventory: 0,
-    cost_price: 0,
+  platform_name: "",
+  account_type: "",
+  inventory: 0,
+  cost_price: 0,
+    low_stock_alert: 10,
   });
 
   const [purchaseForm, setPurchaseForm] = useState({
@@ -71,21 +73,22 @@ const PlatformPanel: React.FC = () => {
 
     // Transform data to match our updated Platform interface
     const transformedPlatforms: Platform[] = (data || []).map(
-      (platform: Record<string, unknown>) => ({
-        id: String(platform.id || ""),
-        platform: String(
-          platform.platform || platform.platform_name || ""
-        ),
-        account_type: String(platform.account_type || "Standard"),
-        inventory: Number(platform.inventory || 0),
-        cost_price: Number(platform.cost_price || 0),
-        created_at: platform.created_at ? String(platform.created_at) : null,
-        updated_at: platform.updated_at
-          ? String(platform.updated_at)
-          : platform.created_at
-          ? String(platform.created_at)
-          : null,
-        deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
+    (platform: Record<string, unknown>) => ({
+    id: String(platform.id || ""),
+    platform: String(
+    platform.platform || platform.platform_name || ""
+    ),
+    account_type: String(platform.account_type || "Standard"),
+    inventory: Number(platform.inventory || 0),
+    cost_price: Number(platform.cost_price || 0),
+    low_stock_alert: Number(platform.low_stock_alert || 10),
+    created_at: platform.created_at ? String(platform.created_at) : null,
+    updated_at: platform.updated_at
+    ? String(platform.updated_at)
+    : platform.created_at
+    ? String(platform.created_at)
+      : null,
+      deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
       })
     );
 
@@ -174,10 +177,11 @@ const PlatformPanel: React.FC = () => {
     }
 
     setForm({
-      platform_name: "",
-      account_type: "",
-      inventory: 0,
-      cost_price: 0,
+    platform_name: "",
+    account_type: "",
+    inventory: 0,
+    cost_price: 0,
+      low_stock_alert: 10,
     });
     setShowCreateModal(false);
     fetchPlatforms();
@@ -185,13 +189,14 @@ const PlatformPanel: React.FC = () => {
   };
 
   const handleEdit = (platform: Platform) => {
-    setSelectedPlatform(platform);
-    setEditForm({
-      platform_name: platform.platform,
-      account_type: platform.account_type,
-      inventory: platform.inventory,
-      cost_price: platform.cost_price,
-    });
+  setSelectedPlatform(platform);
+  setEditForm({
+  platform_name: platform.platform,
+  account_type: platform.account_type,
+  inventory: platform.inventory,
+  cost_price: platform.cost_price,
+    low_stock_alert: platform.low_stock_alert,
+  });
     setShowEditModal(true);
   };
 

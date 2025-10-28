@@ -2,7 +2,15 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import type { Customer, CustomerPricing } from "../types/customer";
 import type { Platform } from "../types/platform";
-import { Plus, Edit2, Trash2, Phone, X, DollarSign } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Phone,
+  X,
+  DollarSign,
+  Search,
+} from "lucide-react";
 import { LoadingSpinner } from "./common/Loader";
 import Pagination from "./common/Pagination";
 
@@ -16,6 +24,9 @@ const CustomerPanel: React.FC = () => {
   const [selectedCustomerForPricing, setSelectedCustomerForPricing] =
     useState<Customer | null>(null);
   const [customerPricing, setCustomerPricing] = useState<CustomerPricing[]>([]);
+
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination state
   const [customersPage, setCustomersPage] = useState(1);
@@ -45,10 +56,18 @@ const CustomerPanel: React.FC = () => {
     is_default: false,
   });
 
+  // Filter customers based on search term
+  const filteredCustomers = customers.filter((customer) =>
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   // Customers pagination logic
   const customersStartIndex = (customersPage - 1) * customersItemsPerPage;
   const customersEndIndex = customersStartIndex + customersItemsPerPage;
-  const paginatedCustomers = customers.slice(customersStartIndex, customersEndIndex);
+  const paginatedCustomers = filteredCustomers.slice(
+    customersStartIndex,
+    customersEndIndex
+  );
 
   const handleCustomersPageChange = (page: number) => {
     setCustomersPage(page);
@@ -62,7 +81,10 @@ const CustomerPanel: React.FC = () => {
   // Customer pricing pagination logic
   const pricingStartIndex = (pricingPage - 1) * pricingItemsPerPage;
   const pricingEndIndex = pricingStartIndex + pricingItemsPerPage;
-  const paginatedCustomerPricing = customerPricing.slice(pricingStartIndex, pricingEndIndex);
+  const paginatedCustomerPricing = customerPricing.slice(
+    pricingStartIndex,
+    pricingEndIndex
+  );
 
   const handlePricingPageChange = (page: number) => {
     setPricingPage(page);
@@ -78,6 +100,11 @@ const CustomerPanel: React.FC = () => {
     fetchPlatforms();
   }, []);
 
+  // Reset page when search term changes
+  useEffect(() => {
+    setCustomersPage(1);
+  }, [searchTerm]);
+
   const fetchPlatforms = async () => {
     try {
       const { data, error } = await supabase
@@ -88,14 +115,15 @@ const CustomerPanel: React.FC = () => {
       if (error) throw error;
 
       // Transform data to match Platform interface
-      const transformedPlatforms = (data || []).map((platform: any) => ({
-        id: platform.id,
-        platform: platform.platform,
-        account_type: platform.account_type || "Standard",
-        inventory: platform.inventory,
-        cost_price: platform.cost_price,
-        created_at: platform.created_at,
-        updated_at: platform.updated_at || null,
+      const transformedPlatforms: Platform[] = (data || []).map((platform: any) => ({
+      id: platform.id,
+      platform: platform.platform,
+      account_type: platform.account_type || "Standard",
+      inventory: platform.inventory,
+      cost_price: platform.cost_price,
+      low_stock_alert: platform.low_stock_alert || 10, // Default to 10 if not set
+      created_at: platform.created_at,
+      updated_at: platform.updated_at || null,
         deleted_at: platform.deleted_at || null,
       }));
 
@@ -358,13 +386,25 @@ const CustomerPanel: React.FC = () => {
         <h2 className="text-xl font-semibold text-gray-800">
           Customer Management
         </h2>
-        <button
-          onClick={() => openModal()}
-          className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Customer
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search customers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={() => openModal()}
+            className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Customer
+          </button>
+        </div>
       </div>
 
       <div className="bg-gray-50 rounded-lg shadow-inner overflow-hidden">
@@ -393,10 +433,14 @@ const CustomerPanel: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ) : customers.length === 0 ? (
+              ) : filteredCustomers.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="text-center py-8 text-gray-500">
-                    No customers found. Add your first customer to get started.
+                    {customers.length === 0
+                      ? "No customers found. Add your first customer to get started."
+                      : searchTerm
+                      ? `No customers found matching "${searchTerm}".`
+                      : "No customers found."}
                   </td>
                 </tr>
               ) : (
@@ -457,10 +501,10 @@ const CustomerPanel: React.FC = () => {
         </div>
 
         {/* Customers Pagination */}
-        {customers.length > 0 && (
+        {filteredCustomers.length > 0 && (
           <Pagination
             currentPage={customersPage}
-            totalItems={customers.length}
+            totalItems={filteredCustomers.length}
             itemsPerPage={customersItemsPerPage}
             onPageChange={handleCustomersPageChange}
             onItemsPerPageChange={handleCustomersItemsPerPageChange}

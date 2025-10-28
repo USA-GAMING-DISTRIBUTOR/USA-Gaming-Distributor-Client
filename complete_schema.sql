@@ -35,6 +35,7 @@ create table public.game_coins (
   account_type text not null default 'Standard',
   inventory integer not null default 0,
   cost_price decimal(10,2) not null default 0.00,
+  low_stock_alert integer not null default 10, -- Custom low stock alert threshold
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   deleted_at timestamptz -- Soft delete timestamp (null = not deleted)
@@ -44,6 +45,7 @@ create table public.game_coins (
 create index idx_game_coins_platform on public.game_coins (platform);
 create index idx_game_coins_account_type on public.game_coins (account_type);
 create index idx_game_coins_inventory on public.game_coins (inventory);
+create index idx_game_coins_low_stock_alert on public.game_coins (low_stock_alert);
 create index idx_game_coins_deleted_at on public.game_coins (deleted_at);
 
 -- Game coins trigger
@@ -367,12 +369,12 @@ select 'superadmin','admin123','SuperAdmin'
 where not exists (select 1 from public.users where username = 'superadmin');
 
 -- Sample platforms
-insert into public.game_coins (platform, account_type, inventory, cost_price) values
-('PlayStation', 'Premium', 150, 99.99),
-('Xbox', 'Standard', 75, 89.99),
-('Nintendo Switch', 'Premium', 200, 79.99),
-('Steam', 'Digital', 50, 69.99),
-('Epic Games', 'Standard', 120, 59.99)
+insert into public.game_coins (platform, account_type, inventory, cost_price, low_stock_alert) values
+('PlayStation', 'Premium', 150, 99.99, 20),
+('Xbox', 'Standard', 75, 89.99, 15),
+('Nintendo Switch', 'Premium', 200, 79.99, 25),
+('Steam', 'Digital', 50, 69.99, 10),
+('Epic Games', 'Standard', 120, 59.99, 12)
 on conflict do nothing;
 
 -- Sample customers (insert only if table is empty)

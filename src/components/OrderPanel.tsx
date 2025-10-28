@@ -1,20 +1,21 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
-Plus,
-Edit,
-Eye,
-FileText,
-Trash2,
-Filter,
-Copy,
-Download,
+  Plus,
+  Edit,
+  Eye,
+  FileText,
+  Trash2,
+  Filter,
+  Copy,
+  Download,
+  Search,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useAppSelector } from "../hooks/redux";
 import Invoice from "./Invoice";
 import {
-copyInvoiceToClipboard,
-downloadInvoiceImage,
+  copyInvoiceToClipboard,
+  downloadInvoiceImage,
 } from "../utils/invoiceUtils";
 import Pagination from "./common/Pagination";
 import type {
@@ -62,6 +63,7 @@ const OrderPanel: React.FC = () => {
     PaymentMethod | "all"
   >("all");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Refund and replacement state
   const [showRefundModal, setShowRefundModal] = useState(false);
@@ -133,7 +135,9 @@ const OrderPanel: React.FC = () => {
     }
 
     // Sort pricing by min_quantity ascending to check ranges properly
-    const sortedPricing = allPricing.sort((a, b) => a.min_quantity - b.min_quantity);
+    const sortedPricing = allPricing.sort(
+      (a, b) => a.min_quantity - b.min_quantity
+    );
 
     // Find the appropriate pricing tier based on quantity
     for (const pricing of sortedPricing) {
@@ -164,16 +168,16 @@ const OrderPanel: React.FC = () => {
         platformsRes,
       ] = await Promise.all([
         supabase
-        .from("orders")
-        .select(`
+          .from("orders")
+          .select(
+            `
           *,
             users!orders_created_by_fkey(username)
-          `)
+          `
+          )
           .order("created_at", { ascending: false }),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any)
-          .from("order_items")
-          .select(`
+        (supabase as any).from("order_items").select(`
             *,
             game_coins!order_items_platform_id_fkey(account_type)
           `),
@@ -211,22 +215,22 @@ const OrderPanel: React.FC = () => {
 
       // First transform platforms so we can use them in order transformation
       const transformedPlatforms: Platform[] = (platformsRes.data || []).map(
-        (platform: Record<string, unknown>) => ({
-          id: String(platform.id || ""),
-          platform: String(platform.platform_name || platform.platform || ""),
-          account_type:
-            (platform.account_type as Platform["account_type"]) || "Standard",
-          category: String(platform.category || ""),
-          inventory: Number(platform.inventory || 0),
-          cost_price: Number(platform.cost_price || 0),
-          created_at: String(platform.created_at || new Date().toISOString()),
-          updated_at: String(
-            platform.updated_at ||
-              platform.created_at ||
-              new Date().toISOString()
-          ),
-          deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
-        })
+      (platform: Record<string, unknown>) => ({
+      id: String(platform.id || ""),
+      platform: String(platform.platform_name || platform.platform || ""),
+      account_type:
+      (platform.account_type as Platform["account_type"]) || "Standard",
+      inventory: Number(platform.inventory || 0),
+      cost_price: Number(platform.cost_price || 0),
+      low_stock_alert: Number(platform.low_stock_alert || 10),
+      created_at: String(platform.created_at || new Date().toISOString()),
+      updated_at: String(
+      platform.updated_at ||
+      platform.created_at ||
+      new Date().toISOString()
+      ),
+      deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
+      })
       );
 
       // Transform raw data to match our types
@@ -246,12 +250,15 @@ const OrderPanel: React.FC = () => {
               (p) => p.id === item.platform_id
             );
             return {
-            order_id: String(item.order_id || order.id || ""),
-            platform_id: String(item.platform_id || ""),
-            platform: platform?.platform || "Unknown Platform",
-            account_type: item.game_coins?.account_type || platform?.account_type || "Standard",
-            quantity: Number(item.quantity || 0),
-            unitPrice: Number(item.unitPrice || 0),
+              order_id: String(item.order_id || order.id || ""),
+              platform_id: String(item.platform_id || ""),
+              platform: platform?.platform || "Unknown Platform",
+              account_type:
+                item.game_coins?.account_type ||
+                platform?.account_type ||
+                "Standard",
+              quantity: Number(item.quantity || 0),
+              unitPrice: Number(item.unitPrice || 0),
               total_price: Number(item.total_price || 0),
             };
           });
@@ -323,6 +330,11 @@ const OrderPanel: React.FC = () => {
     fetchData();
   }, []);
 
+  // Reset page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // Filter orders based on filters
   const filteredOrders = orders.filter((order) => {
     const matchesStatus =
@@ -330,6 +342,10 @@ const OrderPanel: React.FC = () => {
     const matchesPayment =
       paymentMethodFilter === "all" ||
       order.payment_method === paymentMethodFilter;
+    const matchesSearch =
+      !searchTerm ||
+      order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.id.toLowerCase().includes(searchTerm.toLowerCase());
 
     let matchesDate = true;
     if ((dateRange.start || dateRange.end) && order.created_at) {
@@ -351,7 +367,7 @@ const OrderPanel: React.FC = () => {
       }
     }
 
-    return matchesStatus && matchesPayment && matchesDate;
+    return matchesStatus && matchesPayment && matchesDate && matchesSearch;
   });
 
   // Pagination
@@ -548,30 +564,36 @@ const OrderPanel: React.FC = () => {
 
         // Add specific fields based on payment method
         if (createForm.payment_method === "Crypto") {
-        const cryptoDetails =
-        createForm.payment_details as CryptoPaymentDetails;
-        const cryptoType = (cryptoDetails as any).crypto_type || "USDT";
+          const cryptoDetails =
+            createForm.payment_details as CryptoPaymentDetails;
+          const cryptoType = (cryptoDetails as any).crypto_type || "USDT";
 
-        Object.assign(paymentDetailsData, {
-        crypto_currency: cryptoType,
-        crypto_network: ["TRC20", "BEP20"].includes(cryptoType) ? cryptoType : null,
-        crypto_username: ["USDT", "USDC"].includes(cryptoType) ? (cryptoDetails as any).username : null,
-        crypto_wallet_address: !["USDT", "USDC"].includes(cryptoType) ? (cryptoDetails as any).wallet_address : null,
-          crypto_transaction_hash: cryptoDetails.transaction_id,
+          Object.assign(paymentDetailsData, {
+            crypto_currency: cryptoType,
+            crypto_network: ["TRC20", "BEP20"].includes(cryptoType)
+              ? cryptoType
+              : null,
+            crypto_username: ["USDT", "USDC"].includes(cryptoType)
+              ? (cryptoDetails as any).username
+              : null,
+            crypto_wallet_address: !["USDT", "USDC"].includes(cryptoType)
+              ? (cryptoDetails as any).wallet_address
+              : null,
+            crypto_transaction_hash: cryptoDetails.transaction_id,
           });
         } else if (createForm.payment_method === "Bank Transfer") {
-        const bankDetails = createForm.payment_details as BankTransferDetails;
-        Object.assign(paymentDetailsData, {
-        bank_transaction_reference: bankDetails.bank_transaction_reference,
-        bank_sender_name: (bankDetails as any).sender_name,
-        bank_sender_bank: (bankDetails as any).sender_bank,
-        bank_transaction_time: (bankDetails as any).transaction_time
-        ? new Date((bankDetails as any).transaction_time).toISOString()
-        : null,
-        bank_exchange_rate: (bankDetails as any).exchange_rate,
-        bank_amount_in_currency: bankDetails.bank_amount_in_currency,
-        currency: bankDetails.currency || "USD",
-          bank_purpose: (bankDetails as any).purpose,
+          const bankDetails = createForm.payment_details as BankTransferDetails;
+          Object.assign(paymentDetailsData, {
+            bank_transaction_reference: bankDetails.bank_transaction_reference,
+            bank_sender_name: (bankDetails as any).sender_name,
+            bank_sender_bank: (bankDetails as any).sender_bank,
+            bank_transaction_time: (bankDetails as any).transaction_time
+              ? new Date((bankDetails as any).transaction_time).toISOString()
+              : null,
+            bank_exchange_rate: (bankDetails as any).exchange_rate,
+            bank_amount_in_currency: bankDetails.bank_amount_in_currency,
+            currency: bankDetails.currency || "USD",
+            bank_purpose: (bankDetails as any).purpose,
             bank_transaction_type: (bankDetails as any).transaction_type,
           });
         } else if (createForm.payment_method === "Cash") {
@@ -1250,13 +1272,25 @@ const OrderPanel: React.FC = () => {
         <h2 className="text-xl font-semibold text-gray-800">
           Order Management
         </h2>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create Order
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search orders..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Order
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -1300,7 +1334,7 @@ const OrderPanel: React.FC = () => {
         </div>
 
         <div className="flex flex-col">
-        <label className="text-sm font-medium text-gray-700 mb-1">
+          <label className="text-sm font-medium text-gray-700 mb-1">
             Date & Time Range
           </label>
           <div className="flex items-center space-x-2">
@@ -1382,7 +1416,11 @@ const OrderPanel: React.FC = () => {
             ) : paginatedOrders.length === 0 ? (
               <tr>
                 <td colSpan={8} className="text-center py-8 text-gray-500">
-                  No orders found
+                  {orders.length === 0
+                    ? "No orders found. Create your first order to get started."
+                    : searchTerm
+                    ? `No orders found matching "${searchTerm}".`
+                    : "No orders found with the current filters."}
                 </td>
               </tr>
             ) : (
@@ -1423,11 +1461,11 @@ const OrderPanel: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                  <span className="text-sm text-gray-600">
-                  {order.created_at
-                  ? new Date(order.created_at).toLocaleString()
-                  : "N/A"}
-                  </span>
+                    <span className="text-sm text-gray-600">
+                      {order.created_at
+                        ? new Date(order.created_at).toLocaleString()
+                        : "N/A"}
+                    </span>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex space-x-2">
@@ -1492,11 +1530,11 @@ const OrderPanel: React.FC = () => {
 
       {/* Pagination */}
       <Pagination
-      currentPage={currentPage}
-      totalItems={filteredOrders.length}
-      itemsPerPage={itemsPerPage}
-      onPageChange={handlePageChange}
-      onItemsPerPageChange={handleItemsPerPageChange}
+        currentPage={currentPage}
+        totalItems={filteredOrders.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
       />
 
       {/* Create Order Modal */}
@@ -1558,10 +1596,13 @@ const OrderPanel: React.FC = () => {
                       ) {
                         // Calculate total quantity including existing items of this platform in the order
                         const existingQuantity = createForm.items
-                          .filter(item => item.platform_id === newItem.platform_id)
+                          .filter(
+                            (item) => item.platform_id === newItem.platform_id
+                          )
                           .reduce((total, item) => total + item.quantity, 0);
 
-                        const totalQuantity = existingQuantity + newItem.quantity;
+                        const totalQuantity =
+                          existingQuantity + newItem.quantity;
 
                         const price = getCustomerPrice(
                           customerId,
@@ -1613,10 +1654,11 @@ const OrderPanel: React.FC = () => {
                         ) {
                           // Calculate total quantity including existing items of this platform in the order
                           const existingQuantity = createForm.items
-                            .filter(item => item.platform_id === platformId)
+                            .filter((item) => item.platform_id === platformId)
                             .reduce((total, item) => total + item.quantity, 0);
 
-                          const totalQuantity = existingQuantity + newItem.quantity;
+                          const totalQuantity =
+                            existingQuantity + newItem.quantity;
 
                           const price = getCustomerPrice(
                             createForm.customer_id,
@@ -1664,26 +1706,31 @@ const OrderPanel: React.FC = () => {
 
                           // Automatically calculate price based on customer pricing
                           if (
-                          createForm.customer_id &&
-                          prev.platform_id &&
-                          quantity > 0
+                            createForm.customer_id &&
+                            prev.platform_id &&
+                            quantity > 0
                           ) {
-                          // Calculate total quantity including existing items of this platform in the order
-                          const existingQuantity = createForm.items
-                          .filter(item => item.platform_id === prev.platform_id)
-                          .reduce((total, item) => total + item.quantity, 0);
+                            // Calculate total quantity including existing items of this platform in the order
+                            const existingQuantity = createForm.items
+                              .filter(
+                                (item) => item.platform_id === prev.platform_id
+                              )
+                              .reduce(
+                                (total, item) => total + item.quantity,
+                                0
+                              );
 
-                          const totalQuantity = existingQuantity + quantity;
+                            const totalQuantity = existingQuantity + quantity;
 
-                          const price = getCustomerPrice(
+                            const price = getCustomerPrice(
                               createForm.customer_id,
-                            prev.platform_id,
-                            totalQuantity
-                          );
-                          updatedItem.unit_price = price;
-                          // Reset price editing state when price is auto-calculated
-                          setIsPriceEditable(false);
-                        }
+                              prev.platform_id,
+                              totalQuantity
+                            );
+                            updatedItem.unit_price = price;
+                            // Reset price editing state when price is auto-calculated
+                            setIsPriceEditable(false);
+                          }
 
                           return updatedItem;
                         });
@@ -1821,20 +1868,20 @@ const OrderPanel: React.FC = () => {
                       let defaultPaymentDetails: PaymentDetails;
 
                       switch (paymentMethod) {
-                      case "Crypto":
-                      defaultPaymentDetails = {
-                      payment_method: "Crypto",
-                      id: "",
-                      order_id: "",
-                      amount: 0,
-                      currency: "USDT",
-                      crypto_type: "USDT",
-                      username: "",
-                        wallet_address: "",
-                        created_at: new Date().toISOString(),
-                             updated_at: new Date().toISOString(),
-                           } as CryptoPaymentDetails;
-                           break;
+                        case "Crypto":
+                          defaultPaymentDetails = {
+                            payment_method: "Crypto",
+                            id: "",
+                            order_id: "",
+                            amount: 0,
+                            currency: "USDT",
+                            crypto_type: "USDT",
+                            username: "",
+                            wallet_address: "",
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                          } as CryptoPaymentDetails;
+                          break;
                         case "Bank Transfer":
                           defaultPaymentDetails = {
                             payment_method: "Bank Transfer",
@@ -1877,76 +1924,81 @@ const OrderPanel: React.FC = () => {
 
                 {/* Payment Details Forms */}
                 {createForm.payment_method === "Crypto" && (
-                <div className="mb-4 p-4 border border-gray-200 rounded-lg">
-                <h5 className="font-medium text-gray-700 mb-3">
-                Crypto Payment Details
-                </h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <select
-                value={
-                (createForm.payment_details as any).crypto_type || "USDT"
-                }
-                onChange={(e) =>
-                setCreateForm((prev) => ({
-                ...prev,
-                payment_details: {
-                ...(prev.payment_details as any),
-                crypto_type: e.target.value,
-                  username: "", // Reset username/wallet when changing type
-                    wallet_address: "",
-                    },
-                  }))
-                  }
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                >
-                  <option value="USDT">USDT</option>
+                  <div className="mb-4 p-4 border border-gray-200 rounded-lg">
+                    <h5 className="font-medium text-gray-700 mb-3">
+                      Crypto Payment Details
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <select
+                        value={
+                          (createForm.payment_details as any).crypto_type ||
+                          "USDT"
+                        }
+                        onChange={(e) =>
+                          setCreateForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              crypto_type: e.target.value,
+                              username: "", // Reset username/wallet when changing type
+                              wallet_address: "",
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      >
+                        <option value="USDT">USDT</option>
                         <option value="USDC">USDC</option>
-                  <option value="BTC">BTC</option>
-                <option value="TRC20">TRC20</option>
-                <option value="BEP20">BEP20</option>
-                </select>
+                        <option value="BTC">BTC</option>
+                        <option value="TRC20">TRC20</option>
+                        <option value="BEP20">BEP20</option>
+                      </select>
 
-                {["USDT", "USDC"].includes((createForm.payment_details as any).crypto_type || "USDT") ? (
-                <input
-                type="text"
-                placeholder="Username"
-                value={
-                (createForm.payment_details as any)?.username || ""
-                }
-                onChange={(e) =>
-                  setCreateForm((prev) => ({
-                      ...prev,
-                      payment_details: {
-                        ...(prev.payment_details as any),
-                          username: e.target.value,
-                              },
-                      }))
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                  required
-                />
-                ) : (
-                <input
-                type="text"
-                placeholder="Wallet Address"
-                value={
-                (createForm.payment_details as any)?.wallet_address || ""
-                }
-                  onChange={(e) =>
-                    setCreateForm((prev) => ({
-                      ...prev,
-                        payment_details: {
+                      {["USDT", "USDC"].includes(
+                        (createForm.payment_details as any).crypto_type ||
+                          "USDT"
+                      ) ? (
+                        <input
+                          type="text"
+                          placeholder="Username"
+                          value={
+                            (createForm.payment_details as any)?.username || ""
+                          }
+                          onChange={(e) =>
+                            setCreateForm((prev) => ({
+                              ...prev,
+                              payment_details: {
                                 ...(prev.payment_details as any),
-                          wallet_address: e.target.value,
-                      },
-                  }))
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                required
-                />
-                )}
-                </div>
-                </div>
+                                username: e.target.value,
+                              },
+                            }))
+                          }
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                          required
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="Wallet Address"
+                          value={
+                            (createForm.payment_details as any)
+                              ?.wallet_address || ""
+                          }
+                          onChange={(e) =>
+                            setCreateForm((prev) => ({
+                              ...prev,
+                              payment_details: {
+                                ...(prev.payment_details as any),
+                                wallet_address: e.target.value,
+                              },
+                            }))
+                          }
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                          required
+                        />
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 {createForm.payment_method === "Bank Transfer" && (
@@ -1955,7 +2007,7 @@ const OrderPanel: React.FC = () => {
                       Bank Transfer Details
                     </h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <input
+                      <input
                         type="text"
                         placeholder="Reference Number"
                         value={
@@ -1975,7 +2027,7 @@ const OrderPanel: React.FC = () => {
                         required
                       />
 
-                    <input
+                      <input
                         type="text"
                         placeholder="Sender Name"
                         value={
@@ -2012,41 +2064,42 @@ const OrderPanel: React.FC = () => {
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       />
 
-                    <input
-                    type="text"
-                    placeholder="Purpose"
-                    value={
-                    (createForm.payment_details as any).purpose || ""
-                    }
-                    onChange={(e) =>
-                    setCreateForm((prev) => ({
-                    ...prev,
-                    payment_details: {
-                    ...(prev.payment_details as any),
-                    purpose: e.target.value,
-                    },
-                    }))
-                    }
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    />
+                      <input
+                        type="text"
+                        placeholder="Purpose"
+                        value={
+                          (createForm.payment_details as any).purpose || ""
+                        }
+                        onChange={(e) =>
+                          setCreateForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              purpose: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      />
 
-                    <input
-                    type="text"
-                    placeholder="Transaction Type"
-                    value={
-                    (createForm.payment_details as any).transaction_type || ""
-                    }
-                    onChange={(e) =>
-                    setCreateForm((prev) => ({
-                    ...prev,
-                    payment_details: {
-                    ...(prev.payment_details as any),
-                    transaction_type: e.target.value,
-                    },
-                    }))
-                    }
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    />
+                      <input
+                        type="text"
+                        placeholder="Transaction Type"
+                        value={
+                          (createForm.payment_details as any)
+                            .transaction_type || ""
+                        }
+                        onChange={(e) =>
+                          setCreateForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              transaction_type: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      />
 
                       <input
                         type="datetime-local"
@@ -2264,8 +2317,8 @@ const OrderPanel: React.FC = () => {
                   <p className="text-pink-100 text-sm mt-1">
                     Order #{selectedOrder.id.slice(-8)} •{" "}
                     {selectedOrder.created_at
-                    ? new Date(selectedOrder.created_at).toLocaleString()
-                    : "N/A"}
+                      ? new Date(selectedOrder.created_at).toLocaleString()
+                      : "N/A"}
                   </p>
                 </div>
                 <button
@@ -2334,51 +2387,51 @@ const OrderPanel: React.FC = () => {
                         </span>
                       </div>
                       <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">
-                      Payment Method
-                      </label>
-                      <div className="flex items-center">
-                      {selectedOrder.payment_method === "Crypto" && (
-                      <svg
-                      className="w-4 h-4 mr-2 text-orange-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      >
-                      <path d="M10 2L3 7v6c0 5.5 3.8 7.4 7 7.4s7-1.9 7-7.4V7l-7-5z" />
-                      </svg>
-                      )}
-                      {selectedOrder.payment_method === "Bank Transfer" && (
-                      <svg
-                      className="w-4 h-4 mr-2 text-blue-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      >
-                      <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 114 0 2 2 0 01-4 0zm8 0a2 2 0 114 0 2 2 0 01-4 0z" />
-                      </svg>
-                      )}
-                      {selectedOrder.payment_method === "Cash" && (
-                      <svg
-                      className="w-4 h-4 mr-2 text-green-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      >
-                      <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
-                      <path d="M6 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2V6z" />
-                      </svg>
-                      )}
-                      <span className="text-gray-900">
-                      {selectedOrder.payment_method}
-                      </span>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Payment Method
+                        </label>
+                        <div className="flex items-center">
+                          {selectedOrder.payment_method === "Crypto" && (
+                            <svg
+                              className="w-4 h-4 mr-2 text-orange-500"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M10 2L3 7v6c0 5.5 3.8 7.4 7 7.4s7-1.9 7-7.4V7l-7-5z" />
+                            </svg>
+                          )}
+                          {selectedOrder.payment_method === "Bank Transfer" && (
+                            <svg
+                              className="w-4 h-4 mr-2 text-blue-500"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 114 0 2 2 0 01-4 0zm8 0a2 2 0 114 0 2 2 0 01-4 0z" />
+                            </svg>
+                          )}
+                          {selectedOrder.payment_method === "Cash" && (
+                            <svg
+                              className="w-4 h-4 mr-2 text-green-500"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
+                              <path d="M6 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2V6z" />
+                            </svg>
+                          )}
+                          <span className="text-gray-900">
+                            {selectedOrder.payment_method}
+                          </span>
+                        </div>
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Created By
+                        </label>
+                        <p className="text-gray-900 font-medium">
+                          {selectedOrder.created_by_username || "System"}
+                        </p>
                       </div>
-                       <div>
-                         <label className="block text-sm font-medium text-gray-600 mb-1">
-                           Created By
-                         </label>
-                         <p className="text-gray-900 font-medium">
-                           {selectedOrder.created_by_username || "System"}
-                         </p>
-                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-600 mb-1">
                           Created Date
@@ -2437,7 +2490,7 @@ const OrderPanel: React.FC = () => {
                                     {item.platform}
                                   </h5>
                                   <p className="text-sm text-gray-600">
-                                  {item.account_type || "Standard"}
+                                    {item.account_type || "Standard"}
                                   </p>
                                 </div>
                               </div>
@@ -2599,38 +2652,38 @@ const OrderPanel: React.FC = () => {
                                   Crypto Payment
                                 </h5>
                                 <div className="space-y-2 text-sm">
-                                {orderPaymentDetails.crypto_currency && (
-                                <div>
-                                <span className="font-medium text-gray-600">
-                                Type:
-                                </span>
-                                <span className="ml-2 bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-medium">
-                                {orderPaymentDetails.crypto_currency}
-                                </span>
-                                </div>
-                                )}
-                                {orderPaymentDetails.crypto_username && (
-                                <div>
-                                <span className="font-medium text-gray-600">
-                                Username:
-                                </span>
-                                <p className="text-gray-900">
-                                {orderPaymentDetails.crypto_username}
-                                </p>
-                                </div>
-                                )}
-                                {orderPaymentDetails.crypto_wallet_address && (
-                                <div>
-                                <span className="font-medium text-gray-600">
-                                Wallet Address:
-                                </span>
-                                <p className="text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded mt-1">
-                                {
-                                    orderPaymentDetails.crypto_wallet_address
-                                    }
-                                    </p>
-                                  </div>
-                                )}
+                                  {orderPaymentDetails.crypto_currency && (
+                                    <div>
+                                      <span className="font-medium text-gray-600">
+                                        Type:
+                                      </span>
+                                      <span className="ml-2 bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-medium">
+                                        {orderPaymentDetails.crypto_currency}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {orderPaymentDetails.crypto_username && (
+                                    <div>
+                                      <span className="font-medium text-gray-600">
+                                        Username:
+                                      </span>
+                                      <p className="text-gray-900">
+                                        {orderPaymentDetails.crypto_username}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {orderPaymentDetails.crypto_wallet_address && (
+                                    <div>
+                                      <span className="font-medium text-gray-600">
+                                        Wallet Address:
+                                      </span>
+                                      <p className="text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded mt-1">
+                                        {
+                                          orderPaymentDetails.crypto_wallet_address
+                                        }
+                                      </p>
+                                    </div>
+                                  )}
                                   {orderPaymentDetails.crypto_transaction_hash && (
                                     <div>
                                       <span className="font-medium text-gray-600">
@@ -2693,26 +2746,28 @@ const OrderPanel: React.FC = () => {
                                       </p>
                                     </div>
                                   )}
-                                {orderPaymentDetails.bank_purpose && (
-                                <div>
-                                <span className="font-medium text-gray-600">
-                                Purpose:
-                                </span>
-                                <p className="text-gray-900">
-                                {orderPaymentDetails.bank_purpose}
-                                </p>
-                                </div>
-                                )}
-                                {orderPaymentDetails.bank_transaction_type && (
-                                <div>
-                                <span className="font-medium text-gray-600">
-                                Transaction Type:
-                                </span>
-                                <p className="text-gray-900">
-                                {orderPaymentDetails.bank_transaction_type}
-                                </p>
-                                </div>
-                                )}
+                                  {orderPaymentDetails.bank_purpose && (
+                                    <div>
+                                      <span className="font-medium text-gray-600">
+                                        Purpose:
+                                      </span>
+                                      <p className="text-gray-900">
+                                        {orderPaymentDetails.bank_purpose}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {orderPaymentDetails.bank_transaction_type && (
+                                    <div>
+                                      <span className="font-medium text-gray-600">
+                                        Transaction Type:
+                                      </span>
+                                      <p className="text-gray-900">
+                                        {
+                                          orderPaymentDetails.bank_transaction_type
+                                        }
+                                      </p>
+                                    </div>
+                                  )}
                                   {orderPaymentDetails.bank_transaction_time && (
                                     <div>
                                       <span className="font-medium text-gray-600">

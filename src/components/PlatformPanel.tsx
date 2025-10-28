@@ -38,6 +38,7 @@ const PlatformPanel: React.FC = () => {
     account_type: "",
     inventory: 0,
     cost_price: 0,
+    low_stock_alert: 10,
   });
 
   const [editForm, setEditForm] = useState<PlatformCreateData>({
@@ -45,6 +46,7 @@ const PlatformPanel: React.FC = () => {
     account_type: "",
     inventory: 0,
     cost_price: 0,
+    low_stock_alert: 10,
   });
 
   const [purchaseForm, setPurchaseForm] = useState({
@@ -100,6 +102,7 @@ const PlatformPanel: React.FC = () => {
         account_type: platform.account_type,
         inventory: platform.inventory,
         cost_price: platform.cost_price,
+        low_stock_alert: platform.low_stock_alert || 10, // Default to 10 if not set
         created_at: platform.created_at,
         updated_at: platform.updated_at,
         deleted_at: platform.deleted_at,
@@ -207,7 +210,9 @@ const PlatformPanel: React.FC = () => {
     setForm((prev) => ({
       ...prev,
       [name]:
-        name === "inventory" || name === "cost_price"
+        name === "inventory" ||
+        name === "cost_price" ||
+        name === "low_stock_alert"
           ? parseFloat(value) || 0
           : value,
     }));
@@ -218,7 +223,9 @@ const PlatformPanel: React.FC = () => {
     setEditForm((prev) => ({
       ...prev,
       [name]:
-        name === "inventory" || name === "cost_price"
+        name === "inventory" ||
+        name === "cost_price" ||
+        name === "low_stock_alert"
           ? parseFloat(value) || 0
           : value,
     }));
@@ -235,6 +242,7 @@ const PlatformPanel: React.FC = () => {
         account_type: form.account_type,
         inventory: form.inventory,
         cost_price: form.cost_price,
+        low_stock_alert: form.low_stock_alert,
       },
     ]);
 
@@ -249,6 +257,7 @@ const PlatformPanel: React.FC = () => {
       account_type: "",
       inventory: 0,
       cost_price: 0,
+      low_stock_alert: 10,
     });
     setShowCreateModal(false);
     fetchPlatforms();
@@ -262,6 +271,7 @@ const PlatformPanel: React.FC = () => {
       account_type: platform.account_type,
       inventory: platform.inventory,
       cost_price: platform.cost_price,
+      low_stock_alert: platform.low_stock_alert,
     });
     setShowEditModal(true);
   };
@@ -280,6 +290,7 @@ const PlatformPanel: React.FC = () => {
         account_type: editForm.account_type,
         inventory: editForm.inventory,
         cost_price: editForm.cost_price,
+        low_stock_alert: editForm.low_stock_alert,
       })
       .eq("id", selectedPlatform.id);
 
@@ -344,6 +355,7 @@ const PlatformPanel: React.FC = () => {
         account_type: platform.account_type,
         inventory: platform.inventory,
         cost_price: platform.cost_price,
+        low_stock_alert: platform.low_stock_alert || 10, // Default to 10 if not set
         created_at: platform.created_at,
         updated_at: platform.updated_at,
         deleted_at: platform.deleted_at,
@@ -470,7 +482,7 @@ const PlatformPanel: React.FC = () => {
     const matchesStockStatus =
       filter.stock_status === "all" ||
       (filter.stock_status === "low_stock" &&
-        platform.inventory < 100 &&
+        platform.inventory < platform.low_stock_alert &&
         platform.inventory > 0) ||
       (filter.stock_status === "out_of_stock" && platform.inventory === 0);
 
@@ -673,14 +685,14 @@ const PlatformPanel: React.FC = () => {
                     <div className="flex items-center">
                       <span
                         className={`${
-                          platform.inventory < 100
+                          platform.inventory < platform.low_stock_alert
                             ? "text-red-600 font-semibold"
                             : ""
                         }`}
                       >
                         {platform.inventory}
                       </span>
-                      {platform.inventory < 100 && (
+                      {platform.inventory < platform.low_stock_alert && (
                         <AlertTriangle className="w-4 h-4 ml-2 text-red-500" />
                       )}
                     </div>
@@ -693,14 +705,14 @@ const PlatformPanel: React.FC = () => {
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
                         platform.inventory === 0
                           ? "bg-red-100 text-red-800"
-                          : platform.inventory < 100
+                          : platform.inventory < platform.low_stock_alert
                           ? "bg-yellow-100 text-yellow-800"
                           : "bg-green-100 text-green-800"
                       }`}
                     >
                       {platform.inventory === 0
                         ? "Out of Stock"
-                        : platform.inventory < 100
+                        : platform.inventory < platform.low_stock_alert
                         ? "Low Stock"
                         : "In Stock"}
                     </span>
@@ -841,6 +853,25 @@ const PlatformPanel: React.FC = () => {
                     required
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Low Stock Alert Threshold
+                  </label>
+                  <input
+                    type="number"
+                    name="low_stock_alert"
+                    value={form.low_stock_alert}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    placeholder="e.g., 10"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Alert when inventory falls below this number
+                  </p>
+                </div>
               </form>
             </div>
 
@@ -955,6 +986,25 @@ const PlatformPanel: React.FC = () => {
                     step="0.01"
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Low Stock Alert Threshold
+                  </label>
+                  <input
+                    type="number"
+                    name="low_stock_alert"
+                    value={editForm.low_stock_alert}
+                    onChange={handleEditInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    min="0"
+                    placeholder="e.g., 10"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Alert when inventory falls below this number
+                  </p>
                 </div>
               </form>
             </div>
@@ -1250,7 +1300,7 @@ const PlatformPanel: React.FC = () => {
                           className="border-b border-gray-100 hover:bg-gray-50"
                         >
                           <td className="py-3 px-4">
-                          {new Date(purchase.created_at).toLocaleString()}
+                            {new Date(purchase.created_at).toLocaleString()}
                           </td>
                           <td className="py-3 px-4 font-medium">
                             {purchase.quantity}
@@ -1370,7 +1420,7 @@ const PlatformPanel: React.FC = () => {
                           className="border-b border-gray-100 hover:bg-gray-50"
                         >
                           <td className="py-3 px-4">
-                          {new Date(purchase.created_at).toLocaleString()}
+                            {new Date(purchase.created_at).toLocaleString()}
                           </td>
                           <td className="py-3 px-4 font-medium">
                             <span className="text-pink-600">
@@ -1485,10 +1535,8 @@ const PlatformPanel: React.FC = () => {
                             Account Type: {platform.account_type}
                           </p>
                           <p className="text-xs text-gray-500">
-                          Deleted:{" "}
-                          {new Date(
-                          platform.deleted_at!
-                          ).toLocaleString()}
+                            Deleted:{" "}
+                            {new Date(platform.deleted_at!).toLocaleString()}
                           </p>
                         </div>
                         <button

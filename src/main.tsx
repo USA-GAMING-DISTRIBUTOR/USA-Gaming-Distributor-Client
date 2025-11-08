@@ -1,16 +1,21 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
-import { createUsersTable } from './services/databaseService'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import './index.css';
+import App from './App.tsx';
+import { checkUsersTableExists } from './services/databaseService';
+import { logger } from './lib/logger';
 
-// Log database setup instructions on app start
-console.log('🚀 USA Gaming Distributor Client')
-console.log('📝 Database Setup Required:')
-console.log(createUsersTable())
+// Minimal startup diagnostics (can be expanded or silenced in production)
+checkUsersTableExists().then((exists) => {
+  if (exists) {
+    logger.info('Users table verified.');
+  } else {
+    logger.warn('Users table missing - manual creation required.');
+  }
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,
-)
+);

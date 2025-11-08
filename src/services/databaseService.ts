@@ -1,38 +1,37 @@
-import { supabase } from '../lib/supabase'
+import { supabase } from '../lib/supabase';
+import { logger } from '../lib/logger';
 
-export const createUsersTable = async () => {
+/**
+ * Checks existence of the users table by issuing a lightweight select.
+ * Returns true if accessible, false otherwise. Does not attempt creation.
+ */
+export const checkUsersTableExists = async (): Promise<boolean> => {
   try {
     // Check if users table exists by trying to query it
-    const { error } = await supabase
-      .from('users')
-      .select('count')
-      .limit(1)
-    
+    const { error } = await supabase.from('users').select('count').limit(1);
+
     if (error) {
-      console.log('Users table does not exist, needs manual creation')
-      return false
+      logger.warn('[db] Users table does not exist, needs manual creation');
+      return false;
     }
-    
-    console.log('Users table already exists')
-    return true
+
+    logger.info('[db] Users table already exists');
+    return true;
   } catch (error) {
-    console.error('Error checking users table:', error)
-    return false
+    logger.error('[db] Error checking users table:', error);
+    return false;
   }
-}
+};
 
 export const initializeDatabase = async () => {
   try {
     // First, check if we can access the users table
-    const { error: tableError } = await supabase
-      .from('users')
-      .select('count')
-      .limit(1)
+    const { error: tableError } = await supabase.from('users').select('count').limit(1);
 
     if (tableError) {
       // Table doesn't exist, show instructions
-      console.error('Users table does not exist. Please create it manually.')
-      console.log(`
+      logger.error('Users table does not exist. Please create it manually.');
+      logger.info(`
 🔧 SETUP REQUIRED: Please run this SQL in your Supabase SQL Editor:
 
 -- Create users table
@@ -66,8 +65,8 @@ VALUES ('superadmin', 'admin123', 'SuperAdmin', NULL)
 ON CONFLICT (username) DO NOTHING;
 
 💡 After running this SQL, refresh the page to continue.
-      `)
-      return false
+      `);
+      return false;
     }
 
     // Check if SuperAdmin already exists
@@ -75,40 +74,42 @@ ON CONFLICT (username) DO NOTHING;
       .from('users')
       .select('*')
       .eq('role', 'SuperAdmin')
-      .single()
+      .single();
 
     if (selectError && selectError.code !== 'PGRST116') {
       // PGRST116 means no rows found, which is okay
-      console.error('Error checking for SuperAdmin:', selectError)
-      return false
+      logger.error('Error checking for SuperAdmin:', selectError);
+      return false;
     }
 
     if (!existingSuperAdmin) {
       // Create default SuperAdmin user
       const { data, error } = await supabase
         .from('users')
-        .insert([{
-          username: 'superadmin',
-          password: 'admin123',
-          role: 'SuperAdmin' as const,
-          created_by: null,
-        }])
+        .insert([
+          {
+            username: 'superadmin',
+            password: 'admin123',
+            role: 'SuperAdmin' as const,
+            created_by: null,
+          },
+        ])
         .select()
-        .single()
+        .single();
 
       if (error) {
-        console.error('Error creating default SuperAdmin:', error)
-        return false
+        logger.error('Error creating default SuperAdmin:', error);
+        return false;
       }
 
-      console.log('✅ Default SuperAdmin created:', data)
-      return true
+      logger.info('✅ Default SuperAdmin created:', data);
+      return true;
     }
 
-    console.log('✅ SuperAdmin already exists')
-    return true
+    logger.info('✅ SuperAdmin already exists');
+    return true;
   } catch (error) {
-    console.error('Error initializing database:', error)
-    return false
+    logger.error('Error initializing database:', error);
+    return false;
   }
-}
+};

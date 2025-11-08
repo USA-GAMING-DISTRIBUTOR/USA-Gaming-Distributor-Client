@@ -51,7 +51,12 @@ export interface InventoryAlert {
 
 // Real-time updates
 export interface RealtimeUpdate {
-  type: 'order_created' | 'order_verified' | 'inventory_updated' | 'customer_added' | 'issue_created';
+  type:
+    | 'order_created'
+    | 'order_verified'
+    | 'inventory_updated'
+    | 'customer_added'
+    | 'issue_created';
   data: Record<string, unknown>;
   timestamp: string;
 }

@@ -1,5 +1,5 @@
-import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PaginationProps {
   currentPage: number;
@@ -53,7 +53,7 @@ const Pagination: React.FC<PaginationProps> = ({
 
       // Add ellipsis before range if needed
       if (start > 2) {
-        pages.push("...");
+        pages.push('...');
       }
 
       // Add range pages
@@ -63,7 +63,7 @@ const Pagination: React.FC<PaginationProps> = ({
 
       // Add ellipsis after range if needed
       if (end < totalPages - 1) {
-        pages.push("...");
+        pages.push('...');
       }
 
       // Always show last page
@@ -121,15 +121,15 @@ const Pagination: React.FC<PaginationProps> = ({
         <div className="flex items-center gap-1">
           {getPageNumbers().map((page, index) => (
             <React.Fragment key={index}>
-              {page === "..." ? (
+              {page === '...' ? (
                 <span className="px-3 py-2 text-gray-500">...</span>
               ) : (
                 <button
                   onClick={() => onPageChange(page as number)}
                   className={`px-3 py-2 text-sm rounded transition-colors ${
                     currentPage === page
-                      ? "bg-pink-600 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? 'bg-pink-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   {page}

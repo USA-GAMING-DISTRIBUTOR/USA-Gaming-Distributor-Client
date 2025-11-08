@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
-import { Bar, Pie } from "react-chartjs-2";
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { Bar, Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,33 +10,14 @@ import {
   Tooltip,
   Legend,
   ArcElement,
-} from "chart.js";
-import type { DashboardMetrics, SalesAnalytics } from "../types/analytics";
-import type {
-  Order,
-  OrderItem,
-  PaymentMethod,
-  PaymentDetails,
-} from "../types/order";
-import type { Customer } from "../types/customer";
-import type { Platform } from "../types/platform";
-import {
-  TrendingUp,
-  Users,
-  Package,
-  ShoppingCart,
-  AlertTriangle,
-} from "lucide-react";
+} from 'chart.js';
+import type { DashboardMetrics, SalesAnalytics } from '../types/analytics';
+import type { Order, OrderItem, PaymentMethod, PaymentDetails } from '../types/order';
+import type { Customer } from '../types/customer';
+import type { Platform } from '../types/platform';
+import { TrendingUp, Users, Package, ShoppingCart, AlertTriangle } from 'lucide-react';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 const OverviewPanel: React.FC = () => {
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -72,104 +53,76 @@ const OverviewPanel: React.FC = () => {
 
       // Fetch all required data
       const [ordersData, customersData, platformsData] = await Promise.all([
-        supabase.from("orders").select("*"),
-        supabase.from("customers").select("*"),
-        supabase.from("game_coins").select("*"), // Still using game_coins table name
+        supabase.from('orders').select('*'),
+        supabase.from('customers').select('*'),
+        supabase.from('game_coins').select('*'), // Still using game_coins table name
       ]);
 
-      if (ordersData.error)
-        throw new Error("Failed to fetch orders: " + ordersData.error.message);
+      if (ordersData.error) throw new Error('Failed to fetch orders: ' + ordersData.error.message);
       if (customersData.error)
-        throw new Error(
-          "Failed to fetch customers: " + customersData.error.message
-        );
+        throw new Error('Failed to fetch customers: ' + customersData.error.message);
       if (platformsData.error)
-        throw new Error(
-          "Failed to fetch platforms: " + platformsData.error.message
-        );
+        throw new Error('Failed to fetch platforms: ' + platformsData.error.message);
 
       const ordersRaw = ordersData.data || [];
       const customersRaw = customersData.data || [];
       const platformsRaw = platformsData.data || [];
 
       // Transform raw database data to match our types
-      const orders: Order[] = ordersRaw.map(
-        (order: Record<string, unknown>) => ({
-          id: String(order.id || ""),
-          customer_id: String(order.customer_id || ""),
-          order_number: String(order.order_number || ""),
-          created_at: String(order.created_at || new Date().toISOString()),
-          created_by: String(order.created_by || ""),
-          items: Array.isArray(order.items) ? (order.items as OrderItem[]) : [],
-          payment_method: (order.payment_method as PaymentMethod) || "None",
-          payment_details: order.payment_details as PaymentDetails || null,
-          total_amount: Number(order.total_amount || 0),
-          discount_amount: Number(order.discount_amount || 0),
-          final_amount: Number(order.final_amount || order.total_amount || 0),
-          status: (order.status as Order["status"]) || "pending",
-          payment_status:
-            (order.payment_status as
-              | "pending"
-              | "completed"
-              | "refunded"
-              | "failed") || "pending",
-          updated_at: String(order.updated_at || new Date().toISOString()),
-          invoice_url: order.invoice_url ? String(order.invoice_url) : null,
-          verified_at: order.verified_at ? String(order.verified_at) : null,
-          verified_by: order.verified_by ? String(order.verified_by) : null,
-          notes: order.notes ? String(order.notes) : null,
-        })
-      );
+      const orders: Order[] = ordersRaw.map((order: Record<string, unknown>) => ({
+        id: String(order.id || ''),
+        customer_id: String(order.customer_id || ''),
+        order_number: String(order.order_number || ''),
+        created_at: String(order.created_at || new Date().toISOString()),
+        created_by: String(order.created_by || ''),
+        items: Array.isArray(order.items) ? (order.items as OrderItem[]) : [],
+        payment_method: (order.payment_method as PaymentMethod) || 'None',
+        payment_details: (order.payment_details as PaymentDetails) || null,
+        total_amount: Number(order.total_amount || 0),
+        discount_amount: Number(order.discount_amount || 0),
+        final_amount: Number(order.final_amount || order.total_amount || 0),
+        status: (order.status as Order['status']) || 'pending',
+        payment_status:
+          (order.payment_status as 'pending' | 'completed' | 'refunded' | 'failed') || 'pending',
+        updated_at: String(order.updated_at || new Date().toISOString()),
+        invoice_url: order.invoice_url ? String(order.invoice_url) : null,
+        verified_at: order.verified_at ? String(order.verified_at) : null,
+        verified_by: order.verified_by ? String(order.verified_by) : null,
+        notes: order.notes ? String(order.notes) : null,
+      }));
 
-      const customers: Customer[] = customersRaw.map(
-        (customer: Record<string, unknown>) => ({
-          id: String(customer.id || ""),
-          name: String(customer.name || ""),
-          contact_info: String(
-            customer.contact_info || customer.phone || customer.email || ""
-          ),
-          contact_numbers: customer.contact_numbers
-            ? Array.isArray(customer.contact_numbers)
-              ? customer.contact_numbers.map(String)
-              : null
-            : null,
-          email: customer.email ? String(customer.email) : null,
-          phone: customer.phone ? String(customer.phone) : null,
-          address: customer.address ? String(customer.address) : null,
-          created_at: customer.created_at ? String(customer.created_at) : null,
-          updated_at: customer.updated_at ? String(customer.updated_at) : null,
-        })
-      );
+      const customers: Customer[] = customersRaw.map((customer: Record<string, unknown>) => ({
+        id: String(customer.id || ''),
+        name: String(customer.name || ''),
+        contact_info: String(customer.contact_info || customer.phone || customer.email || ''),
+        contact_numbers: customer.contact_numbers
+          ? Array.isArray(customer.contact_numbers)
+            ? customer.contact_numbers.map(String)
+            : null
+          : null,
+        email: customer.email ? String(customer.email) : null,
+        phone: customer.phone ? String(customer.phone) : null,
+        address: customer.address ? String(customer.address) : null,
+        created_at: customer.created_at ? String(customer.created_at) : null,
+        updated_at: customer.updated_at ? String(customer.updated_at) : null,
+      }));
 
-      const platforms: Platform[] = platformsRaw.map(
-      (platform: Record<string, unknown>) => ({
-      id: String(platform.id || ""),
-      platform: String(platform.platform_name || platform.platform || ""),
-      platform_name: String(
-      platform.platform_name || platform.platform || ""
-      ),
-      account_type:
-      (platform.account_type as Platform["account_type"]) || "Standard",
-      inventory: Number(platform.inventory || 0),
-      cost_price: Number(platform.cost_price || 0),
-      low_stock_alert: Number(platform.low_stock_alert || 10),
-      created_at: String(platform.created_at || new Date().toISOString()),
-      updated_at: String(
-      platform.updated_at ||
-      platform.created_at ||
-      new Date().toISOString()
-      ),
-      deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
-      })
-      );
+      const platforms: Platform[] = platformsRaw.map((platform: Record<string, unknown>) => ({
+        id: String(platform.id || ''),
+        platform: String(platform.platform_name || platform.platform || ''),
+        platform_name: String(platform.platform_name || platform.platform || ''),
+        account_type: (platform.account_type as Platform['account_type']) || 'Standard',
+        inventory: Number(platform.inventory || 0),
+        cost_price: Number(platform.cost_price || 0),
+        low_stock_alert: Number(platform.low_stock_alert || 10),
+        created_at: String(platform.created_at || new Date().toISOString()),
+        updated_at: String(platform.updated_at || platform.created_at || new Date().toISOString()),
+        deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
+      }));
 
       // Calculate metrics
-      const verifiedOrders = orders.filter(
-        (order) => order.status === "verified"
-      );
-      const pendingOrders = orders.filter(
-        (order) => order.status === "pending"
-      );
+      const verifiedOrders = orders.filter((order) => order.status === 'verified');
+      const pendingOrders = orders.filter((order) => order.status === 'pending');
 
       // Calculate sales from verified orders only
       const totalSales = orders.reduce((sum, order) => {
@@ -178,9 +131,8 @@ const OverviewPanel: React.FC = () => {
         return (
           sum +
           order.items.reduce(
-            (itemSum, item) =>
-              itemSum + (item.total_price || item.unitPrice * item.quantity),
-            0
+            (itemSum, item) => itemSum + (item.total_price || item.unitPrice * item.quantity),
+            0,
           )
         );
       }, 0);
@@ -190,9 +142,8 @@ const OverviewPanel: React.FC = () => {
         return (
           sum +
           order.items.reduce(
-            (itemSum, item) =>
-              itemSum + (item.total_price || item.unitPrice * item.quantity),
-            0
+            (itemSum, item) => itemSum + (item.total_price || item.unitPrice * item.quantity),
+            0,
           )
         );
       }, 0);
@@ -202,17 +153,12 @@ const OverviewPanel: React.FC = () => {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const activeCustomers = new Set(
         orders
-          .filter(
-            (order) =>
-              order.created_at && new Date(order.created_at) > thirtyDaysAgo
-          )
-          .map((order) => order.customer_id)
+          .filter((order) => order.created_at && new Date(order.created_at) > thirtyDaysAgo)
+          .map((order) => order.customer_id),
       ).size;
 
       // Low stock platforms (inventory < 100)
-      const lowStockPlatforms = platforms.filter(
-        (platform) => platform.inventory < 100
-      ).length;
+      const lowStockPlatforms = platforms.filter((platform) => platform.inventory < 100).length;
 
       const newMetrics: DashboardMetrics = {
         total_sales: totalSales,
@@ -227,10 +173,8 @@ const OverviewPanel: React.FC = () => {
       };
 
       // Calculate analytics for charts
-      const salesByPlatform: Record<string, { sales: number; count: number }> =
-        {};
-      const salesByCustomer: Record<string, { sales: number; count: number }> =
-        {};
+      const salesByPlatform: Record<string, { sales: number; count: number }> = {};
+      const salesByCustomer: Record<string, { sales: number; count: number }> = {};
 
       verifiedOrders.forEach((order) => {
         // Platform sales
@@ -239,8 +183,7 @@ const OverviewPanel: React.FC = () => {
           if (!salesByPlatform[key]) {
             salesByPlatform[key] = { sales: 0, count: 0 };
           }
-          salesByPlatform[key].sales +=
-            item.total_price || item.unitPrice * item.quantity;
+          salesByPlatform[key].sales += item.total_price || item.unitPrice * item.quantity;
           salesByPlatform[key].count += 1;
         });
 
@@ -254,9 +197,8 @@ const OverviewPanel: React.FC = () => {
           const orderTotal =
             order.final_amount ||
             order.items.reduce(
-              (sum, item) =>
-                sum + (item.total_price || item.unitPrice * item.quantity),
-              0
+              (sum, item) => sum + (item.total_price || item.unitPrice * item.quantity),
+              0,
             );
           salesByCustomer[customerKey].sales += orderTotal;
           salesByCustomer[customerKey].count += 1;
@@ -267,7 +209,7 @@ const OverviewPanel: React.FC = () => {
         sales_by_platform: Object.entries(salesByPlatform)
           .map(([name, data]) => ({
             platform_name: name,
-            account_type: "Standard", // Default for now
+            account_type: 'Standard', // Default for now
             total_sales: data.sales,
             order_count: data.count,
             percentage: (data.sales / verifiedSales) * 100,
@@ -276,7 +218,7 @@ const OverviewPanel: React.FC = () => {
 
         sales_by_customer: Object.entries(salesByCustomer)
           .map(([name, data]) => ({
-            customer_id: "", // Not needed for display
+            customer_id: '', // Not needed for display
             customer_name: name,
             total_sales: data.sales,
             order_count: data.count,
@@ -291,9 +233,7 @@ const OverviewPanel: React.FC = () => {
       setMetrics(newMetrics);
       setSalesAnalytics(newAnalytics);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch dashboard data"
-      );
+      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
     } finally {
       setLoading(false);
     }
@@ -341,9 +281,7 @@ const OverviewPanel: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-pink-100 text-sm font-medium">Total Sales</p>
-              <p className="text-2xl font-bold">
-                ${metrics.verified_sales.toLocaleString()}
-              </p>
+              <p className="text-2xl font-bold">${metrics.verified_sales.toLocaleString()}</p>
               <p className="text-pink-200 text-xs mt-1">Verified orders only</p>
             </div>
             <TrendingUp className="h-8 w-8 text-pink-200" />
@@ -355,9 +293,7 @@ const OverviewPanel: React.FC = () => {
             <div>
               <p className="text-blue-100 text-sm font-medium">Total Orders</p>
               <p className="text-2xl font-bold">{metrics.verified_orders}</p>
-              <p className="text-blue-200 text-xs mt-1">
-                {metrics.pending_orders} pending
-              </p>
+              <p className="text-blue-200 text-xs mt-1">{metrics.pending_orders} pending</p>
             </div>
             <ShoppingCart className="h-8 w-8 text-blue-200" />
           </div>
@@ -368,9 +304,7 @@ const OverviewPanel: React.FC = () => {
             <div>
               <p className="text-green-100 text-sm font-medium">Customers</p>
               <p className="text-2xl font-bold">{metrics.total_customers}</p>
-              <p className="text-green-200 text-xs mt-1">
-                {metrics.active_customers} active
-              </p>
+              <p className="text-green-200 text-xs mt-1">{metrics.active_customers} active</p>
             </div>
             <Users className="h-8 w-8 text-green-200" />
           </div>
@@ -381,9 +315,7 @@ const OverviewPanel: React.FC = () => {
             <div>
               <p className="text-pink-100 text-sm font-medium">Platforms</p>
               <p className="text-2xl font-bold">{metrics.total_platforms}</p>
-              <p className="text-pink-200 text-xs mt-1">
-                {metrics.low_stock_platforms} low stock
-              </p>
+              <p className="text-pink-200 text-xs mt-1">{metrics.low_stock_platforms} low stock</p>
             </div>
             <Package className="h-8 w-8 text-pink-200" />
           </div>
@@ -396,8 +328,7 @@ const OverviewPanel: React.FC = () => {
           <div className="flex items-center">
             <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
             <p className="text-amber-800 font-medium">
-              {metrics.low_stock_platforms} platform(s) have low inventory (less
-              than 10 items)
+              {metrics.low_stock_platforms} platform(s) have low inventory (less than 10 items)
             </p>
           </div>
         </div>
@@ -407,9 +338,7 @@ const OverviewPanel: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Sales by Platform Bar Chart */}
         <div className="bg-gray-50 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Sales by Platform
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Sales by Platform</h3>
           <div className="h-80">
             <Bar
               data={{
@@ -418,17 +347,17 @@ const OverviewPanel: React.FC = () => {
                   .map((item) => item.platform_name),
                 datasets: [
                   {
-                    label: "Sales ($)",
+                    label: 'Sales ($)',
                     data: salesAnalytics.sales_by_platform
                       .slice(0, 6)
                       .map((item) => item.total_sales),
                     backgroundColor: [
-                      "#ec4899",
-                      "#8b5cf6",
-                      "#06b6d4",
-                      "#10b981",
-                      "#f59e0b",
-                      "#ef4444",
+                      '#ec4899',
+                      '#8b5cf6',
+                      '#06b6d4',
+                      '#10b981',
+                      '#f59e0b',
+                      '#ef4444',
                     ],
                     borderRadius: 8,
                     borderSkipped: false,
@@ -441,22 +370,22 @@ const OverviewPanel: React.FC = () => {
                 plugins: {
                   legend: { display: false },
                   tooltip: {
-                    backgroundColor: "#fff",
-                    titleColor: "#374151",
-                    bodyColor: "#374151",
-                    borderColor: "#e5e7eb",
+                    backgroundColor: '#fff',
+                    titleColor: '#374151',
+                    bodyColor: '#374151',
+                    borderColor: '#e5e7eb',
                     borderWidth: 1,
                   },
                 },
                 scales: {
                   x: {
                     grid: { display: false },
-                    ticks: { color: "#6b7280", font: { size: 12 } },
+                    ticks: { color: '#6b7280', font: { size: 12 } },
                   },
                   y: {
-                    grid: { color: "#f3f4f6" },
+                    grid: { color: '#f3f4f6' },
                     ticks: {
-                      color: "#6b7280",
+                      color: '#6b7280',
                       font: { size: 12 },
                       callback: (value) => `$${Number(value).toLocaleString()}`,
                     },
@@ -470,9 +399,7 @@ const OverviewPanel: React.FC = () => {
 
         {/* Sales by Customer Pie Chart */}
         <div className="bg-gray-50 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Sales by Customer
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Sales by Customer</h3>
           <div className="h-80">
             <Pie
               data={{
@@ -485,14 +412,14 @@ const OverviewPanel: React.FC = () => {
                       .slice(0, 6)
                       .map((item) => item.total_sales),
                     backgroundColor: [
-                      "#ec4899",
-                      "#8b5cf6",
-                      "#06b6d4",
-                      "#10b981",
-                      "#f59e0b",
-                      "#ef4444",
+                      '#ec4899',
+                      '#8b5cf6',
+                      '#06b6d4',
+                      '#10b981',
+                      '#f59e0b',
+                      '#ef4444',
                     ],
-                    borderColor: "#fff",
+                    borderColor: '#fff',
                     borderWidth: 2,
                   },
                 ],
@@ -502,28 +429,25 @@ const OverviewPanel: React.FC = () => {
                 maintainAspectRatio: false,
                 plugins: {
                   legend: {
-                    position: "right",
+                    position: 'right',
                     labels: {
-                      color: "#374151",
+                      color: '#374151',
                       font: { size: 12 },
                       usePointStyle: true,
                     },
                   },
                   tooltip: {
-                    backgroundColor: "#fff",
-                    titleColor: "#374151",
-                    bodyColor: "#374151",
-                    borderColor: "#e5e7eb",
+                    backgroundColor: '#fff',
+                    titleColor: '#374151',
+                    bodyColor: '#374151',
+                    borderColor: '#e5e7eb',
                     borderWidth: 1,
                     callbacks: {
                       label: (context) => {
                         const value = context.parsed;
                         const percentage =
-                          salesAnalytics.sales_by_customer[context.dataIndex]
-                            ?.percentage || 0;
-                        return `$${value.toLocaleString()} (${percentage.toFixed(
-                          1
-                        )}%)`;
+                          salesAnalytics.sales_by_customer[context.dataIndex]?.percentage || 0;
+                        return `$${value.toLocaleString()} (${percentage.toFixed(1)}%)`;
                       },
                     },
                   },

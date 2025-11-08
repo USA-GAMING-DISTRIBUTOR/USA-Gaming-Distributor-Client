@@ -1,46 +1,31 @@
-import React, { useState, useEffect } from "react";
-import {
-Users,
-Plus,
-LogOut,
-Shield,
-UserCheck,
-User as UserIcon,
-Edit,
-X,
-} from "lucide-react";
-import { useAppDispatch, useAppSelector } from "../hooks/redux";
-import { logout, createUser, updateUser, clearError } from "../store/authSlice";
-import type { UserRole, CreateUserFormData } from "../types/auth";
-import { validateUserCreate, validateUserUpdate } from "../utils/FormValidator";
-import LoadingSpinner from "./LoadingSpinner";
-import Pagination from "./common/Pagination";
+import React, { useState, useEffect } from 'react';
+import { Users, Plus, LogOut, Shield, UserCheck, User as UserIcon, Edit, X } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '../hooks/redux';
+import { logout, createUser, updateUser, clearError } from '../store/authSlice';
+import type { UserRole, CreateUserFormData } from '../domains/auth/types';
+import { validateUserCreate, validateUserUpdate } from '../utils/FormValidator';
+import LoadingSpinner from './LoadingSpinner';
+import Pagination from './common/Pagination';
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { user, users, isLoading, error } = useAppSelector(
-    (state) => state.auth
-  );
+  const { user, users, isLoading, error } = useAppSelector((state) => state.auth);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState<CreateUserFormData>({
-    username: "",
-    password: "",
-    role: "Admin",
+    username: '',
+    password: '',
+    role: 'Admin',
   });
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
-    username: "",
-    password: "",
-    role: "Admin" as UserRole,
+    username: '',
+    password: '',
+    role: 'Admin' as UserRole,
   });
   const [showPasswordField, setShowPasswordField] = useState(false);
-  const [createFormErrors, setCreateFormErrors] = useState<
-    Record<string, string>
-  >({});
-  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>(
-    {}
-  );
+  const [createFormErrors, setCreateFormErrors] = useState<Record<string, string>>({});
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,9 +51,7 @@ const Dashboard: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -102,11 +85,11 @@ const Dashboard: React.FC = () => {
         password: formData.password,
         role: formData.role,
         created_by: user?.id || null,
-      })
+      }),
     );
 
     if (createUser.fulfilled.match(result)) {
-      setFormData({ username: "", password: "", role: "Admin" });
+      setFormData({ username: '', password: '', role: 'Admin' });
       setShowCreateForm(false);
       setCreateFormErrors({});
     }
@@ -121,7 +104,7 @@ const Dashboard: React.FC = () => {
     if (userToEdit) {
       setEditFormData({
         username: userToEdit.username,
-        password: "", // Don't populate password for security
+        password: '', // Don't populate password for security
         role: userToEdit.role,
       });
       setEditingUserId(userId);
@@ -132,17 +115,15 @@ const Dashboard: React.FC = () => {
   const handleCancelEdit = () => {
     setEditingUserId(null);
     setEditFormData({
-      username: "",
-      password: "",
-      role: "Admin",
+      username: '',
+      password: '',
+      role: 'Admin',
     });
     setShowPasswordField(false);
     setEditFormErrors({}); // Clear any existing errors
   };
 
-  const handleEditInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditFormData((prev) => ({
       ...prev,
@@ -182,9 +163,9 @@ const Dashboard: React.FC = () => {
       // Reset edit state on success
       setEditingUserId(null);
       setEditFormData({
-        username: "",
-        password: "",
-        role: "Admin",
+        username: '',
+        password: '',
+        role: 'Admin',
       });
       setShowPasswordField(false);
       setEditFormErrors({});
@@ -193,11 +174,11 @@ const Dashboard: React.FC = () => {
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
-      case "SuperAdmin":
+      case 'SuperAdmin':
         return <Shield className="w-5 h-5 text-pink-500" />;
-      case "Admin":
+      case 'Admin':
         return <UserCheck className="w-5 h-5 text-violet-500" />;
-      case "Employee":
+      case 'Employee':
         return <UserIcon className="w-5 h-5 text-indigo-500" />;
       default:
         return <UserIcon className="w-5 h-5 text-gray-500" />;
@@ -206,14 +187,14 @@ const Dashboard: React.FC = () => {
 
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
-      case "SuperAdmin":
-        return "bg-pink-100 text-pink-800";
-      case "Admin":
-        return "bg-violet-100 text-violet-800";
-      case "Employee":
-        return "bg-indigo-100 text-indigo-800";
+      case 'SuperAdmin':
+        return 'bg-pink-100 text-pink-800';
+      case 'Admin':
+        return 'bg-violet-100 text-violet-800';
+      case 'Employee':
+        return 'bg-indigo-100 text-indigo-800';
       default:
-        return "bg-gray-100 text-gray-800";
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -225,13 +206,11 @@ const Dashboard: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Shield className="w-8 h-8 text-pink-600 mr-3" />
-              <h1 className="text-xl font-semibold text-pink-900">
-                SuperAdmin Dashboard
-              </h1>
+              <h1 className="text-xl font-semibold text-pink-900">SuperAdmin Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                {getRoleIcon(user?.role || "Employee")}
+                {getRoleIcon(user?.role || 'Employee')}
                 <span className="text-sm font-medium text-pink-700">
                   {user?.username} ({user?.role})
                 </span>
@@ -264,9 +243,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {users.length}
-                </p>
+                <p className="text-2xl font-semibold text-gray-900">{users.length}</p>
               </div>
             </div>
           </div>
@@ -279,7 +256,7 @@ const Dashboard: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Admins</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {users.filter((u) => u.role === "Admin").length}
+                  {users.filter((u) => u.role === 'Admin').length}
                 </p>
               </div>
             </div>
@@ -293,7 +270,7 @@ const Dashboard: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Employees</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {users.filter((u) => u.role === "Employee").length}
+                  {users.filter((u) => u.role === 'Employee').length}
                 </p>
               </div>
             </div>
@@ -304,9 +281,7 @@ const Dashboard: React.FC = () => {
         <div className="bg-white rounded-lg shadow mb-8">
           <div className="px-6 py-4 border-b border-pink-200">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium text-pink-900">
-                User Management
-              </h2>
+              <h2 className="text-lg font-medium text-pink-900">User Management</h2>
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
                 className="flex items-center space-x-2 px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 transition-colors"
@@ -319,10 +294,7 @@ const Dashboard: React.FC = () => {
 
           {showCreateForm && (
             <div className="p-6 border-b border-pink-200 bg-pink-50">
-              <form
-                onSubmit={handleSubmit}
-                className="grid grid-cols-1 md:grid-cols-4 gap-4"
-              >
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label
                     htmlFor="username"
@@ -338,16 +310,14 @@ const Dashboard: React.FC = () => {
                     onChange={handleInputChange}
                     className={`block w-full px-3 py-2 border rounded-md focus:ring-pink-500 focus:border-pink-500 ${
                       createFormErrors.username
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300"
+                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                        : 'border-gray-300'
                     }`}
                     placeholder="Enter username"
                     disabled={isLoading}
                   />
                   {createFormErrors.username && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {createFormErrors.username}
-                    </p>
+                    <p className="mt-1 text-sm text-red-600">{createFormErrors.username}</p>
                   )}
                 </div>
 
@@ -366,24 +336,19 @@ const Dashboard: React.FC = () => {
                     onChange={handleInputChange}
                     className={`block w-full px-3 py-2 border rounded-md focus:ring-pink-500 focus:border-pink-500 ${
                       createFormErrors.password
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300"
+                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                        : 'border-gray-300'
                     }`}
                     placeholder="Enter password"
                     disabled={isLoading}
                   />
                   {createFormErrors.password && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {createFormErrors.password}
-                    </p>
+                    <p className="mt-1 text-sm text-red-600">{createFormErrors.password}</p>
                   )}
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="role"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
+                  <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
                     Role
                   </label>
                   <select
@@ -393,8 +358,8 @@ const Dashboard: React.FC = () => {
                     onChange={handleInputChange}
                     className={`block w-full px-3 py-2 border rounded-md focus:ring-pink-500 focus:border-pink-500 ${
                       createFormErrors.role
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300"
+                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                        : 'border-gray-300'
                     }`}
                     disabled={isLoading}
                   >
@@ -402,9 +367,7 @@ const Dashboard: React.FC = () => {
                     <option value="Employee">Employee</option>
                   </select>
                   {createFormErrors.role && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {createFormErrors.role}
-                    </p>
+                    <p className="mt-1 text-sm text-red-600">{createFormErrors.role}</p>
                   )}
                 </div>
 
@@ -420,7 +383,7 @@ const Dashboard: React.FC = () => {
                         <span>Creating...</span>
                       </div>
                     ) : (
-                      "Create User"
+                      'Create User'
                     )}
                   </button>
                 </div>
@@ -434,22 +397,15 @@ const Dashboard: React.FC = () => {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-pink-900">
-                  Edit User
-                </h3>
-                <button
-                  onClick={handleCancelEdit}
-                  className="text-gray-400 hover:text-gray-600"
-                >
+                <h3 className="text-lg font-medium text-pink-900">Edit User</h3>
+                <button onClick={handleCancelEdit} className="text-gray-400 hover:text-gray-600">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Username
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
                   <input
                     type="text"
                     name="username"
@@ -457,53 +413,45 @@ const Dashboard: React.FC = () => {
                     onChange={handleEditInputChange}
                     className={`w-full px-3 py-2 border rounded-md focus:ring-pink-500 focus:border-pink-500 ${
                       editFormErrors.username
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300"
+                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                        : 'border-gray-300'
                     }`}
                     placeholder="Enter username"
                   />
                   {editFormErrors.username && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {editFormErrors.username}
-                    </p>
+                    <p className="mt-1 text-sm text-red-600">{editFormErrors.username}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Role
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                   <select
                     name="role"
                     value={editFormData.role}
                     onChange={handleEditInputChange}
                     className={`w-full px-3 py-2 border rounded-md focus:ring-pink-500 focus:border-pink-500 ${
                       editFormErrors.role
-                        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300"
+                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                        : 'border-gray-300'
                     }`}
                   >
                     <option value="Admin">Admin</option>
                     <option value="Employee">Employee</option>
                   </select>
                   {editFormErrors.role && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {editFormErrors.role}
-                    </p>
+                    <p className="mt-1 text-sm text-red-600">{editFormErrors.role}</p>
                   )}
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Password
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700">Password</label>
                     <button
                       type="button"
                       onClick={() => setShowPasswordField(!showPasswordField)}
                       className="text-sm text-pink-600 hover:text-pink-800"
                     >
-                      {showPasswordField ? "Hide" : "Change Password"}
+                      {showPasswordField ? 'Hide' : 'Change Password'}
                     </button>
                   </div>
                   {showPasswordField && (
@@ -515,15 +463,13 @@ const Dashboard: React.FC = () => {
                         onChange={handleEditInputChange}
                         className={`w-full px-3 py-2 border rounded-md focus:ring-pink-500 focus:border-pink-500 ${
                           editFormErrors.password
-                            ? "border-red-300 focus:ring-red-500 focus:border-red-500"
-                            : "border-gray-300"
+                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                            : 'border-gray-300'
                         }`}
                         placeholder="Enter new password (leave blank to keep current)"
                       />
                       {editFormErrors.password && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {editFormErrors.password}
-                        </p>
+                        <p className="mt-1 text-sm text-red-600">{editFormErrors.password}</p>
                       )}
                     </>
                   )}
@@ -556,66 +502,51 @@ const Dashboard: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900">All Users</h3>
           </div>
           <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-          <thead>
-          <tr className="border-b border-gray-200">
-          <th className="text-left py-3 px-4 font-semibold text-gray-700">
-          User
-          </th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-700">
-          Role
-          </th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-700">
-          Created At
-          </th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-700">
-          Created By
-          </th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-700">
-          Actions
-          </th>
-          </tr>
-          </thead>
-          <tbody>
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">User</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Role</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Created At</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Created By</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                 {paginatedUsers.map((u) => (
-                <tr
-                key={u.id}
-                    className="border-b border-gray-100 hover:bg-gray-50"
-                  >
+                  <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {getRoleIcon(u.role)}
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {u.username}
-                          </div>
+                          <div className="text-sm font-medium text-gray-900">{u.username}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
-                          u.role
+                          u.role,
                         )}`}
                       >
                         {u.role}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(u.created_at).toLocaleString()}
+                      {new Date(u.created_at).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {u.created_by
-                        ? users.find((creator) => creator.id === u.created_by)
-                            ?.username || "Unknown"
-                        : "System"}
+                        ? users.find((creator) => creator.id === u.created_by)?.username ||
+                          'Unknown'
+                        : 'System'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <button
                         onClick={() => handleEditUser(u.id)}
                         className="text-pink-600 hover:text-pink-800 p-2 rounded-md hover:bg-pink-50 transition-colors"
                         title="Edit user"
-                        disabled={u.role === "SuperAdmin"} // Prevent editing SuperAdmin
+                        disabled={u.role === 'SuperAdmin'} // Prevent editing SuperAdmin
                       >
                         <Edit className="w-4 h-4" />
                       </button>

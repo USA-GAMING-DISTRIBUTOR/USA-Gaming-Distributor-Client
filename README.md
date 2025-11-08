@@ -154,9 +154,49 @@ npm run preview
 
 # Lint code
 npm run lint
+
+# Format code (Prettier)
+npm run format
+
+# Check formatting (no write)
+npm run format:check
 ```
 
+## Formatting & Linting
+
+This project uses Prettier for code formatting and ESLint for static analysis. ESLint is configured with the flat config and integrates `eslint-config-prettier` to avoid rule conflicts with Prettier.
+
+- Auto-format all files: `npm run format`
+- Check formatting without writing: `npm run format:check`
+- Lint: `npm run lint`
+
+Prettier is configured via `.prettierrc.json` (single quotes, trailing commas, 100 char line width). You can use your editor's Prettier extension to format on save.
+
+## Logging
+
+Use the centralized logger in `src/lib/logger.ts` instead of raw `console.*` calls:
+
+```ts
+import { logger } from './lib/logger';
+logger.info('Loading dashboard');
+logger.warn('Inventory low for platform', { platformId, inventory });
+logger.error('Purchase history fetch failed', error);
+```
+
+Log levels:
+
+- `debug` – verbose developer diagnostics
+- `info` – normal lifecycle progress/events
+- `warn` – recoverable issues, degraded state
+- `error` – failures needing attention
+
+See `docs/LOGGING.md` for full guidelines.
+
 ## Security Notes
+See `docs/SECURITY.md` for a detailed roadmap (authentication migration, RLS hardening, secrets, rate limiting) and per-release checklist.
+## Changelog
+
+See `CHANGELOG.md` for a human-readable list of notable changes, planned work, and versioning policy. Add entries under the Unreleased section when submitting feature PRs.
 
 - Passwords are stored in plain text for demo purposes. In production, implement proper password hashing.
 - Row Level Security (RLS) is enabled on the users table for additional security.
@@ -170,23 +210,23 @@ You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-re
 
 ```js
 // eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
+import reactX from 'eslint-plugin-react-x';
+import reactDom from 'eslint-plugin-react-dom';
 
 export default tseslint.config([
-  globalIgnores(["dist"]),
+  globalIgnores(['dist']),
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ['**/*.{ts,tsx}'],
     extends: [
       // Other configs...
       // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
+      reactX.configs['recommended-typescript'],
       // Enable lint rules for React DOM
       reactDom.configs.recommended,
     ],
     languageOptions: {
       parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
         tsconfigRootDir: import.meta.dirname,
       },
       // other options...
@@ -263,8 +303,8 @@ npm run db:gen
 Then you can import types:
 
 ```ts
-import { Database } from "./types/database.types";
-type User = Database["public"]["Tables"]["users"]["Row"];
+import { Database } from './types/database.types';
+type User = Database['public']['Tables']['users']['Row'];
 ```
 
 ### 6. Updating the Supabase Client Types
@@ -272,7 +312,7 @@ type User = Database["public"]["Tables"]["users"]["Row"];
 Optionally replace the inline `Database` interface in `src/lib/supabase.ts` with the generated one:
 
 ```ts
-import { Database } from "../types/database.types";
+import { Database } from '../types/database.types';
 ```
 
 ### 7. Recommended Workflow Summary
@@ -298,3 +338,10 @@ Current policies are permissive (select/insert/update for all). Harden them befo
 ---
 
 Happy shipping!
+
+## Atomic Inventory RPC
+## Storybook (Optional)
+
+If you want interactive, isolated component development, see `docs/STORYBOOK.md` for evaluation criteria and a minimal setup. This is optional and not required for production builds.
+
+For an atomic update of platform inventory together with a purchase history insert, see `docs/ATOMIC_INVENTORY.md`. A typed client wrapper is available at `src/services/inventoryRpc.ts`. This is optional until you create the Postgres function described in the docs and wire it into the purchase flow.

@@ -1,9 +1,9 @@
-import React from "react";
+import React from 'react';
 
 export interface TableColumn<T> {
   key: keyof T | string;
   header: string;
-  render?: (value: any, row: T, index: number) => React.ReactNode;
+  render?: (value: unknown, row: T, index: number) => React.ReactNode;
   sortable?: boolean;
   className?: string;
   width?: string;
@@ -23,20 +23,29 @@ export interface TableProps<T> {
 /**
  * Reusable Table component with sorting and custom rendering
  */
-function Table<T extends Record<string, any>>({
+function Table<T extends Record<string, unknown>>({
   data,
   columns,
   loading = false,
-  emptyMessage = "No data available",
+  emptyMessage = 'No data available',
   onRowClick,
-  className = "",
+  className = '',
   striped = true,
   hoverable = true,
 }: TableProps<T>) {
-  const getValue = (row: T, key: keyof T | string): any => {
-    if (typeof key === "string" && key.includes(".")) {
+  const getDeepValue = (obj: unknown, path: string[]): unknown => {
+    return path.reduce<unknown>((acc, key) => {
+      if (acc && typeof acc === 'object' && key in (acc as Record<string, unknown>)) {
+        return (acc as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, obj);
+  };
+
+  const getValue = (row: T, key: keyof T | string): unknown => {
+    if (typeof key === 'string' && key.includes('.')) {
       // Handle nested keys like 'user.name'
-      return key.split(".").reduce((obj, k) => obj?.[k], row);
+      return getDeepValue(row, key.split('.'));
     }
     return row[key as keyof T];
   };
@@ -65,7 +74,7 @@ function Table<T extends Record<string, any>>({
               <th
                 key={String(column.key)}
                 className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                  column.className || ""
+                  column.className || ''
                 }`}
                 style={{ width: column.width }}
               >
@@ -74,17 +83,10 @@ function Table<T extends Record<string, any>>({
             ))}
           </tr>
         </thead>
-        <tbody
-          className={`bg-white divide-y divide-gray-200 ${
-            striped ? "divide-y" : ""
-          }`}
-        >
+        <tbody className={`bg-white divide-y divide-gray-200 ${striped ? 'divide-y' : ''}`}>
           {data.length === 0 ? (
             <tr>
-              <td
-                colSpan={columns.length}
-                className="px-6 py-12 text-center text-sm text-gray-500"
-              >
+              <td colSpan={columns.length} className="px-6 py-12 text-center text-sm text-gray-500">
                 {emptyMessage}
               </td>
             </tr>
@@ -93,9 +95,9 @@ function Table<T extends Record<string, any>>({
               <tr
                 key={index}
                 className={`
-                  ${striped && index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  ${hoverable ? "hover:bg-gray-100" : ""}
-                  ${onRowClick ? "cursor-pointer" : ""}
+                  ${striped && index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                  ${hoverable ? 'hover:bg-gray-100' : ''}
+                  ${onRowClick ? 'cursor-pointer' : ''}
                   transition-colors duration-150
                 `}
                 onClick={() => onRowClick?.(row, index)}
@@ -106,10 +108,12 @@ function Table<T extends Record<string, any>>({
                     <td
                       key={String(column.key)}
                       className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        column.className || "text-gray-900"
+                        column.className || 'text-gray-900'
                       }`}
                     >
-                      {column.render ? column.render(value, row, index) : value}
+                      {column.render
+                        ? column.render(value, row, index)
+                        : (value as React.ReactNode)}
                     </td>
                   );
                 })}

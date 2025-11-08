@@ -7,7 +7,12 @@ export interface CustomerIssue {
   description: string;
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
   status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
-  issue_type: 'Complaint' | 'Refund Request' | 'Replacement Request' | 'Technical Support' | 'General Inquiry';
+  issue_type:
+    | 'Complaint'
+    | 'Refund Request'
+    | 'Replacement Request'
+    | 'Technical Support'
+    | 'General Inquiry';
   created_by: string;
   assigned_to?: string;
   created_at: string;

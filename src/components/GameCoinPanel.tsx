@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { Edit, Trash2, Plus } from "lucide-react";
-import { supabase } from "../lib/supabase";
-import Pagination from "./common/Pagination";
+import React, { useEffect, useState } from 'react';
+import { Edit, Trash2, Plus } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import Pagination from './common/Pagination';
 
 interface Coin {
   id: string;
@@ -16,15 +16,15 @@ const GameCoinPanel: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
-    platform: "",
-    inventory: "",
-    cost_price: "",
+    platform: '',
+    inventory: '',
+    cost_price: '',
   });
   const [editId, setEditId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
-    platform: "",
-    inventory: "",
-    cost_price: "",
+    platform: '',
+    inventory: '',
+    cost_price: '',
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -36,10 +36,10 @@ const GameCoinPanel: React.FC = () => {
     setLoading(true);
     setError(null);
     const { data, error: fetchError } = await supabase
-      .from("game_coins")
-      .select("id, platform, inventory, cost_price, created_at");
+      .from('game_coins')
+      .select('id, platform, inventory, cost_price, created_at');
     if (fetchError) {
-      setError("Failed to fetch game coins: " + fetchError.message);
+      setError('Failed to fetch game coins: ' + fetchError.message);
       setLoading(false);
       return;
     }
@@ -73,7 +73,7 @@ const GameCoinPanel: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const { error: addError } = await supabase.from("game_coins").insert([
+    const { error: addError } = await supabase.from('game_coins').insert([
       {
         platform: form.platform,
         inventory: Number(form.inventory),
@@ -81,11 +81,11 @@ const GameCoinPanel: React.FC = () => {
       },
     ]);
     if (addError) {
-      setError("Failed to add game coin: " + addError.message);
+      setError('Failed to add game coin: ' + addError.message);
       setLoading(false);
       return;
     }
-    setForm({ platform: "", inventory: "", cost_price: "" });
+    setForm({ platform: '', inventory: '', cost_price: '' });
     setShowModal(false);
     fetchCoins();
     setLoading(false);
@@ -94,10 +94,7 @@ const GameCoinPanel: React.FC = () => {
   const handleDelete = async (id: string) => {
     setLoading(true);
     setError(null);
-    const { error: deleteError } = await supabase
-      .from("game_coins")
-      .delete()
-      .eq("id", id);
+    const { error: deleteError } = await supabase.from('game_coins').delete().eq('id', id);
     if (deleteError) {
       setLoading(false);
       return;
@@ -125,30 +122,28 @@ const GameCoinPanel: React.FC = () => {
 
     setLoading(true);
     const { error } = await supabase
-      .from("game_coins")
+      .from('game_coins')
       .update({
         platform: editForm.platform,
         inventory: Number(editForm.inventory),
         cost_price: Number(editForm.cost_price),
       })
-      .eq("id", editId);
+      .eq('id', editId);
 
     if (error) {
-      setError("Failed to edit game coin: " + error.message);
+      setError('Failed to edit game coin: ' + error.message);
       setLoading(false);
       return;
     }
     setEditId(null);
-    setEditForm({ platform: "", inventory: "", cost_price: "" });
+    setEditForm({ platform: '', inventory: '', cost_price: '' });
     fetchCoins();
     setLoading(false);
   };
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg">
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
-      )}
+      {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Platforms</h2>
         <button
@@ -166,9 +161,7 @@ const GameCoinPanel: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-bold">Add Platform</h3>
-                  <p className="text-pink-100 text-sm mt-1">
-                    Create a new gaming platform
-                  </p>
+                  <p className="text-pink-100 text-sm mt-1">Create a new gaming platform</p>
                 </div>
                 <button
                   type="button"
@@ -182,11 +175,7 @@ const GameCoinPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              <form
-                id="gamecoin-form"
-                onSubmit={handleAddCoin}
-                className="space-y-4"
-              >
+              <form id="gamecoin-form" onSubmit={handleAddCoin} className="space-y-4">
                 <input
                   name="platform"
                   value={form.platform}
@@ -302,9 +291,7 @@ const GameCoinPanel: React.FC = () => {
                 <td className="py-2 px-4">{coin.inventory} Qty</td>
                 <td className="py-2 px-4">$ {coin.cost_price}</td>
                 <td className="py-2 px-4">
-                  {coin.created_at
-                    ? new Date(coin.created_at).toLocaleString()
-                    : "N/A"}
+                  {coin.created_at ? new Date(coin.created_at).toLocaleString() : 'N/A'}
                 </td>
                 <td className="py-2 px-4">
                   <button

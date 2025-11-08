@@ -1,33 +1,33 @@
 // Enhanced Order types with comprehensive payment methods
 export interface Order {
-id: string;
-customer_id: string | null;
-order_number: string;
-items: OrderItem[];
-payment_method?: PaymentMethod;
-payment_details?: PaymentDetails;
-status: 'pending' | 'processing' | 'verified' | 'completed' | 'replacement' | 'refunded';
-payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
-total_amount: number;
-discount_amount?: number;
-final_amount?: number;
-notes: string | null;
-invoice_url: string | null;
-created_at: string | null;
-updated_at: string | null;
-verified_at: string | null;
-verified_by: string | null;
+  id: string;
+  customer_id: string | null;
+  order_number: string;
+  items: OrderItem[];
+  payment_method?: PaymentMethod;
+  payment_details?: PaymentDetails;
+  status: 'pending' | 'processing' | 'verified' | 'completed' | 'replacement' | 'refunded';
+  payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
+  total_amount: number;
+  discount_amount?: number;
+  final_amount?: number;
+  notes: string | null;
+  invoice_url: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  verified_at: string | null;
+  verified_by: string | null;
   created_by: string | null;
   created_by_username?: string;
 }
 
 export interface OrderItem {
-order_id: string;
-platform_id: string;
-platform: string;
-account_type?: string;
-quantity: number;
-unitPrice: number;
+  order_id: string;
+  platform_id: string;
+  platform: string;
+  account_type?: string;
+  quantity: number;
+  unitPrice: number;
   total_price: number;
   username?: string; // Customer's username for this platform
 }

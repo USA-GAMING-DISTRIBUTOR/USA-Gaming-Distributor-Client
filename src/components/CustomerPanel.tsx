@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
-import type { Customer, CustomerPricing, CustomerUsername } from "../types/customer";
-import type { Platform } from "../types/platform";
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import type { Customer, CustomerPricing, CustomerUsername } from '../types/customer';
+import type { Platform } from '../types/platform';
 import {
   Plus,
   Edit2,
@@ -13,9 +13,9 @@ import {
   User,
   CheckCircle,
   XCircle,
-} from "lucide-react";
-import { LoadingSpinner } from "./common/Loader";
-import Pagination from "./common/Pagination";
+} from 'lucide-react';
+import { LoadingSpinner } from './common/Loader';
+import Pagination from './common/Pagination';
 
 const CustomerPanel: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -25,15 +25,17 @@ const CustomerPanel: React.FC = () => {
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isUsernamesModalOpen, setIsUsernamesModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [selectedCustomerForPricing, setSelectedCustomerForPricing] =
-    useState<Customer | null>(null);
-  const [selectedCustomerForUsernames, setSelectedCustomerForUsernames] =
-    useState<Customer | null>(null);
+  const [selectedCustomerForPricing, setSelectedCustomerForPricing] = useState<Customer | null>(
+    null,
+  );
+  const [selectedCustomerForUsernames, setSelectedCustomerForUsernames] = useState<Customer | null>(
+    null,
+  );
   const [customerPricing, setCustomerPricing] = useState<CustomerPricing[]>([]);
   const [customerUsernames, setCustomerUsernames] = useState<CustomerUsername[]>([]);
 
   // Search state
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Pagination state
   const [customersPage, setCustomersPage] = useState(1);
@@ -46,8 +48,8 @@ const CustomerPanel: React.FC = () => {
     name: string;
     contact_numbers: string[];
   }>({
-    name: "",
-    contact_numbers: [""],
+    name: '',
+    contact_numbers: [''],
   });
   const [pricingForm, setPricingForm] = useState<{
     platform_id: string;
@@ -56,7 +58,7 @@ const CustomerPanel: React.FC = () => {
     unit_price: number;
     is_default: boolean;
   }>({
-    platform_id: "",
+    platform_id: '',
     min_quantity: 1,
     max_quantity: null,
     unit_price: 0,
@@ -69,24 +71,21 @@ const CustomerPanel: React.FC = () => {
     notes: string;
     is_active: boolean;
   }>({
-    platform_id: "",
-    username: "",
-    notes: "",
+    platform_id: '',
+    username: '',
+    notes: '',
     is_active: true,
   });
 
   // Filter customers based on search term
   const filteredCustomers = customers.filter((customer) =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // Customers pagination logic
   const customersStartIndex = (customersPage - 1) * customersItemsPerPage;
   const customersEndIndex = customersStartIndex + customersItemsPerPage;
-  const paginatedCustomers = filteredCustomers.slice(
-    customersStartIndex,
-    customersEndIndex
-  );
+  const paginatedCustomers = filteredCustomers.slice(customersStartIndex, customersEndIndex);
 
   const handleCustomersPageChange = (page: number) => {
     setCustomersPage(page);
@@ -100,10 +99,7 @@ const CustomerPanel: React.FC = () => {
   // Customer pricing pagination logic
   const pricingStartIndex = (pricingPage - 1) * pricingItemsPerPage;
   const pricingEndIndex = pricingStartIndex + pricingItemsPerPage;
-  const paginatedCustomerPricing = customerPricing.slice(
-    pricingStartIndex,
-    pricingEndIndex
-  );
+  const paginatedCustomerPricing = customerPricing.slice(pricingStartIndex, pricingEndIndex);
 
   const handlePricingPageChange = (page: number) => {
     setPricingPage(page);
@@ -126,36 +122,45 @@ const CustomerPanel: React.FC = () => {
 
   const fetchPlatforms = async () => {
     try {
-      const { data, error } = await supabase
-        .from("game_coins")
-        .select("*")
-        .order("platform");
+      const { data, error } = await supabase.from('game_coins').select('*').order('platform');
 
       if (error) throw error;
 
       // Transform data to match Platform interface
-      const transformedPlatforms: Platform[] = (data || []).map((platform: any) => ({
-      id: platform.id,
-      platform: platform.platform,
-      account_type: platform.account_type || "Standard",
-      inventory: platform.inventory,
-      cost_price: platform.cost_price,
-      low_stock_alert: platform.low_stock_alert || 10, // Default to 10 if not set
-      created_at: platform.created_at,
-      updated_at: platform.updated_at || null,
-        deleted_at: platform.deleted_at || null,
-      }));
+      const transformedPlatforms: Platform[] = (data || []).map(
+        (platform: {
+          id: string;
+          platform: string;
+          account_type?: string | null;
+          inventory: number;
+          cost_price: number;
+          low_stock_alert?: number | null;
+          created_at: string | null;
+          updated_at?: string | null;
+          deleted_at?: string | null;
+        }) => ({
+          id: platform.id,
+          platform: platform.platform,
+          account_type: platform.account_type || 'Standard',
+          inventory: platform.inventory,
+          cost_price: platform.cost_price,
+          low_stock_alert: platform.low_stock_alert || 10, // Default to 10 if not set
+          created_at: platform.created_at,
+          updated_at: platform.updated_at || null,
+          deleted_at: platform.deleted_at || null,
+        }),
+      );
 
       setPlatforms(transformedPlatforms);
     } catch (error) {
-      console.error("Error fetching platforms:", error);
+      console.error('Error fetching platforms:', error);
     }
   };
 
   const fetchCustomerPricing = async (customerId: string) => {
     try {
-      const { data, error } = await (supabase as any)
-        .from("customer_pricing")
+      const { data, error } = await supabase
+        .from('customer_pricing')
         .select(
           `
           *,
@@ -163,23 +168,40 @@ const CustomerPanel: React.FC = () => {
             platform,
             account_type
           )
-        `
+        `,
         )
-        .eq("customer_id", customerId)
-        .order("min_quantity");
+        .eq('customer_id', customerId)
+        .order('min_quantity');
 
       if (error) throw error;
 
       // Transform data to include platform_name
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedPricing = (data || []).map((pricing: any) => ({
-        ...pricing,
-        platform_name: pricing.game_coins?.platform || "Unknown Platform",
-      }));
+      const transformedPricing: CustomerPricing[] = (data || []).map(
+        (pricing: {
+          id: string;
+          platform_id: string | null;
+          min_quantity: number;
+          max_quantity: number | null;
+          unit_price: number;
+          is_default: boolean | null;
+          game_coins?: { platform?: string | null } | null;
+        }) => ({
+          id: pricing.id,
+          customer_id: customerId,
+          platform_id: pricing.platform_id || '',
+          min_quantity: pricing.min_quantity,
+          max_quantity: pricing.max_quantity,
+          unit_price: pricing.unit_price,
+          is_default: pricing.is_default ?? false,
+          platform_name: pricing.game_coins?.platform || 'Unknown Platform',
+          created_at: new Date().toISOString(),
+          updated_at: null,
+        }),
+      );
 
       setCustomerPricing(transformedPricing);
     } catch (error) {
-      console.error("Error fetching customer pricing:", error);
+      console.error('Error fetching customer pricing:', error);
     }
   };
 
@@ -194,7 +216,7 @@ const CustomerPanel: React.FC = () => {
     setSelectedCustomerForPricing(null);
     setCustomerPricing([]);
     setPricingForm({
-      platform_id: "",
+      platform_id: '',
       min_quantity: 1,
       max_quantity: null,
       unit_price: 0,
@@ -207,54 +229,49 @@ const CustomerPanel: React.FC = () => {
     if (!selectedCustomerForPricing) return;
 
     try {
-      const { error } = await (supabase as any)
-        .from("customer_pricing")
-        .insert({
-          customer_id: selectedCustomerForPricing.id,
-          platform_id: pricingForm.platform_id,
-          min_quantity: pricingForm.min_quantity,
-          max_quantity: pricingForm.max_quantity,
-          unit_price: pricingForm.unit_price,
-          is_default: pricingForm.is_default,
-        });
+      const { error } = await supabase.from('customer_pricing').insert({
+        customer_id: selectedCustomerForPricing.id,
+        platform_id: pricingForm.platform_id,
+        min_quantity: pricingForm.min_quantity,
+        max_quantity: pricingForm.max_quantity,
+        unit_price: pricingForm.unit_price,
+        is_default: pricingForm.is_default,
+      });
 
       if (error) throw error;
 
       await fetchCustomerPricing(selectedCustomerForPricing.id);
       setPricingForm({
-        platform_id: "",
+        platform_id: '',
         min_quantity: 1,
         max_quantity: null,
         unit_price: 0,
         is_default: false,
       });
     } catch (error) {
-      console.error("Error saving customer pricing:", error);
+      console.error('Error saving customer pricing:', error);
     }
   };
 
   const handleDeletePricing = async (pricingId: string) => {
-    if (!confirm("Are you sure you want to delete this pricing tier?")) return;
+    if (!confirm('Are you sure you want to delete this pricing tier?')) return;
     if (!selectedCustomerForPricing) return;
 
     try {
-      const { error } = await (supabase as any)
-        .from("customer_pricing")
-        .delete()
-        .eq("id", pricingId);
+      const { error } = await supabase.from('customer_pricing').delete().eq('id', pricingId);
 
       if (error) throw error;
       await fetchCustomerPricing(selectedCustomerForPricing.id);
     } catch (error) {
-      console.error("Error deleting pricing:", error);
+      console.error('Error deleting pricing:', error);
     }
   };
 
   // Username management functions
   const fetchCustomerUsernames = async (customerId: string) => {
     try {
-      const { data, error } = await (supabase as any)
-        .from("customer_usernames")
+      const { data, error } = await supabase
+        .from('customer_usernames')
         .select(
           `
           *,
@@ -262,24 +279,42 @@ const CustomerPanel: React.FC = () => {
             platform,
             account_type
           )
-        `
+        `,
         )
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false });
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       // Transform data to include platform info
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedUsernames = (data || []).map((username: any) => ({
-        ...username,
-        platform_name: username.game_coins?.platform || "Unknown Platform",
-        account_type: username.game_coins?.account_type || "Standard",
-      }));
+      const transformedUsernames: CustomerUsername[] = (data || []).map(
+        (username: {
+          id: string;
+          platform_id: string;
+          username: string;
+          notes: string | null;
+          is_active: boolean | null;
+          game_coins?: {
+            platform?: string | null;
+            account_type?: string | null;
+          } | null;
+        }) => ({
+          id: username.id,
+          customer_id: customerId,
+          platform_id: username.platform_id,
+          username: username.username,
+          notes: username.notes,
+          is_active: username.is_active ?? true,
+          platform_name: username.game_coins?.platform || 'Unknown Platform',
+          account_type: username.game_coins?.account_type || 'Standard',
+          created_at: new Date().toISOString(),
+          updated_at: null,
+        }),
+      );
 
       setCustomerUsernames(transformedUsernames);
     } catch (error) {
-      console.error("Error fetching customer usernames:", error);
+      console.error('Error fetching customer usernames:', error);
     }
   };
 
@@ -294,9 +329,9 @@ const CustomerPanel: React.FC = () => {
     setSelectedCustomerForUsernames(null);
     setCustomerUsernames([]);
     setUsernameForm({
-      platform_id: "",
-      username: "",
-      notes: "",
+      platform_id: '',
+      username: '',
+      notes: '',
       is_active: true,
     });
   };
@@ -306,44 +341,39 @@ const CustomerPanel: React.FC = () => {
     if (!selectedCustomerForUsernames) return;
 
     try {
-      const { error } = await (supabase as any)
-        .from("customer_usernames")
-        .insert({
-          customer_id: selectedCustomerForUsernames.id,
-          platform_id: usernameForm.platform_id,
-          username: usernameForm.username,
-          notes: usernameForm.notes || null,
-          is_active: usernameForm.is_active,
-        });
+      const { error } = await supabase.from('customer_usernames').insert({
+        customer_id: selectedCustomerForUsernames.id,
+        platform_id: usernameForm.platform_id,
+        username: usernameForm.username,
+        notes: usernameForm.notes || null,
+        is_active: usernameForm.is_active,
+      });
 
       if (error) throw error;
 
       await fetchCustomerUsernames(selectedCustomerForUsernames.id);
       setUsernameForm({
-        platform_id: "",
-        username: "",
-        notes: "",
+        platform_id: '',
+        username: '',
+        notes: '',
         is_active: true,
       });
     } catch (error) {
-      console.error("Error saving customer username:", error);
+      console.error('Error saving customer username:', error);
     }
   };
 
   const handleDeleteUsername = async (usernameId: string) => {
-    if (!confirm("Are you sure you want to delete this username?")) return;
+    if (!confirm('Are you sure you want to delete this username?')) return;
     if (!selectedCustomerForUsernames) return;
 
     try {
-      const { error } = await (supabase as any)
-        .from("customer_usernames")
-        .delete()
-        .eq("id", usernameId);
+      const { error } = await supabase.from('customer_usernames').delete().eq('id', usernameId);
 
       if (error) throw error;
       await fetchCustomerUsernames(selectedCustomerForUsernames.id);
     } catch (error) {
-      console.error("Error deleting username:", error);
+      console.error('Error deleting username:', error);
     }
   };
 
@@ -351,54 +381,57 @@ const CustomerPanel: React.FC = () => {
     if (!selectedCustomerForUsernames) return;
 
     try {
-      const { error } = await (supabase as any)
-        .from("customer_usernames")
+      const { error } = await supabase
+        .from('customer_usernames')
         .update({ is_active: !currentStatus })
-        .eq("id", usernameId);
+        .eq('id', usernameId);
 
       if (error) throw error;
       await fetchCustomerUsernames(selectedCustomerForUsernames.id);
     } catch (error) {
-      console.error("Error toggling username active status:", error);
+      console.error('Error toggling username active status:', error);
     }
   };
 
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("customers")
-        .select("*")
-        .order("name");
+      const { data, error } = await supabase.from('customers').select('*').order('name');
 
       if (error) throw error;
 
       // Transform data to handle both old and new schema formats
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedCustomers = (data || []).map((customer: any) => ({
-        id: customer.id,
-        name: customer.name,
-        // Handle both new contact_numbers array and old contact_info JSONB
-        contact_numbers:
-          customer.contact_numbers ||
-          (customer.contact_info
-            ? typeof customer.contact_info === "string"
-              ? JSON.parse(customer.contact_info).map(
-                  (info: { number?: string; phone?: string }) =>
-                    info.number || info.phone
-                )
-              : customer.contact_info.map(
-                  (info: { number?: string; phone?: string }) =>
-                    info.number || info.phone
-                )
-            : null),
-        created_at: customer.created_at,
-        updated_at: customer.updated_at || null,
-      }));
+      const transformedCustomers: Customer[] = (data || []).map(
+        (customer: {
+          id: string;
+          name: string;
+          contact_numbers?: string[] | null;
+          contact_info?: { number?: string; phone?: string }[] | string | null;
+          created_at: string | null;
+          updated_at?: string | null;
+        }) => ({
+          id: customer.id,
+          name: customer.name,
+          // Handle both new contact_numbers array and old contact_info JSONB
+          contact_numbers:
+            customer.contact_numbers ||
+            (customer.contact_info
+              ? typeof customer.contact_info === 'string'
+                ? JSON.parse(customer.contact_info).map(
+                    (info: { number?: string; phone?: string }) => info.number || info.phone,
+                  )
+                : customer.contact_info.map(
+                    (info: { number?: string; phone?: string }) => info.number || info.phone,
+                  )
+              : null),
+          created_at: customer.created_at || new Date().toISOString(),
+          updated_at: customer.updated_at || null,
+        }),
+      );
 
       setCustomers(transformedCustomers);
     } catch (error) {
-      console.error("Error fetching customers:", error);
+      console.error('Error fetching customers:', error);
     } finally {
       setLoading(false);
     }
@@ -409,22 +442,20 @@ const CustomerPanel: React.FC = () => {
     try {
       setLoading(true);
       // Filter out empty phone numbers
-      const validNumbers = formData.contact_numbers.filter(
-        (num) => num.trim() !== ""
-      );
+      const validNumbers = formData.contact_numbers.filter((num) => num.trim() !== '');
 
       if (editingCustomer) {
         const { error } = await supabase
-          .from("customers")
+          .from('customers')
           .update({
             name: formData.name,
             contact_numbers: validNumbers,
           })
-          .eq("id", editingCustomer.id);
+          .eq('id', editingCustomer.id);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("customers").insert({
+        const { error } = await supabase.from('customers').insert({
           name: formData.name,
           contact_numbers: validNumbers,
         });
@@ -435,23 +466,23 @@ const CustomerPanel: React.FC = () => {
       await fetchCustomers();
       closeModal();
     } catch (error) {
-      console.error("Error saving customer:", error);
+      console.error('Error saving customer:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this customer?")) return;
+    if (!confirm('Are you sure you want to delete this customer?')) return;
 
     try {
       setLoading(true);
-      const { error } = await supabase.from("customers").delete().eq("id", id);
+      const { error } = await supabase.from('customers').delete().eq('id', id);
 
       if (error) throw error;
       await fetchCustomers();
     } catch (error) {
-      console.error("Error deleting customer:", error);
+      console.error('Error deleting customer:', error);
     } finally {
       setLoading(false);
     }
@@ -465,13 +496,13 @@ const CustomerPanel: React.FC = () => {
         contact_numbers:
           customer.contact_numbers && customer.contact_numbers.length > 0
             ? customer.contact_numbers
-            : [""],
+            : [''],
       });
     } else {
       setEditingCustomer(null);
       setFormData({
-        name: "",
-        contact_numbers: [""],
+        name: '',
+        contact_numbers: [''],
       });
     }
     setIsModalOpen(true);
@@ -481,15 +512,15 @@ const CustomerPanel: React.FC = () => {
     setIsModalOpen(false);
     setEditingCustomer(null);
     setFormData({
-      name: "",
-      contact_numbers: [""],
+      name: '',
+      contact_numbers: [''],
     });
   };
 
   const addContactNumber = () => {
     setFormData((prev) => ({
       ...prev,
-      contact_numbers: [...prev.contact_numbers, ""],
+      contact_numbers: [...prev.contact_numbers, ''],
     }));
   };
 
@@ -505,9 +536,7 @@ const CustomerPanel: React.FC = () => {
   const updateContactNumber = (index: number, value: string) => {
     setFormData((prev) => ({
       ...prev,
-      contact_numbers: prev.contact_numbers.map((number, i) =>
-        i === index ? value : number
-      ),
+      contact_numbers: prev.contact_numbers.map((number, i) => (i === index ? value : number)),
     }));
   };
 
@@ -515,9 +544,7 @@ const CustomerPanel: React.FC = () => {
     <div className="bg-white rounded-2xl p-6 shadow-lg">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Customer Management
-        </h2>
+        <h2 className="text-xl font-semibold text-gray-800">Customer Management</h2>
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -545,15 +572,9 @@ const CustomerPanel: React.FC = () => {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Name
-                </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Contact Numbers
-                </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Actions
-                </th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Contact Numbers</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -569,34 +590,25 @@ const CustomerPanel: React.FC = () => {
                 <tr>
                   <td colSpan={3} className="text-center py-8 text-gray-500">
                     {customers.length === 0
-                      ? "No customers found. Add your first customer to get started."
+                      ? 'No customers found. Add your first customer to get started.'
                       : searchTerm
-                      ? `No customers found matching "${searchTerm}".`
-                      : "No customers found."}
+                        ? `No customers found matching "${searchTerm}".`
+                        : 'No customers found.'}
                   </td>
                 </tr>
               ) : (
                 paginatedCustomers.map((customer) => (
-                  <tr
-                    key={customer.id}
-                    className="border-b border-gray-100 hover:bg-gray-50"
-                  >
+                  <tr key={customer.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-4 font-medium">{customer.name}</td>
                     <td className="py-3 px-4">
                       {customer.contact_numbers?.map((number, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 mb-1"
-                        >
+                        <div key={index} className="flex items-center gap-2 mb-1">
                           <Phone className="w-3 h-3 text-gray-400" />
                           <span className="text-gray-600">{number}</span>
                         </div>
                       ))}
-                      {(!customer.contact_numbers ||
-                        customer.contact_numbers.length === 0) && (
-                        <span className="text-gray-400 italic">
-                          No contact numbers
-                        </span>
+                      {(!customer.contact_numbers || customer.contact_numbers.length === 0) && (
+                        <span className="text-gray-400 italic">No contact numbers</span>
                       )}
                     </td>
                     <td className="py-3 px-4">
@@ -660,12 +672,10 @@ const CustomerPanel: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-bold">
-                    {editingCustomer ? "Edit Customer" : "Add Customer"}
+                    {editingCustomer ? 'Edit Customer' : 'Add Customer'}
                   </h2>
                   <p className="text-pink-100 text-sm mt-1">
-                    {editingCustomer
-                      ? "Update customer information"
-                      : "Create a new customer"}
+                    {editingCustomer ? 'Update customer information' : 'Create a new customer'}
                   </p>
                 </div>
                 <button
@@ -679,11 +689,7 @@ const CustomerPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              <form
-                id="customer-form"
-                onSubmit={handleSubmit}
-                className="space-y-4"
-              >
+              <form id="customer-form" onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Customer Name
@@ -691,9 +697,7 @@ const CustomerPanel: React.FC = () => {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name: e.target.value }))
-                    }
+                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
@@ -709,9 +713,7 @@ const CustomerPanel: React.FC = () => {
                         type="tel"
                         placeholder="Phone number"
                         value={number}
-                        onChange={(e) =>
-                          updateContactNumber(index, e.target.value)
-                        }
+                        onChange={(e) => updateContactNumber(index, e.target.value)}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       {formData.contact_numbers.length > 1 && (
@@ -754,7 +756,7 @@ const CustomerPanel: React.FC = () => {
                   className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {loading && <LoadingSpinner size="sm" />}
-                  {editingCustomer ? "Update" : "Create"}
+                  {editingCustomer ? 'Update' : 'Create'}
                 </button>
               </div>
             </div>
@@ -790,17 +792,13 @@ const CustomerPanel: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-6">
               {/* Add New Pricing Form */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="text-md font-medium mb-3">
-                  Add New Pricing Tier
-                </h3>
+                <h3 className="text-md font-medium mb-3">Add New Pricing Tier</h3>
                 <form
                   onSubmit={handlePricingSubmit}
                   className="grid grid-cols-1 md:grid-cols-5 gap-4"
                 >
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Platform
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
                     <select
                       value={pricingForm.platform_id}
                       onChange={(e) =>
@@ -845,13 +843,11 @@ const CustomerPanel: React.FC = () => {
                     <input
                       type="number"
                       min="1"
-                      value={pricingForm.max_quantity || ""}
+                      value={pricingForm.max_quantity || ''}
                       onChange={(e) =>
                         setPricingForm((prev) => ({
                           ...prev,
-                          max_quantity: e.target.value
-                            ? parseInt(e.target.value)
-                            : null,
+                          max_quantity: e.target.value ? parseInt(e.target.value) : null,
                         }))
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -893,47 +889,31 @@ const CustomerPanel: React.FC = () => {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Platform
-                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Platform</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">
                         Quantity Range
                       </th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-700">
                         Unit Price
                       </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Default
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Actions
-                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Default</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {customerPricing.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={5}
-                          className="text-center py-8 text-gray-500"
-                        >
+                        <td colSpan={5} className="text-center py-8 text-gray-500">
                           No pricing tiers set for this customer.
                         </td>
                       </tr>
                     ) : (
                       paginatedCustomerPricing.map((pricing) => (
-                        <tr
-                          key={pricing.id}
-                          className="border-b border-gray-100 hover:bg-gray-50"
-                        >
-                          <td className="py-3 px-4 font-medium">
-                            {pricing.platform_name}
-                          </td>
+                        <tr key={pricing.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4 font-medium">{pricing.platform_name}</td>
                           <td className="py-3 px-4">
                             {pricing.min_quantity}
-                            {pricing.max_quantity
-                              ? ` - ${pricing.max_quantity}`
-                              : "+"}
+                            {pricing.max_quantity ? ` - ${pricing.max_quantity}` : '+'}
                           </td>
                           <td className="py-3 px-4">${pricing.unit_price}</td>
                           <td className="py-3 px-4">
@@ -1014,17 +994,13 @@ const CustomerPanel: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-6">
               {/* Add New Username Form */}
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="text-md font-medium mb-3">
-                  Add New Username
-                </h3>
+                <h3 className="text-md font-medium mb-3">Add New Username</h3>
                 <form
                   onSubmit={handleUsernameSubmit}
                   className="grid grid-cols-1 md:grid-cols-4 gap-4"
                 >
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Platform
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
                     <select
                       value={usernameForm.platform_id}
                       onChange={(e) =>
@@ -1045,9 +1021,7 @@ const CustomerPanel: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Username
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
                     <input
                       type="text"
                       value={usernameForm.username}
@@ -1092,9 +1066,7 @@ const CustomerPanel: React.FC = () => {
                           }
                           className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                         />
-                        <span className="ml-2 text-sm text-gray-700">
-                          Active
-                        </span>
+                        <span className="ml-2 text-sm text-gray-700">Active</span>
                       </label>
                       <button
                         type="submit"
@@ -1112,21 +1084,11 @@ const CustomerPanel: React.FC = () => {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Platform
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Username
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Notes
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Status
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                        Actions
-                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Platform</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Username</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Notes</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1138,19 +1100,12 @@ const CustomerPanel: React.FC = () => {
                       </tr>
                     ) : (
                       customerUsernames.map((username) => (
-                        <tr
-                          key={username.id}
-                          className="border-b border-gray-100 hover:bg-gray-50"
-                        >
+                        <tr key={username.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="py-3 px-4 font-medium">
                             {username.platform_name} - {username.account_type}
                           </td>
-                          <td className="py-3 px-4 font-medium">
-                            {username.username}
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">
-                            {username.notes || "-"}
-                          </td>
+                          <td className="py-3 px-4 font-medium">{username.username}</td>
+                          <td className="py-3 px-4 text-gray-600">{username.notes || '-'}</td>
                           <td className="py-3 px-4">
                             {username.is_active ? (
                               <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
@@ -1166,20 +1121,15 @@ const CustomerPanel: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() =>
-                                  handleToggleUsernameActive(
-                                    username.id,
-                                    username.is_active
-                                  )
+                                  handleToggleUsernameActive(username.id, username.is_active)
                                 }
                                 className={`p-2 rounded-lg transition-colors ${
                                   username.is_active
-                                    ? "text-orange-600 hover:bg-orange-100"
-                                    : "text-green-600 hover:bg-green-100"
+                                    ? 'text-orange-600 hover:bg-orange-100'
+                                    : 'text-green-600 hover:bg-green-100'
                                 }`}
                                 title={
-                                  username.is_active
-                                    ? "Deactivate username"
-                                    : "Activate username"
+                                  username.is_active ? 'Deactivate username' : 'Activate username'
                                 }
                               >
                                 {username.is_active ? (

@@ -1,7 +1,6 @@
-import React from "react";
+import React from 'react';
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   helper?: string;
@@ -11,32 +10,21 @@ export interface InputProps
 /**
  * Reusable Input component with your original purple theme
  */
-const Input: React.FC<InputProps> = ({
-  label,
-  error,
-  helper,
-  icon,
-  className = "",
-  ...props
-}) => {
+const Input: React.FC<InputProps> = ({ label, error, helper, icon, className = '', ...props }) => {
   const inputClasses = `
     w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors
     ${
       error
-        ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-        : "border-pink-300 focus:border-pink-500 focus:ring-pink-500"
+        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+        : 'border-pink-300 focus:border-pink-500 focus:ring-pink-500'
     }
-    ${icon ? "pl-10" : ""}
+    ${icon ? 'pl-10' : ''}
     ${className}
   `;
 
   return (
     <div className="w-full">
-      {label && (
-        <label className="block text-sm font-medium text-pink-900 mb-1">
-          {label}
-        </label>
-      )}
+      {label && <label className="block text-sm font-medium text-pink-900 mb-1">{label}</label>}
 
       <div className="relative">
         {icon && (
@@ -49,9 +37,7 @@ const Input: React.FC<InputProps> = ({
 
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
 
-      {helper && !error && (
-        <p className="mt-1 text-sm text-pink-600">{helper}</p>
-      )}
+      {helper && !error && <p className="mt-1 text-sm text-pink-600">{helper}</p>}
     </div>
   );
 };

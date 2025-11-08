@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useRef } from "react";
-import { supabase } from "../lib/supabase";
-import LoadingSpinner from "./LoadingSpinner";
-import html2canvas from "html2canvas";
-import { Plus, Trash2 } from "lucide-react";
-import { useAppSelector } from "../hooks/redux";
-import Pagination from "./common/Pagination";
+import React, { useEffect, useState, useRef } from 'react';
+import { supabase } from '../lib/supabase';
+import LoadingSpinner from './LoadingSpinner';
+import html2canvas from 'html2canvas';
+import { Plus, Trash2 } from 'lucide-react';
+import { useAppSelector } from '../hooks/redux';
+import Pagination from './common/Pagination';
+import type { Database } from '../types/database.types';
 
 interface Customer {
   id: string;
@@ -14,55 +15,92 @@ interface Platform {
   id: string;
   platform: string;
 }
-interface OrderItem {
+interface OrderItemInput {
   platform_id: string;
   quantity: number;
   price: number;
+  username?: string;
 }
 
-const paymentMethods = ["Cash", "Card", "Bank Transfer"];
+interface OrderRowItem {
+  platform_id: string;
+  quantity: number;
+  price: number;
+  total_price: number;
+  username?: string;
+}
+
+type OrderRow = Database['public']['Tables']['orders']['Row'] & {
+  items: OrderRowItem[];
+};
+
+const paymentMethods = ['Cash', 'Card', 'Bank Transfer'];
 
 const OrderCreatePanel: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [platforms, setPlatforms] = useState<
-    (Platform & { inventory?: number })[]
-  >([]);
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([
-    { platform_id: "", quantity: 1, price: 0 },
+  const [platforms, setPlatforms] = useState<(Platform & { inventory?: number })[]>([]);
+  const [orderItems, setOrderItems] = useState<OrderItemInput[]>([
+    { platform_id: '', quantity: 1, price: 0 },
   ]);
-  const [customerId, setCustomerId] = useState("");
+  const [customerId, setCustomerId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(paymentMethods[0]);
   const [error, setError] = useState<string | null>(null);
   const [itemErrors, setItemErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [copyingId, setCopyingId] = useState<string | null>(null);
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
-  const [itemsModalOrder, setItemsModalOrder] = useState<any | null>(null);
+  const [itemsModalOrder, setItemsModalOrder] = useState<OrderRow | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
-  const [lastOrder, setLastOrder] = useState<any | null>(null);
+  const [lastOrder, setLastOrder] = useState<(OrderRow & { items: OrderRowItem[] }) | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: customerData } = await supabase
-        .from("customers")
-        .select("id, name");
+      const { data: customerData } = await supabase.from('customers').select('id, name');
       setCustomers(customerData || []);
       const { data: platformData } = await supabase
-        .from("game_coins")
-        .select("id, platform, inventory");
+        .from('game_coins')
+        .select('id, platform, inventory');
       setPlatforms(platformData || []);
+      // Fetch orders and attach their items for UI consumption
       const { data: ordersData } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-      setOrders(ordersData || []);
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (ordersData && ordersData.length > 0) {
+        const orderIds = ordersData.map((o) => o.id);
+        const { data: itemsData } = await supabase
+          .from('order_items')
+          .select('order_id, platform_id, quantity, unit_price, total_price, username')
+          .in('order_id', orderIds);
+
+        const itemsByOrder: Record<string, OrderRowItem[]> = {};
+        (itemsData || []).forEach((it) => {
+          if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
+          itemsByOrder[it.order_id].push({
+            platform_id: it.platform_id,
+            quantity: it.quantity,
+            price: it.unit_price,
+            total_price: it.total_price,
+            username: it.username || undefined,
+          });
+        });
+
+        const combined = ordersData.map((o) => ({
+          ...o,
+          items: itemsByOrder[o.id] || [],
+        }));
+        setOrders(combined as OrderRow[]);
+      } else {
+        setOrders([]);
+      }
     };
     fetchData();
   }, []);
@@ -81,36 +119,31 @@ const OrderCreatePanel: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleOrderItemChange = (
+  const handleOrderItemChange = <K extends keyof OrderItemInput>(
     idx: number,
-    field: keyof OrderItem,
-    value: any
+    field: K,
+    value: OrderItemInput[K],
   ) => {
     setOrderItems((items) =>
-      items.map((item, i) => (i === idx ? { ...item, [field]: value } : item))
+      items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
     );
     // Validate quantity for this item
-    if (field === "quantity" || field === "platform_id") {
-      const platformId =
-        field === "platform_id" ? value : orderItems[idx].platform_id;
-      const quantity = field === "quantity" ? value : orderItems[idx].quantity;
+    if (field === 'quantity' || field === 'platform_id') {
+      const platformId = field === 'platform_id' ? (value as string) : orderItems[idx].platform_id;
+      const quantity = field === 'quantity' ? (value as number) : orderItems[idx].quantity;
       const platform = platforms.find((c) => c.id === platformId);
-      let errors = [...itemErrors];
-      if (
-        platform &&
-        platform.inventory !== undefined &&
-        quantity > platform.inventory
-      ) {
+      const errors = [...itemErrors];
+      if (platform && platform.inventory !== undefined && quantity > platform.inventory) {
         errors[idx] = `Max: ${platform.inventory}`;
       } else {
-        errors[idx] = "";
+        errors[idx] = '';
       }
       setItemErrors(errors);
     }
   };
 
   const handleAddOrderItem = () => {
-    setOrderItems([...orderItems, { platform_id: "", quantity: 1, price: 0 }]);
+    setOrderItems([...orderItems, { platform_id: '', quantity: 1, price: 0 }]);
   };
 
   const handleRemoveOrderItem = (idx: number) => {
@@ -121,63 +154,83 @@ const OrderCreatePanel: React.FC = () => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    let errors: string[] = [];
+    const errors: string[] = [];
     if (!user?.id) {
-      setError("User not authenticated. Please log in to create an order.");
+      setError('User not authenticated. Please log in to create an order.');
       setLoading(false);
       return;
     }
     if (
       !customerId ||
-      orderItems.some(
-        (item) => !item.platform_id || item.quantity < 1 || item.price < 0
-      )
+      orderItems.some((item) => !item.platform_id || item.quantity < 1 || item.price < 0)
     ) {
-      setError("Please fill all fields correctly.");
+      setError('Please fill all fields correctly.');
       setLoading(false);
       return;
     }
     // Validate all quantities against inventory before submitting
     orderItems.forEach((item, idx) => {
       const platform = platforms.find((c) => c.id === item.platform_id);
-      if (
-        platform &&
-        platform.inventory !== undefined &&
-        item.quantity > platform.inventory
-      ) {
+      if (platform && platform.inventory !== undefined && item.quantity > platform.inventory) {
         errors[idx] = `Max: ${platform.inventory}`;
       } else {
-        errors[idx] = "";
+        errors[idx] = '';
       }
     });
     setItemErrors(errors);
     if (errors.some((e) => e)) {
-      setError("Please fix quantity errors before confirming.");
+      setError('Please fix quantity errors before confirming.');
       setLoading(false);
       return;
     }
-    // Insert order with created_by
+    // Insert order with required fields and without embedding items
+    const totalAmount = orderItems.reduce(
+      (sum, it) => sum + Number(it.price) * Number(it.quantity),
+      0,
+    );
+    const orderNumber = `ORD-${Date.now()}`;
     const { data: orderData, error: orderError } = await supabase
-      .from("orders")
-      .insert([
-        {
-          customer_id: customerId,
-          items: JSON.stringify(orderItems),
-          payment_method: paymentMethod,
-          status: "Pending",
-          created_at: new Date().toISOString(),
-          created_by: user?.id || null,
-        },
-      ])
+      .from('orders')
+      .insert({
+        customer_id: customerId,
+        payment_method: paymentMethod,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        created_by: user.id,
+        order_number: orderNumber,
+        total_amount: totalAmount,
+      })
       .select();
     if (orderError || !orderData || !orderData[0]) {
-      setError(
-        "Failed to create order: " + (orderError?.message || "Unknown error")
-      );
+      setError('Failed to create order: ' + (orderError?.message || 'Unknown error'));
       setLoading(false);
       return;
     }
-    setLastOrder(orderData[0]);
+    // Persist order items into order_items table
+    const newOrder = orderData[0] as Database['public']['Tables']['orders']['Row'];
+    const itemsToInsert = orderItems.map((item) => ({
+      order_id: newOrder.id,
+      platform_id: item.platform_id,
+      quantity: item.quantity,
+      unit_price: item.price,
+      total_price: Number(item.price) * Number(item.quantity),
+    }));
+    const { error: itemsInsertError } = await supabase.from('order_items').insert(itemsToInsert);
+    if (itemsInsertError) {
+      setError('Failed to insert order items: ' + itemsInsertError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Keep a local copy of items for invoice rendering
+    const orderRowItems: OrderRowItem[] = orderItems.map((i) => ({
+      platform_id: i.platform_id,
+      quantity: i.quantity,
+      price: i.price,
+      total_price: Number(i.price) * Number(i.quantity),
+      username: i.username,
+    }));
+    setLastOrder({ ...newOrder, items: orderRowItems });
     // Update coin inventory in DB
     // Update platform inventory in DB
     for (const item of orderItems) {
@@ -185,70 +238,83 @@ const OrderCreatePanel: React.FC = () => {
       if (platform && platform.inventory !== undefined) {
         const newInventory = platform.inventory - item.quantity;
         await supabase
-          .from("game_coins") // TODO: rename table to platforms in schema later
+          .from('game_coins') // TODO: rename table to platforms in schema later
           .update({ inventory: newInventory })
-          .eq("id", platform.id);
+          .eq('id', platform.id);
       }
     }
     // Wait for invoice to render
     setTimeout(async () => {
-      let invoiceUrl = "";
       if (invoiceRef.current) {
         try {
           const canvas = await html2canvas(invoiceRef.current);
           const blob = await new Promise<Blob | null>((resolve) =>
-            canvas.toBlob(resolve, "image/png")
+            canvas.toBlob(resolve, 'image/png'),
           );
           if (blob) {
             const fileName = `invoice-${orderData[0].id}.png`;
-            const { error: uploadError, data: uploadData } =
-              await supabase.storage
-                .from("invoices")
-                .upload(fileName, blob, { upsert: true });
+            const { error: uploadError, data: uploadData } = await supabase.storage
+              .from('invoices')
+              .upload(fileName, blob, { upsert: true });
             if (uploadError) {
-              setError("Invoice upload failed: " + uploadError.message);
-              console.error("Invoice upload failed:", uploadError);
+              setError('Invoice upload failed: ' + uploadError.message);
+              console.error('Invoice upload failed:', uploadError);
             } else if (!uploadData) {
-              setError("Invoice upload failed: No data returned.");
-              console.error("Invoice upload failed: No data returned.");
+              setError('Invoice upload failed: No data returned.');
+              console.error('Invoice upload failed: No data returned.');
             } else {
-              const { data: publicData } = supabase.storage
-                .from("invoices")
-                .getPublicUrl(fileName);
+              const { data: publicData } = supabase.storage.from('invoices').getPublicUrl(fileName);
               if (!publicData || !publicData.publicUrl) {
-                setError("Invoice public URL failed: No URL returned.");
-                console.error("Invoice public URL failed: No URL returned.");
+                setError('Invoice public URL failed: No URL returned.');
+                console.error('Invoice public URL failed: No URL returned.');
               } else {
-                invoiceUrl = publicData.publicUrl;
-                // Update order with invoice URL
-                const { error: updateError } = await supabase
-                  .from("orders")
-                  .update({ invoice_url: invoiceUrl })
-                  .eq("id", orderData[0].id);
-                if (updateError) {
-                  setError("Order update error: " + updateError.message);
-                  console.error("Order update error:", updateError);
-                }
+                // public URL derived when needed in the UI
               }
             }
           } else {
-            setError("Invoice image generation failed.");
+            setError('Invoice image generation failed.');
           }
-        } catch (err: any) {
-          setError("Invoice generation error: " + err.message);
+        } catch (err) {
+          setError(
+            'Invoice generation error: ' + (err instanceof Error ? err.message : String(err)),
+          );
         }
       }
-      setOrderItems([{ platform_id: "", quantity: 1, price: 0 }]);
-      setCustomerId("");
+      setOrderItems([{ platform_id: '', quantity: 1, price: 0 }]);
+      setCustomerId('');
       setPaymentMethod(paymentMethods[0]);
       setLoading(false);
       setShowModal(false);
       // Refresh orders
-      const { data: ordersData } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-      setOrders(ordersData || []);
+      const { data: ordersData2 } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (ordersData2 && ordersData2.length > 0) {
+        const orderIds2 = ordersData2.map((o) => o.id);
+        const { data: itemsData2 } = await supabase
+          .from('order_items')
+          .select('order_id, platform_id, quantity, unit_price, total_price, username')
+          .in('order_id', orderIds2);
+        const itemsByOrder2: Record<string, OrderRowItem[]> = {};
+        (itemsData2 || []).forEach((it) => {
+          if (!itemsByOrder2[it.order_id]) itemsByOrder2[it.order_id] = [];
+          itemsByOrder2[it.order_id].push({
+            platform_id: it.platform_id,
+            quantity: it.quantity,
+            price: it.unit_price,
+            total_price: it.total_price,
+            username: it.username || undefined,
+          });
+        });
+        const combined2 = ordersData2.map((o) => ({
+          ...o,
+          items: itemsByOrder2[o.id] || [],
+        }));
+        setOrders(combined2 as OrderRow[]);
+      } else {
+        setOrders([]);
+      }
       setLastOrder(null);
     }, 500);
   };
@@ -269,13 +335,11 @@ const OrderCreatePanel: React.FC = () => {
           <Plus className="w-4 h-4 mr-1 inline" /> Create Order
         </button>
       </div>
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
-      )}
+      {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.2)" }}
+          style={{ backdropFilter: 'blur(8px)', background: 'rgba(0,0,0,0.2)' }}
         >
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-lg">
             <h3 className="text-lg font-semibold mb-4">Create Order</h3>
@@ -304,13 +368,7 @@ const OrderCreatePanel: React.FC = () => {
                       <label className="text-xs mb-1">Platform</label>
                       <select
                         value={item.platform_id}
-                        onChange={(e) =>
-                          handleOrderItemChange(
-                            idx,
-                            "platform_id",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => handleOrderItemChange(idx, 'platform_id', e.target.value)}
                         className="px-2 py-1 rounded border"
                         required
                       >
@@ -329,20 +387,14 @@ const OrderCreatePanel: React.FC = () => {
                         min={1}
                         value={item.quantity}
                         onChange={(e) =>
-                          handleOrderItemChange(
-                            idx,
-                            "quantity",
-                            Number(e.target.value)
-                          )
+                          handleOrderItemChange(idx, 'quantity', Number(e.target.value))
                         }
                         className="px-2 py-1 rounded border w-20"
                         placeholder="Qty"
                         required
                       />
                       {itemErrors[idx] && (
-                        <span className="text-xs text-red-500 mt-1">
-                          {itemErrors[idx]}
-                        </span>
+                        <span className="text-xs text-red-500 mt-1">{itemErrors[idx]}</span>
                       )}
                     </div>
                     <div className="flex flex-col">
@@ -352,11 +404,7 @@ const OrderCreatePanel: React.FC = () => {
                         min={0}
                         value={item.price}
                         onChange={(e) =>
-                          handleOrderItemChange(
-                            idx,
-                            "price",
-                            Number(e.target.value)
-                          )
+                          handleOrderItemChange(idx, 'price', Number(e.target.value))
                         }
                         className="px-2 py-1 rounded border w-24"
                         placeholder="Price"
@@ -418,23 +466,23 @@ const OrderCreatePanel: React.FC = () => {
 
       {/* Hidden Invoice for html2canvas */}
       {lastOrder && (
-        <div style={{ position: "absolute", left: "-9999px", top: 0 }}>
+        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
           <div
             ref={invoiceRef}
             style={{
-              background: "#fff",
+              background: '#fff',
               padding: 32,
               borderRadius: 16,
-              boxShadow: "0 2px 8px #ec4899",
+              boxShadow: '0 2px 8px #ec4899',
               width: 480,
-              fontFamily: "Arial, sans-serif",
-              border: "1px solid #e5e7eb",
+              fontFamily: 'Arial, sans-serif',
+              border: '1px solid #e5e7eb',
             }}
           >
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
+                display: 'flex',
+                alignItems: 'center',
                 marginBottom: 16,
               }}
             >
@@ -444,76 +492,71 @@ const OrderCreatePanel: React.FC = () => {
                 style={{ height: 48, marginRight: 16, borderRadius: 8 }}
               />
               <div>
-                <div
-                  style={{ fontWeight: "bold", fontSize: 20, color: "#ec4899" }}
-                >
+                <div style={{ fontWeight: 'bold', fontSize: 20, color: '#ec4899' }}>
                   USA Gaming Distributor
                 </div>
-                <div style={{ fontSize: 12, color: "#555" }}>
+                <div style={{ fontSize: 12, color: '#555' }}>
                   support@usagaming.com | +1-800-123-4567
                 </div>
-                <div style={{ fontSize: 12, color: "#555" }}>
-                  123 Main St, New York, NY
-                </div>
+                <div style={{ fontSize: 12, color: '#555' }}>123 Main St, New York, NY</div>
               </div>
             </div>
-            <hr style={{ margin: "16px 0", borderColor: "#ec4899" }} />
+            <hr style={{ margin: '16px 0', borderColor: '#ec4899' }} />
             <div style={{ marginBottom: 12 }}>
-              <span style={{ fontWeight: "bold" }}>Invoice #: </span>
+              <span style={{ fontWeight: 'bold' }}>Invoice #: </span>
               {lastOrder.id}
               <br />
-              <span style={{ fontWeight: "bold" }}>Date: </span>
+              <span style={{ fontWeight: 'bold' }}>Date: </span>
               {new Date(lastOrder.created_at).toLocaleString()}
               <br />
-              <span style={{ fontWeight: "bold" }}>Customer: </span>
-              {customers.find((c) => c.id === lastOrder.customer_id)?.name ||
-                lastOrder.customer_id}
+              <span style={{ fontWeight: 'bold' }}>Customer: </span>
+              {customers.find((c) => c.id === lastOrder.customer_id)?.name || lastOrder.customer_id}
               <br />
-              <span style={{ fontWeight: "bold" }}>Payment Method: </span>
+              <span style={{ fontWeight: 'bold' }}>Payment Method: </span>
               {lastOrder.payment_method}
             </div>
             <table
               style={{
-                width: "100%",
+                width: '100%',
                 fontSize: 13,
-                borderCollapse: "collapse",
+                borderCollapse: 'collapse',
                 marginBottom: 16,
               }}
             >
               <thead>
-                <tr style={{ background: "#f3f4f6" }}>
+                <tr style={{ background: '#f3f4f6' }}>
                   <th
                     style={{
-                      border: "1px solid #e5e7eb",
-                      padding: "8px",
-                      textAlign: "left",
+                      border: '1px solid #e5e7eb',
+                      padding: '8px',
+                      textAlign: 'left',
                     }}
                   >
                     Platform
                   </th>
                   <th
                     style={{
-                      border: "1px solid #e5e7eb",
-                      padding: "8px",
-                      textAlign: "right",
+                      border: '1px solid #e5e7eb',
+                      padding: '8px',
+                      textAlign: 'right',
                     }}
                   >
                     Quantity
                   </th>
                   <th
                     style={{
-                      border: "1px solid #e5e7eb",
-                      padding: "8px",
-                      textAlign: "right",
+                      border: '1px solid #e5e7eb',
+                      padding: '8px',
+                      textAlign: 'right',
                     }}
                   >
                     Unit Price
                   </th>
                   <th
                     style={{
-                      border: "1px solid #e5e7eb",
-                      padding: "8px",
-                      textAlign: "right",
+                      border: '1px solid #e5e7eb',
+                      padding: '8px',
+                      textAlign: 'right',
                     }}
                   >
                     Total
@@ -522,45 +565,44 @@ const OrderCreatePanel: React.FC = () => {
               </thead>
               <tbody>
                 {Array.isArray(lastOrder.items) &&
-                  lastOrder.items.map((item: any, idx: number) => {
-                    // Support legacy coin_id field if platform_id not present
-                    const id = item.platform_id || item.coin_id;
+                  (lastOrder.items as OrderRowItem[]).map((item, idx: number) => {
+                    const id = item.platform_id;
                     const platformEntry = platforms.find((p) => p.id === id);
-                    const platformName = platformEntry?.platform || id || "—";
+                    const platformName = platformEntry?.platform || id || '—';
                     const total = Number(item.price) * Number(item.quantity);
                     return (
                       <tr key={idx}>
                         <td
                           style={{
-                            border: "1px solid #e5e7eb",
-                            padding: "8px",
+                            border: '1px solid #e5e7eb',
+                            padding: '8px',
                           }}
                         >
                           {platformName}
                         </td>
                         <td
                           style={{
-                            border: "1px solid #e5e7eb",
-                            padding: "8px",
-                            textAlign: "right",
+                            border: '1px solid #e5e7eb',
+                            padding: '8px',
+                            textAlign: 'right',
                           }}
                         >
                           {item.quantity}
                         </td>
                         <td
                           style={{
-                            border: "1px solid #e5e7eb",
-                            padding: "8px",
-                            textAlign: "right",
+                            border: '1px solid #e5e7eb',
+                            padding: '8px',
+                            textAlign: 'right',
                           }}
                         >
                           ${item.price}
                         </td>
                         <td
                           style={{
-                            border: "1px solid #e5e7eb",
-                            padding: "8px",
-                            textAlign: "right",
+                            border: '1px solid #e5e7eb',
+                            padding: '8px',
+                            textAlign: 'right',
                           }}
                         >
                           ${total}
@@ -572,27 +614,26 @@ const OrderCreatePanel: React.FC = () => {
             </table>
             <div
               style={{
-                textAlign: "right",
-                fontWeight: "bold",
+                textAlign: 'right',
+                fontWeight: 'bold',
                 fontSize: 16,
                 marginBottom: 8,
               }}
             >
               Grand Total: $
               {Array.isArray(lastOrder.items)
-                ? lastOrder.items.reduce(
-                    (sum: number, item: any) =>
-                      sum + Number(item.price) * Number(item.quantity),
-                    0
+                ? (lastOrder.items as OrderRowItem[]).reduce(
+                    (sum: number, item) => sum + Number(item.price) * Number(item.quantity),
+                    0,
                   )
                 : 0}
             </div>
-            <hr style={{ margin: "16px 0", borderColor: "#ec4899" }} />
+            <hr style={{ margin: '16px 0', borderColor: '#ec4899' }} />
             <div
               style={{
                 fontSize: 12,
-                color: "#555",
-                textAlign: "center",
+                color: '#555',
+                textAlign: 'center',
                 marginTop: 12,
               }}
             >
@@ -615,7 +656,7 @@ const OrderCreatePanel: React.FC = () => {
               <th className="py-2 px-3 text-left w-32">Payment</th>
               <th className="py-2 px-3 text-left w-24">Status</th>
               <th className="py-2 px-3 text-left w-40">Created At</th>
-              <th className="py-2 px-3 text-left w-32">Invoice</th>
+              <th className="py-2 px-3 text-left w-40">Invoice</th>
             </tr>
           </thead>
           <tbody>
@@ -629,15 +670,12 @@ const OrderCreatePanel: React.FC = () => {
                 }}
               >
                 <td className="py-2 px-3 font-medium">
-                  {customers.find((c) => c.id === order.customer_id)?.name ||
-                    order.customer_id}
+                  {customers.find((c) => c.id === order.customer_id)?.name || order.customer_id}
                 </td>
                 <td className="py-2 px-3 select-none">
                   {Array.isArray(order.items)
-                    ? `${order.items.length} item${
-                        order.items.length !== 1 ? "s" : ""
-                      }`
-                    : "—"}
+                    ? `${order.items.length} item${order.items.length !== 1 ? 's' : ''}`
+                    : '—'}
                 </td>
                 <td className="py-2 px-3">{order.payment_method}</td>
                 <td className="py-2 px-3">{order.status}</td>
@@ -651,63 +689,67 @@ const OrderCreatePanel: React.FC = () => {
                   {new Date(order.created_at).toLocaleString()}
                 </td>
                 <td className="py-2 px-3">
-                  {order.invoice_url ? (
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={order.invoice_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-pink-500 underline font-semibold"
-                        title="View Invoice"
-                      >
-                        Invoice
-                      </a>
-                      {copyingId === order.id ? (
-                        <span className="w-20 h-8 flex items-center justify-center bg-pink-500 rounded shadow border border-pink-300">
-                          <LoadingSpinner size={20} stroke="#fff" />
-                        </span>
-                      ) : (
-                        <button
-                          className="w-20 h-8 flex items-center justify-center bg-pink-500 hover:bg-pink-600 rounded text-xs text-white font-semibold shadow transition-colors border border-pink-300"
-                          title="Copy Invoice Image"
-                          onClick={async () => {
-                            setCopyingId(order.id);
-                            try {
-                              let permission = "granted";
-                              if (navigator.permissions) {
-                                try {
-                                  const result =
-                                    await navigator.permissions.query({
-                                      name: "clipboard-write" as PermissionName,
-                                    });
-                                  permission = result.state;
-                                } catch {}
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={
+                        supabase.storage.from('invoices').getPublicUrl(`invoice-${order.id}.png`)
+                          .data.publicUrl
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-pink-500 underline font-semibold"
+                      title="View Invoice"
+                    >
+                      View
+                    </a>
+                    {copyingId === order.id ? (
+                      <span className="w-20 h-8 flex items-center justify-center bg-pink-500 rounded shadow border border-pink-300">
+                        <LoadingSpinner size={20} stroke="#fff" />
+                      </span>
+                    ) : (
+                      <button
+                        className="w-20 h-8 flex items-center justify-center bg-pink-500 hover:bg-pink-600 rounded text-xs text-white font-semibold shadow transition-colors border border-pink-300"
+                        title="Copy Invoice Image"
+                        onClick={async () => {
+                          setCopyingId(order.id);
+                          try {
+                            let permission = 'granted';
+                            if (navigator.permissions) {
+                              try {
+                                const result = await navigator.permissions.query({
+                                  name: 'clipboard-write' as PermissionName,
+                                });
+                                permission = result.state;
+                              } catch (clipboardErr) {
+                                // Swallow clipboard errors silently; could add toast
+                                console.warn('Clipboard copy failed', clipboardErr);
                               }
-                              if (permission !== "granted") {
-                                alert(
-                                  "Clipboard access is not enabled. Please allow clipboard permissions for this site in your browser settings."
-                                );
-                                setCopyingId(null);
-                                return;
-                              }
-                              const response = await fetch(order.invoice_url);
-                              const blob = await response.blob();
-                              await navigator.clipboard.write([
-                                new window.ClipboardItem({ [blob.type]: blob }),
-                              ]);
-                            } catch {
-                              // Optionally handle error visually
                             }
-                            setTimeout(() => setCopyingId(null), 1000);
-                          }}
-                        >
-                          Copy
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-gray-400">No Invoice</span>
-                  )}
+                            if (permission !== 'granted') {
+                              alert(
+                                'Clipboard access is not enabled. Please allow clipboard permissions for this site in your browser settings.',
+                              );
+                              setCopyingId(null);
+                              return;
+                            }
+                            const publicUrl = supabase.storage
+                              .from('invoices')
+                              .getPublicUrl(`invoice-${order.id}.png`).data.publicUrl;
+                            const response = await fetch(publicUrl);
+                            const blob = await response.blob();
+                            await navigator.clipboard.write([
+                              new window.ClipboardItem({ [blob.type]: blob }),
+                            ]);
+                          } catch {
+                            // Optionally handle error visually
+                          }
+                          setTimeout(() => setCopyingId(null), 1000);
+                        }}
+                      >
+                        Copy
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -730,8 +772,8 @@ const OrderCreatePanel: React.FC = () => {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{
-            backdropFilter: "blur(6px)",
-            background: "rgba(0,0,0,0.35)",
+            backdropFilter: 'blur(6px)',
+            background: 'rgba(0,0,0,0.35)',
           }}
         >
           <div className="bg-white rounded-lg shadow-xl w-full max-w-xl p-6 relative">
@@ -748,40 +790,37 @@ const OrderCreatePanel: React.FC = () => {
             <h3 className="text-lg font-semibold mb-2">Order Details</h3>
             <div className="mb-4 text-sm grid grid-cols-2 gap-x-4 gap-y-1">
               <div>
-                <span className="font-semibold">Order ID:</span>{" "}
-                {itemsModalOrder.id}
+                <span className="font-semibold">Order ID:</span> {itemsModalOrder.id}
               </div>
               <div>
-                <span className="font-semibold">Created:</span>{" "}
+                <span className="font-semibold">Created:</span>{' '}
                 {new Date(itemsModalOrder.created_at).toLocaleString()}
               </div>
               <div>
-                <span className="font-semibold">Customer:</span>{" "}
-                {customers.find((c) => c.id === itemsModalOrder.customer_id)
-                  ?.name || itemsModalOrder.customer_id}
+                <span className="font-semibold">Customer:</span>{' '}
+                {customers.find((c) => c.id === itemsModalOrder.customer_id)?.name ||
+                  itemsModalOrder.customer_id}
               </div>
               <div>
-                <span className="font-semibold">Payment:</span>{" "}
-                {itemsModalOrder.payment_method}
+                <span className="font-semibold">Payment:</span> {itemsModalOrder.payment_method}
               </div>
               <div>
-                <span className="font-semibold">Status:</span>{" "}
-                {itemsModalOrder.status}
+                <span className="font-semibold">Status:</span> {itemsModalOrder.status}
               </div>
               <div>
-                <span className="font-semibold">Invoice:</span>{" "}
-                {itemsModalOrder.invoice_url ? (
-                  <a
-                    href={itemsModalOrder.invoice_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-pink-500 underline ml-1"
-                  >
-                    View
-                  </a>
-                ) : (
-                  <span className="text-gray-400 ml-1">None</span>
-                )}
+                <span className="font-semibold">Invoice:</span>{' '}
+                <a
+                  href={
+                    supabase.storage
+                      .from('invoices')
+                      .getPublicUrl(`invoice-${itemsModalOrder.id}.png`).data.publicUrl
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-pink-500 underline ml-1"
+                >
+                  View
+                </a>
               </div>
             </div>
             <h4 className="font-semibold mb-2">Items</h4>
@@ -797,35 +836,24 @@ const OrderCreatePanel: React.FC = () => {
                 </thead>
                 <tbody>
                   {Array.isArray(itemsModalOrder.items) &&
-                  itemsModalOrder.items.length > 0 ? (
-                    itemsModalOrder.items.map((item: any, idx: number) => {
-                      const id = item.platform_id || item.coin_id;
+                  (itemsModalOrder.items as OrderRowItem[]).length > 0 ? (
+                    (itemsModalOrder.items as OrderRowItem[]).map((item, idx: number) => {
+                      const id = item.platform_id;
                       const platformName =
-                        platforms.find((p) => p.id === id)?.platform ||
-                        id ||
-                        "—";
+                        platforms.find((p) => p.id === id)?.platform || id || '—';
                       const total = Number(item.price) * Number(item.quantity);
                       return (
                         <tr key={idx} className="border-t">
-                          <td className="py-1 px-2 font-medium">
-                            {platformName}
-                          </td>
-                          <td className="py-1 px-2 text-right">
-                            {item.quantity}
-                          </td>
-                          <td className="py-1 px-2 text-right">
-                            ${item.price}
-                          </td>
+                          <td className="py-1 px-2 font-medium">{platformName}</td>
+                          <td className="py-1 px-2 text-right">{item.quantity}</td>
+                          <td className="py-1 px-2 text-right">${item.price}</td>
                           <td className="py-1 px-2 text-right">${total}</td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td
-                        colSpan={4}
-                        className="py-4 text-center text-gray-500"
-                      >
+                      <td colSpan={4} className="py-4 text-center text-gray-500">
                         No items
                       </td>
                     </tr>
@@ -833,19 +861,15 @@ const OrderCreatePanel: React.FC = () => {
                 </tbody>
                 <tfoot>
                   <tr className="border-t bg-gray-50">
-                    <td
-                      colSpan={3}
-                      className="py-2 px-2 text-right font-semibold"
-                    >
+                    <td colSpan={3} className="py-2 px-2 text-right font-semibold">
                       Grand Total
                     </td>
                     <td className="py-2 px-2 text-right font-semibold">
                       $
                       {Array.isArray(itemsModalOrder.items)
-                        ? itemsModalOrder.items.reduce(
-                            (sum: number, item: any) =>
-                              sum + Number(item.price) * Number(item.quantity),
-                            0
+                        ? (itemsModalOrder.items as OrderRowItem[]).reduce(
+                            (sum: number, item) => sum + Number(item.price) * Number(item.quantity),
+                            0,
                           )
                         : 0}
                     </td>

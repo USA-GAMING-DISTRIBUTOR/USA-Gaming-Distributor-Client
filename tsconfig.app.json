@@ -21,7 +21,17 @@
     "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@domains/*": ["domains/*"],
+      "@components/*": ["components/*"],
+      "@repositories/*": ["repositories/*"],
+      "@utils/*": ["utils/*"],
+      "@types/*": ["types/*"],
+      "@store/*": ["store/*"],
+      "@lib/*": ["lib/*"]
+    }
   },
   "include": ["src"]
 }

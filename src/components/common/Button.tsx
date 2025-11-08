@@ -1,9 +1,8 @@
-import React from "react";
+import React from 'react';
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "danger" | "ghost";
-  size?: "sm" | "md" | "lg";
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: React.ReactNode;
   children: React.ReactNode;
@@ -13,46 +12,37 @@ export interface ButtonProps
  * Reusable Button component with your original purple theme
  */
 const Button: React.FC<ButtonProps> = ({
-  variant = "primary",
-  size = "md",
+  variant = 'primary',
+  size = 'md',
   loading = false,
   icon,
   disabled,
-  className = "",
+  className = '',
   children,
   ...props
 }) => {
   const baseClasses =
-    "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+    'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variantClasses = {
-    primary: "bg-pink-600 text-white hover:bg-pink-700 focus:ring-pink-500",
-    secondary:
-      "bg-white text-pink-600 border border-pink-600 hover:bg-pink-50 focus:ring-pink-500",
-    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-    ghost: "text-pink-600 hover:text-pink-700 hover:bg-pink-50",
+    primary: 'bg-pink-600 text-white hover:bg-pink-700 focus:ring-pink-500',
+    secondary: 'bg-white text-pink-600 border border-pink-600 hover:bg-pink-50 focus:ring-pink-500',
+    danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+    ghost: 'text-pink-600 hover:text-pink-700 hover:bg-pink-50',
   };
 
   const sizeClasses = {
-    sm: "px-3 py-1.5 text-sm",
-    md: "px-4 py-2 text-sm",
-    lg: "px-6 py-3 text-base",
+    sm: 'px-3 py-1.5 text-sm',
+    md: 'px-4 py-2 text-sm',
+    lg: 'px-6 py-3 text-base',
   };
 
   const combinedClasses = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
 
   return (
-    <button
-      className={combinedClasses}
-      disabled={disabled || loading}
-      {...props}
-    >
+    <button className={combinedClasses} disabled={disabled || loading} {...props}>
       {loading && (
-        <svg
-          className="animate-spin -ml-1 mr-2 h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
+        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
           <circle
             className="opacity-25"
             cx="12"

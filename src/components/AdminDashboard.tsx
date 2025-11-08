@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import EmployeePanel from "./EmployeePanel";
-import PlatformPanel from "./PlatformPanel";
-import CustomerIssuesPanel from "./CustomerIssuesPanel";
-import CustomerPanel from "./CustomerPanel";
-import OverviewPanel from "./OverviewPanel";
-import OrderPanel from "./OrderPanel";
-import UsernamesPanel from "./UsernamesPanel";
+import React, { useState } from 'react';
+import EmployeePanel from './EmployeePanel';
+import PlatformPanel from './PlatformPanel';
+import CustomerIssuesPanel from './CustomerIssuesPanel';
+import CustomerPanel from './CustomerPanel';
+import OverviewPanel from './OverviewPanel';
+import OrderPanel from './OrderPanel';
+import UsernamesPanel from './UsernamesPanel';
 import {
   Home,
   Coins,
@@ -15,9 +15,9 @@ import {
   UserCog,
   LogOut,
   UserCheck,
-} from "lucide-react";
-import { useAppDispatch, useAppSelector } from "../hooks/redux";
-import { logout } from "../store/authSlice";
+} from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '../hooks/redux';
+import { logout } from '../store/authSlice';
 
 type MenuItem = {
   id: string;
@@ -29,20 +29,20 @@ type MenuItem = {
 const AdminDashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const [activeMenuItem, setActiveMenuItem] = useState("overview");
+  const [activeMenuItem, setActiveMenuItem] = useState('overview');
 
   const menuItems: MenuItem[] = [
-    { id: "overview", label: "Overview", icon: Home, active: true },
-    { id: "platform", label: "Platform", icon: Coins },
-    { id: "customers", label: "Customers", icon: Users },
-    { id: "usernames", label: "Usernames", icon: UserCheck },
+    { id: 'overview', label: 'Overview', icon: Home, active: true },
+    { id: 'platform', label: 'Platform', icon: Coins },
+    { id: 'customers', label: 'Customers', icon: Users },
+    { id: 'usernames', label: 'Usernames', icon: UserCheck },
     {
-      id: "orders",
-      label: "Order Management",
+      id: 'orders',
+      label: 'Order Management',
       icon: ShoppingCart,
     },
-    { id: "customer-issues", label: "Customer Issues", icon: MessageSquare },
-    { id: "employees", label: "Employees", icon: UserCog },
+    { id: 'customer-issues', label: 'Customer Issues', icon: MessageSquare },
+    { id: 'employees', label: 'Employees', icon: UserCog },
   ];
 
   const handleLogout = () => {
@@ -70,9 +70,7 @@ const AdminDashboard: React.FC = () => {
                   key={item.id}
                   onClick={() => handleMenuClick(item.id)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 text-left text-sm font-medium rounded-lg transition-colors ${
-                    isActive
-                      ? "bg-pink-500 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                    isActive ? 'bg-pink-500 text-white' : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -96,9 +94,7 @@ const AdminDashboard: React.FC = () => {
               </span>
             </div>
             <div className="flex-1 text-left">
-              <p className="text-sm font-medium text-gray-900">
-                {user?.username}
-              </p>
+              <p className="text-sm font-medium text-gray-900">{user?.username}</p>
               <p className="text-xs text-gray-600">{user?.role}</p>
             </div>
             <LogOut className="h-5 w-5 ml-2" />
@@ -111,36 +107,32 @@ const AdminDashboard: React.FC = () => {
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 sticky top-0 z-30">
           <h1 className="text-2xl font-bold text-pink-500 text-center">
-            {menuItems.find((item) => item.id === activeMenuItem)?.label ||
-              "Dashboard"}
+            {menuItems.find((item) => item.id === activeMenuItem)?.label || 'Dashboard'}
           </h1>
         </header>
 
         {/* Content */}
         <main className="flex-1 p-6 bg-pink-500 relative">
           {/* Placeholder for other menu items */}
-          {activeMenuItem === "overview" && <OverviewPanel />}
-          {activeMenuItem === "platform" && <PlatformPanel />}
-          {activeMenuItem === "employees" && <EmployeePanel />}
-          {activeMenuItem === "orders" && <OrderPanel />}
-          {activeMenuItem === "customer-issues" && <CustomerIssuesPanel />}
-          {activeMenuItem === "customers" && <CustomerPanel />}
-          {activeMenuItem === "usernames" && <UsernamesPanel />}
-          {activeMenuItem !== "overview" &&
-            activeMenuItem !== "platform" &&
-            activeMenuItem !== "employees" &&
-            activeMenuItem !== "orders" &&
-            activeMenuItem !== "customer-issues" &&
-            activeMenuItem !== "customers" &&
-            activeMenuItem !== "usernames" && (
+          {activeMenuItem === 'overview' && <OverviewPanel />}
+          {activeMenuItem === 'platform' && <PlatformPanel />}
+          {activeMenuItem === 'employees' && <EmployeePanel />}
+          {activeMenuItem === 'orders' && <OrderPanel />}
+          {activeMenuItem === 'customer-issues' && <CustomerIssuesPanel />}
+          {activeMenuItem === 'customers' && <CustomerPanel />}
+          {activeMenuItem === 'usernames' && <UsernamesPanel />}
+          {activeMenuItem !== 'overview' &&
+            activeMenuItem !== 'platform' &&
+            activeMenuItem !== 'employees' &&
+            activeMenuItem !== 'orders' &&
+            activeMenuItem !== 'customer-issues' &&
+            activeMenuItem !== 'customers' &&
+            activeMenuItem !== 'usernames' && (
               <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                  {menuItems.find((item) => item.id === activeMenuItem)?.label}{" "}
-                  Page
+                  {menuItems.find((item) => item.id === activeMenuItem)?.label} Page
                 </h2>
-                <p className="text-gray-600">
-                  This page will be implemented later.
-                </p>
+                <p className="text-gray-600">This page will be implemented later.</p>
               </div>
             )}
         </main>

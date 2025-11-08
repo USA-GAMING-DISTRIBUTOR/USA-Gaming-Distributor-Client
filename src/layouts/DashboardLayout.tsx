@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { useAppSelector, useAppDispatch } from "../hooks/redux";
-import { logout } from "../store/authSlice";
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAppSelector, useAppDispatch } from '../hooks/redux';
+import { logout } from '../store/authSlice';
 import {
   Menu,
   X,
@@ -14,7 +14,7 @@ import {
   Shield,
   Power,
   UserCheck,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -30,52 +30,52 @@ interface NavItem {
 
 const navigationItems: NavItem[] = [
   {
-    name: "Overview",
+    name: 'Overview',
     icon: <Home className="h-5 w-5" />,
-    path: "/dashboard",
-    roles: ["SuperAdmin", "Admin", "Employee"],
+    path: '/dashboard',
+    roles: ['SuperAdmin', 'Admin', 'Employee'],
   },
   {
-    name: "Users",
+    name: 'Users',
     icon: <Users className="h-5 w-5" />,
-    path: "/users",
-    roles: ["SuperAdmin"],
+    path: '/users',
+    roles: ['SuperAdmin'],
   },
   {
-    name: "Platforms",
+    name: 'Platforms',
     icon: <Package className="h-5 w-5" />,
-    path: "/platforms",
-    roles: ["SuperAdmin", "Admin"],
+    path: '/platforms',
+    roles: ['SuperAdmin', 'Admin'],
   },
   {
-    name: "Orders",
+    name: 'Orders',
     icon: <ShoppingCart className="h-5 w-5" />,
-    path: "/orders",
-    roles: ["SuperAdmin", "Admin", "Employee"],
+    path: '/orders',
+    roles: ['SuperAdmin', 'Admin', 'Employee'],
   },
   {
-    name: "Customers",
+    name: 'Customers',
     icon: <Users className="h-5 w-5" />,
-    path: "/customers",
-    roles: ["SuperAdmin", "Admin"],
+    path: '/customers',
+    roles: ['SuperAdmin', 'Admin'],
   },
   {
-    name: "Usernames",
+    name: 'Usernames',
     icon: <UserCheck className="h-5 w-5" />,
-    path: "/usernames",
-    roles: ["SuperAdmin", "Admin"],
+    path: '/usernames',
+    roles: ['SuperAdmin', 'Admin'],
   },
   {
-    name: "Reports",
+    name: 'Reports',
     icon: <FileText className="h-5 w-5" />,
-    path: "/reports",
-    roles: ["SuperAdmin", "Admin"],
+    path: '/reports',
+    roles: ['SuperAdmin', 'Admin'],
   },
   {
-    name: "Activity Logs",
+    name: 'Activity Logs',
     icon: <Activity className="h-5 w-5" />,
-    path: "/logs",
-    roles: ["SuperAdmin"],
+    path: '/logs',
+    roles: ['SuperAdmin'],
   },
 ];
 
@@ -94,7 +94,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   // Filter navigation items based on user role
   const filteredNavItems = navigationItems.filter((item) =>
-    user?.role ? item.roles.includes(user.role) : false
+    user?.role ? item.roles.includes(user.role) : false,
   );
 
   return (
@@ -112,7 +112,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
         lg:translate-x-0 lg:static lg:inset-0
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}
       >
         <div className="flex flex-col h-full">
@@ -120,9 +120,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between h-16 px-6 border-b border-pink-200">
             <div className="flex items-center">
               <Shield className="w-8 h-8 text-pink-600 mr-3" />
-              <span className="text-lg font-semibold text-pink-900">
-                USA Gaming
-              </span>
+              <span className="text-lg font-semibold text-pink-900">USA Gaming</span>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -144,8 +142,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors
                     ${
                       isActive
-                        ? "bg-pink-100 text-pink-700"
-                        : "text-gray-700 hover:bg-pink-100 hover:text-pink-700"
+                        ? 'bg-pink-100 text-pink-700'
+                        : 'text-gray-700 hover:bg-pink-100 hover:text-pink-700'
                     }
                   `}
                 >
@@ -169,9 +167,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 </span>
               </div>
               <div className="flex-1 text-left">
-                <p className="text-sm font-medium text-pink-900">
-                  {user?.username}
-                </p>
+                <p className="text-sm font-medium text-pink-900">{user?.username}</p>
                 <p className="text-xs text-pink-600">{user?.role}</p>
               </div>
               <Power className="h-5 w-5 ml-2" />

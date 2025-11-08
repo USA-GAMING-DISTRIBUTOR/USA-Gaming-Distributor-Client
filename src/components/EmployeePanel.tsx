@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { Edit, Trash2, Plus, X } from "lucide-react";
-import { supabase } from "../lib/supabase";
-import Pagination from "./common/Pagination";
+import React, { useEffect, useState } from 'react';
+import { Edit, Trash2, Plus, X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import Pagination from './common/Pagination';
 
 interface Employee {
   id: string;
@@ -15,18 +15,16 @@ const EmployeePanel: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
-    null
-  );
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState({
-    username: "",
-    password: "",
-    role: "Employee",
+    username: '',
+    password: '',
+    role: 'Employee',
   });
   const [editForm, setEditForm] = useState({
-  username: "",
-  password: "",
-  role: "Employee",
+    username: '',
+    password: '',
+    role: 'Employee',
   });
 
   // Pagination state
@@ -36,7 +34,7 @@ const EmployeePanel: React.FC = () => {
     setSelectedEmployee(emp);
     setEditForm({
       username: emp.username,
-      password: "",
+      password: '',
       role: emp.role,
     });
     setShowEditModal(true);
@@ -45,12 +43,10 @@ const EmployeePanel: React.FC = () => {
   const handleCloseEditModal = () => {
     setShowEditModal(false);
     setSelectedEmployee(null);
-    setEditForm({ username: "", password: "", role: "Employee" });
+    setEditForm({ username: '', password: '', role: 'Employee' });
   };
 
-  const handleEditInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
   };
 
@@ -65,10 +61,7 @@ const EmployeePanel: React.FC = () => {
     };
     if (editForm.password) updateData.password = editForm.password;
 
-    const { error } = await supabase
-      .from("users")
-      .update(updateData)
-      .eq("id", selectedEmployee.id);
+    const { error } = await supabase.from('users').update(updateData).eq('id', selectedEmployee.id);
 
     if (!error) {
       handleCloseEditModal();
@@ -80,9 +73,9 @@ const EmployeePanel: React.FC = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("users")
-      .select("id, username, role, created_at")
-      .eq("role", "Employee");
+      .from('users')
+      .select('id, username, role, created_at')
+      .eq('role', 'Employee');
     if (!error && data) setEmployees(data);
     setLoading(false);
   };
@@ -105,9 +98,7 @@ const EmployeePanel: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -115,12 +106,10 @@ const EmployeePanel: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase
-      .from("users")
-      .insert([
-        { username: form.username, password: form.password, role: form.role },
-      ]);
+      .from('users')
+      .insert([{ username: form.username, password: form.password, role: form.role }]);
     if (!error) {
-      setForm({ username: "", password: "", role: "Employee" });
+      setForm({ username: '', password: '', role: 'Employee' });
       fetchEmployees();
     }
     setLoading(false);
@@ -128,7 +117,7 @@ const EmployeePanel: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     setLoading(true);
-    await supabase.from("users").delete().eq("id", id);
+    await supabase.from('users').delete().eq('id', id);
     fetchEmployees();
     setLoading(false);
   };
@@ -152,9 +141,7 @@ const EmployeePanel: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-xl font-bold">Add Employee</h3>
-                  <p className="text-pink-100 text-sm mt-1">
-                    Create a new employee account
-                  </p>
+                  <p className="text-pink-100 text-sm mt-1">Create a new employee account</p>
                 </div>
                 <button
                   type="button"
@@ -168,11 +155,7 @@ const EmployeePanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              <form
-                id="employee-form"
-                onSubmit={handleAddEmployee}
-                className="space-y-4"
-              >
+              <form id="employee-form" onSubmit={handleAddEmployee} className="space-y-4">
                 <input
                   name="username"
                   value={form.username}
@@ -234,10 +217,7 @@ const EmployeePanel: React.FC = () => {
             <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">Edit Employee</h3>
-                <button
-                  onClick={handleCloseEditModal}
-                  className="text-white/80 hover:text-white"
-                >
+                <button onClick={handleCloseEditModal} className="text-white/80 hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -245,15 +225,9 @@ const EmployeePanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
-              <form
-                id="editEmployeeForm"
-                onSubmit={handleEditSubmit}
-                className="space-y-4"
-              >
+              <form id="editEmployeeForm" onSubmit={handleEditSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Username
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
                   <input
                     type="text"
                     name="username"
@@ -279,9 +253,7 @@ const EmployeePanel: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Role
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                   <select
                     name="role"
                     value={editForm.role}
@@ -312,7 +284,7 @@ const EmployeePanel: React.FC = () => {
                   disabled={loading}
                   className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
                 >
-                  {loading ? "Updating..." : "Update Employee"}
+                  {loading ? 'Updating...' : 'Update Employee'}
                 </button>
               </div>
             </div>
@@ -320,21 +292,13 @@ const EmployeePanel: React.FC = () => {
         </div>
       )}
       <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
-      <thead>
-      <tr className="border-b border-gray-200">
-      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-        Username
-      </th>
-      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-          Role
-          </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                Created At
-              </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                Actions
-              </th>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Username</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Role</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Created At</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -354,41 +318,36 @@ const EmployeePanel: React.FC = () => {
               </tr>
             ) : (
               paginatedEmployees.map((emp) => (
-              <tr
-              key={emp.id}
-              className="border-b border-gray-100 hover:bg-gray-50"
-              >
-              <td className="py-3 px-4 font-medium">{emp.username}</td>
-              <td className="py-3 px-4">{emp.role}</td>
-              <td className="py-3 px-4">
-                {emp.created_at
-                  ? new Date(emp.created_at).toLocaleString()
-                      : "N/A"}
+                <tr key={emp.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4 font-medium">{emp.username}</td>
+                  <td className="py-3 px-4">{emp.role}</td>
+                  <td className="py-3 px-4">
+                    {emp.created_at ? new Date(emp.created_at).toLocaleString() : 'N/A'}
                   </td>
-            <td className="py-3 px-4">
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleEditClick(emp)}
-                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                title="Edit Employee"
-                  disabled={loading}
-                >
-                <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(emp.id)}
-                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-              title="Delete Employee"
-              disabled={loading}
-              >
-                <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </td>
-            </tr>
-            ))
+                  <td className="py-3 px-4">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditClick(emp)}
+                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                        title="Edit Employee"
+                        disabled={loading}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(emp.id)}
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                        title="Delete Employee"
+                        disabled={loading}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
-            </tbody>
+          </tbody>
         </table>
       </div>
 

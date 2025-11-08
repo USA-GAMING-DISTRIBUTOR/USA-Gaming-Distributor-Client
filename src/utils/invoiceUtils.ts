@@ -8,12 +8,12 @@ export const generateInvoiceImage = async (invoiceElement: HTMLElement): Promise
       useCORS: true,
       allowTaint: false,
       width: invoiceElement.offsetWidth,
-      height: invoiceElement.offsetHeight
+      height: invoiceElement.offsetHeight,
     });
 
     // Convert canvas to blob
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/png', 0.9)
+      canvas.toBlob(resolve, 'image/png', 0.9),
     );
 
     if (!blob) {
@@ -28,8 +28,8 @@ export const generateInvoiceImage = async (invoiceElement: HTMLElement): Promise
 };
 
 export const uploadInvoiceToStorage = async (
-  invoiceElement: HTMLElement, 
-  orderId: string
+  invoiceElement: HTMLElement,
+  orderId: string,
 ): Promise<string | null> => {
   try {
     // Generate canvas from HTML element
@@ -37,12 +37,12 @@ export const uploadInvoiceToStorage = async (
       useCORS: true,
       allowTaint: false,
       width: invoiceElement.offsetWidth,
-      height: invoiceElement.offsetHeight
+      height: invoiceElement.offsetHeight,
     });
 
     // Convert canvas to blob
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/png', 0.9)
+      canvas.toBlob(resolve, 'image/png', 0.9),
     );
 
     if (!blob) {
@@ -64,9 +64,7 @@ export const uploadInvoiceToStorage = async (
     }
 
     // Get public URL
-    const { data: publicData } = supabase.storage
-      .from('invoices')
-      .getPublicUrl(fileName);
+    const { data: publicData } = supabase.storage.from('invoices').getPublicUrl(fileName);
 
     if (!publicData || !publicData.publicUrl) {
       throw new Error('Failed to get public URL');
@@ -91,12 +89,12 @@ export const copyInvoiceToClipboard = async (invoiceElement: HTMLElement): Promi
       useCORS: true,
       allowTaint: false,
       width: invoiceElement.offsetWidth,
-      height: invoiceElement.offsetHeight
+      height: invoiceElement.offsetHeight,
     });
 
     // Convert canvas to blob
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/png', 0.9)
+      canvas.toBlob(resolve, 'image/png', 0.9),
     );
 
     if (!blob) {
@@ -104,9 +102,7 @@ export const copyInvoiceToClipboard = async (invoiceElement: HTMLElement): Promi
     }
 
     // Copy to clipboard
-    await navigator.clipboard.write([
-      new ClipboardItem({ [blob.type]: blob })
-    ]);
+    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
 
     return true;
   } catch (error) {
@@ -116,8 +112,8 @@ export const copyInvoiceToClipboard = async (invoiceElement: HTMLElement): Promi
 };
 
 export const downloadInvoiceImage = async (
-  invoiceElement: HTMLElement, 
-  orderId: string
+  invoiceElement: HTMLElement,
+  orderId: string,
 ): Promise<boolean> => {
   try {
     // Generate canvas from HTML element
@@ -125,7 +121,7 @@ export const downloadInvoiceImage = async (
       useCORS: true,
       allowTaint: false,
       width: invoiceElement.offsetWidth,
-      height: invoiceElement.offsetHeight
+      height: invoiceElement.offsetHeight,
     });
 
     // Convert canvas to data URL
@@ -135,7 +131,7 @@ export const downloadInvoiceImage = async (
     const link = document.createElement('a');
     link.download = `invoice-${orderId}.png`;
     link.href = dataUrl;
-    
+
     // Trigger download
     document.body.appendChild(link);
     link.click();

@@ -1,16 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { supabase } from "../lib/supabase";
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  X,
-  Search,
-  User,
-} from "lucide-react";
-import { LoadingSpinner } from "./common/Loader";
-import Pagination from "./common/Pagination";
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import type { Database } from '../types/database.types';
+import { Plus, Edit2, Trash2, X, Search, User } from 'lucide-react';
+import { LoadingSpinner } from './common/Loader';
+import Pagination from './common/Pagination';
 
+type UsernameRow = Database['public']['Tables']['usernames']['Row'];
 interface Username {
   id: string;
   name: string;
@@ -26,7 +21,7 @@ const UsernamesPanel: React.FC = () => {
   const [editingUsername, setEditingUsername] = useState<Username | null>(null);
 
   // Search state
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,15 +31,15 @@ const UsernamesPanel: React.FC = () => {
     name: string;
     username: string;
   }>({
-    name: "",
-    username: "",
+    name: '',
+    username: '',
   });
 
   // Filter usernames based on search term
   const filteredUsernames = usernames.filter(
     (username) =>
       username.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      username.username.toLowerCase().includes(searchTerm.toLowerCase())
+      username.username.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // Pagination logic
@@ -73,26 +68,21 @@ const UsernamesPanel: React.FC = () => {
   const fetchUsernames = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("usernames")
-        .select("*")
-        .order("name");
+      const { data, error } = await supabase.from('usernames').select('*').order('name');
 
       if (error) throw error;
 
-      const transformedUsernames: Username[] = (data || []).map((username: any) => ({
-        id: String(username.id || ""),
-        name: String(username.name || ""),
-        username: String(username.username || ""),
-        created_at: String(username.created_at || new Date().toISOString()),
-        updated_at: String(
-          username.updated_at || username.created_at || new Date().toISOString()
-        ),
+      const transformedUsernames: Username[] = (data || []).map((u: UsernameRow) => ({
+        id: u.id,
+        name: u.name,
+        username: u.username,
+        created_at: u.created_at ?? new Date().toISOString(),
+        updated_at: u.updated_at ?? u.created_at ?? new Date().toISOString(),
       }));
 
       setUsernames(transformedUsernames);
     } catch (error) {
-      console.error("Error fetching usernames:", error);
+      console.error('Error fetching usernames:', error);
     } finally {
       setLoading(false);
     }
@@ -105,16 +95,16 @@ const UsernamesPanel: React.FC = () => {
 
       if (editingUsername) {
         const { error } = await supabase
-          .from("usernames")
+          .from('usernames')
           .update({
             name: formData.name,
             username: formData.username,
           })
-          .eq("id", editingUsername.id);
+          .eq('id', editingUsername.id);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("usernames").insert({
+        const { error } = await supabase.from('usernames').insert({
           name: formData.name,
           username: formData.username,
         });
@@ -125,23 +115,23 @@ const UsernamesPanel: React.FC = () => {
       await fetchUsernames();
       closeModal();
     } catch (error) {
-      console.error("Error saving username:", error);
+      console.error('Error saving username:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this username?")) return;
+    if (!confirm('Are you sure you want to delete this username?')) return;
 
     try {
       setLoading(true);
-      const { error } = await supabase.from("usernames").delete().eq("id", id);
+      const { error } = await supabase.from('usernames').delete().eq('id', id);
 
       if (error) throw error;
       await fetchUsernames();
     } catch (error) {
-      console.error("Error deleting username:", error);
+      console.error('Error deleting username:', error);
     } finally {
       setLoading(false);
     }
@@ -157,8 +147,8 @@ const UsernamesPanel: React.FC = () => {
     } else {
       setEditingUsername(null);
       setFormData({
-        name: "",
-        username: "",
+        name: '',
+        username: '',
       });
     }
     setIsModalOpen(true);
@@ -168,8 +158,8 @@ const UsernamesPanel: React.FC = () => {
     setIsModalOpen(false);
     setEditingUsername(null);
     setFormData({
-      name: "",
-      username: "",
+      name: '',
+      username: '',
     });
   };
 
@@ -177,9 +167,7 @@ const UsernamesPanel: React.FC = () => {
     <div className="bg-white rounded-2xl p-6 shadow-lg">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Username Management
-        </h2>
+        <h2 className="text-xl font-semibold text-gray-800">Username Management</h2>
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -207,18 +195,10 @@ const UsernamesPanel: React.FC = () => {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Name
-                </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Username
-                </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Created Date
-                </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Actions
-                </th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Username</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Created Date</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -234,18 +214,15 @@ const UsernamesPanel: React.FC = () => {
                 <tr>
                   <td colSpan={4} className="text-center py-8 text-gray-500">
                     {usernames.length === 0
-                      ? "No usernames found. Add your first username to get started."
+                      ? 'No usernames found. Add your first username to get started.'
                       : searchTerm
-                      ? `No usernames found matching "${searchTerm}".`
-                      : "No usernames found."}
+                        ? `No usernames found matching "${searchTerm}".`
+                        : 'No usernames found.'}
                   </td>
                 </tr>
               ) : (
                 paginatedUsernames.map((username) => (
-                  <tr
-                    key={username.id}
-                    className="border-b border-gray-100 hover:bg-gray-50"
-                  >
+                  <tr key={username.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-4 font-medium">{username.name}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
@@ -303,12 +280,10 @@ const UsernamesPanel: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-bold">
-                    {editingUsername ? "Edit Username" : "Add Username"}
+                    {editingUsername ? 'Edit Username' : 'Add Username'}
                   </h2>
                   <p className="text-indigo-100 text-sm mt-1">
-                    {editingUsername
-                      ? "Update username information"
-                      : "Create a new username"}
+                    {editingUsername ? 'Update username information' : 'Create a new username'}
                   </p>
                 </div>
                 <button
@@ -322,35 +297,28 @@ const UsernamesPanel: React.FC = () => {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              <form
-                id="username-form"
-                onSubmit={handleSubmit}
-                className="space-y-4"
-              >
+              <form id="username-form" onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name: e.target.value }))
-                    }
+                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Username
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
                   <input
                     type="text"
                     value={formData.username}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, username: e.target.value }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        username: e.target.value,
+                      }))
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
@@ -376,7 +344,7 @@ const UsernamesPanel: React.FC = () => {
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {loading && <LoadingSpinner size="sm" />}
-                  {editingUsername ? "Update" : "Create"}
+                  {editingUsername ? 'Update' : 'Create'}
                 </button>
               </div>
             </div>

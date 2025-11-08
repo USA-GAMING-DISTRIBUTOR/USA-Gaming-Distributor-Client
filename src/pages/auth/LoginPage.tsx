@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
-import { loginUser } from "../../store/authSlice";
-import { validateLogin } from "../../utils/FormValidator";
-import type { LoginFormData } from "../../utils/FormValidator";
+import React, { useState, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { loginUser } from '../../store/authSlice';
+import { validateLogin } from '../../utils/FormValidator';
+import type { LoginFormData } from '../../utils/FormValidator';
 
 /**
  * Login page component with your original design
@@ -12,20 +12,18 @@ const LoginPage: React.FC = () => {
   const { isLoading, error } = useAppSelector((state) => state.auth);
 
   const [formData, setFormData] = useState<LoginFormData>({
-    username: "",
-    password: "",
+    username: '',
+    password: '',
   });
 
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [rememberMe, setRememberMe] = useState<boolean>(false);
 
   useEffect(() => {
     setValidationErrors({});
 
     // Load saved credentials if they exist
-    const savedCredentials = localStorage.getItem("rememberedCredentials");
+    const savedCredentials = localStorage.getItem('rememberedCredentials');
     if (savedCredentials) {
       try {
         const { username, password } = JSON.parse(savedCredentials);
@@ -33,7 +31,7 @@ const LoginPage: React.FC = () => {
         setRememberMe(true);
       } catch {
         // Clear invalid stored data
-        localStorage.removeItem("rememberedCredentials");
+        localStorage.removeItem('rememberedCredentials');
       }
     }
   }, []);
@@ -69,14 +67,14 @@ const LoginPage: React.FC = () => {
     // Save or remove credentials based on "Remember Me" checkbox
     if (rememberMe) {
       localStorage.setItem(
-        "rememberedCredentials",
+        'rememberedCredentials',
         JSON.stringify({
           username: formData.username.trim(),
           password: formData.password,
-        })
+        }),
       );
     } else {
-      localStorage.removeItem("rememberedCredentials");
+      localStorage.removeItem('rememberedCredentials');
     }
 
     try {
@@ -84,11 +82,11 @@ const LoginPage: React.FC = () => {
         loginUser({
           username: formData.username.trim(),
           password: formData.password,
-        })
+        }),
       ).unwrap();
     } catch (error) {
       // Error is handled by the auth slice
-      console.error("Login failed:", error);
+      console.error('Login failed:', error);
     }
   };
 
@@ -97,25 +95,22 @@ const LoginPage: React.FC = () => {
       {error && (
         <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-700 text-sm">
           <p>
-            {error.includes("Database not set up")
-              ? "Database connection error. Please contact support."
-              : error.includes("Invalid username or password")
-              ? "Invalid username or password."
-              : error.includes("Database error")
-              ? "Database connection issue. Please try again."
-              : error.includes("Login failed")
-              ? "Login failed. Please check your credentials."
-              : error}
+            {error.includes('Database not set up')
+              ? 'Database connection error. Please contact support.'
+              : error.includes('Invalid username or password')
+                ? 'Invalid username or password.'
+                : error.includes('Database error')
+                  ? 'Database connection issue. Please try again.'
+                  : error.includes('Login failed')
+                    ? 'Login failed. Please check your credentials.'
+                    : error}
           </p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label
-            htmlFor="username"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
+          <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
             Username
           </label>
           <input
@@ -126,24 +121,19 @@ const LoginPage: React.FC = () => {
             onChange={handleInputChange}
             className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-pink-400 outline-none transition-all ${
               validationErrors.username
-                ? "border-red-300 focus:ring-red-400 focus:border-red-400"
-                : "border-gray-200"
+                ? 'border-red-300 focus:ring-red-400 focus:border-red-400'
+                : 'border-gray-200'
             }`}
             placeholder="Enter your username"
             disabled={isLoading}
           />
           {validationErrors.username && (
-            <p className="mt-1 text-sm text-red-600">
-              {validationErrors.username}
-            </p>
+            <p className="mt-1 text-sm text-red-600">{validationErrors.username}</p>
           )}
         </div>
 
         <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-gray-700 mb-2"
-          >
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
             Password
           </label>
           <input
@@ -154,16 +144,14 @@ const LoginPage: React.FC = () => {
             onChange={handleInputChange}
             className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-pink-400 focus:border-pink-400 outline-none transition-all ${
               validationErrors.password
-                ? "border-red-300 focus:ring-red-400 focus:border-red-400"
-                : "border-gray-200"
+                ? 'border-red-300 focus:ring-red-400 focus:border-red-400'
+                : 'border-gray-200'
             }`}
             placeholder="Enter your password"
             disabled={isLoading}
           />
           {validationErrors.password && (
-            <p className="mt-1 text-sm text-red-600">
-              {validationErrors.password}
-            </p>
+            <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
           )}
         </div>
 
@@ -176,10 +164,7 @@ const LoginPage: React.FC = () => {
             className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded"
             disabled={isLoading}
           />
-          <label
-            htmlFor="rememberMe"
-            className="ml-2 block text-sm text-gray-700"
-          >
+          <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
             Remember me
           </label>
         </div>
@@ -194,7 +179,7 @@ const LoginPage: React.FC = () => {
               <span>Logging in...</span>
             </div>
           ) : (
-            "Log In"
+            'Log In'
           )}
         </button>
       </form>

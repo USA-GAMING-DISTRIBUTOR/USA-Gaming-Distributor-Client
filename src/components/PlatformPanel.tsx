@@ -1,218 +1,116 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
-import {
-  Edit,
-  Trash2,
-  Plus,
-  Package,
-  AlertTriangle,
-  X,
-  History,
-} from "lucide-react";
-import { supabase } from "../lib/supabase";
-import type { Platform, PlatformCreateData } from "../types/platform";
-import type { PurchaseHistory } from "../types/purchaseHistory";
-import Pagination from "./common/Pagination";
+import React, { useState } from 'react';
+import { Edit, Trash2, Plus, Package, AlertTriangle, History } from 'lucide-react';
+import { usePlatforms } from '../domains/platforms/hooks/usePlatforms';
+// Domain hook encapsulates fetching, filtering, pagination, and CRUD
+import type { Platform, PlatformCreateData } from '../types/platform';
+import Pagination from './common/Pagination';
+import TableSkeleton from './common/TableSkeleton';
+import ErrorDisplay from './common/ErrorDisplay';
+import CreatePlatformModal from './platforms/CreatePlatformModal';
+import EditPlatformModal from './platforms/EditPlatformModal';
+import DeletePlatformModal from './platforms/DeletePlatformModal';
+import PurchaseStockModal from './platforms/PurchaseStockModal';
+import PlatformPurchaseHistoryModal from './platforms/PlatformPurchaseHistoryModal';
+import AllPurchaseHistoryModal from './platforms/AllPurchaseHistoryModal';
+import RestorePlatformsModal from './platforms/RestorePlatformsModal';
+import { INVENTORY_CONSTANTS } from '../utils/constants';
 
 const PlatformPanel: React.FC = () => {
-  const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [loading, setLoading] = useState(false);
+  const {
+    // data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    platforms,
+    deletedPlatforms,
+    paginated,
+    total,
+    purchaseHistory,
+    allPurchaseHistory,
+    paginatedPh,
+    paginatedAllPh,
+    uniqueAccountTypes,
+
+    // ui state
+    loading,
+    error,
+    filterAccountType,
+    filterStock,
+    page,
+    pageSize,
+    phPage,
+    phPageSize,
+    allPhPage,
+    allPhPageSize,
+    createForm,
+    editForm,
+
+    // setters
+    setFilterAccountType,
+    setFilterStock,
+    setPage,
+    setPageSize,
+    setPhPage,
+    setPhPageSize,
+    setAllPhPage,
+    setAllPhPageSize,
+    setCreateForm,
+    setEditForm,
+
+    // actions
+    fetchDeletedPlatforms,
+    fetchPurchaseHistoryFor,
+    fetchAllPurchaseHistory,
+    createPlatform,
+    updatePlatform,
+    softDelete,
+    restore,
+  } = usePlatforms();
+
+  const [localError, setLocalError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showAllHistoryModal, setShowAllHistoryModal] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(
-    null
-  );
-  const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistory[]>([]);
-  const [allPurchaseHistory, setAllPurchaseHistory] = useState<
-    PurchaseHistory[]
-  >([]);
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [deletedPlatforms, setDeletedPlatforms] = useState<Platform[]>([]);
-
-  const [form, setForm] = useState<PlatformCreateData>({
-    platform_name: "",
-    account_type: "",
-    inventory: 0,
-    cost_price: 0,
-    low_stock_alert: 10,
-  });
-
-  const [editForm, setEditForm] = useState<PlatformCreateData>({
-    platform_name: "",
-    account_type: "",
-    inventory: 0,
-    cost_price: 0,
-    low_stock_alert: 10,
-  });
 
   const [purchaseForm, setPurchaseForm] = useState({
     quantity: 0,
     cost_per_unit: 0,
-    supplier: "",
-    notes: "",
+    supplier: '',
+    notes: '',
   });
 
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<{
-    account_type: string;
-    stock_status: "all" | "low_stock" | "out_of_stock";
-  }>({
-    account_type: "all",
-    stock_status: "all",
+  // Local wrappers around domain forms
+  const [form, setForm] = useState<PlatformCreateData>({
+    platform_name: '',
+    account_type: '',
+    inventory: 0,
+    cost_price: 0,
+    low_stock_alert: INVENTORY_CONSTANTS.LOW_STOCK_DEFAULT,
   });
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-
-  // Purchase History pagination state
-  const [purchaseHistoryPage, setPurchaseHistoryPage] = useState(1);
-  const [purchaseHistoryItemsPerPage, setPurchaseHistoryItemsPerPage] =
-    useState(8);
-
-  // All Purchase History pagination state
-  const [allPurchaseHistoryPage, setAllPurchaseHistoryPage] = useState(1);
-  const [allPurchaseHistoryItemsPerPage, setAllPurchaseHistoryItemsPerPage] =
-    useState(8);
-
-  const fetchPlatforms = async () => {
-    setLoading(true);
-    setError(null);
-    const { data, error: fetchError } = await supabase
-      .from("game_coins")
-      .select("*")
-      .is("deleted_at", null)
-      .order("platform", { ascending: true });
-
-    if (fetchError) {
-      setError("Failed to fetch platforms: " + fetchError.message);
-      setLoading(false);
-      return;
-    }
-
-    // Transform data to match our updated Platform interface
-    const transformedPlatforms: Platform[] = (data || []).map(
-      (platform: any) => ({
-        id: platform.id,
-        platform: platform.platform, // Database column is already named 'platform'
-        account_type: platform.account_type,
-        inventory: platform.inventory,
-        cost_price: platform.cost_price,
-        low_stock_alert: platform.low_stock_alert || 10, // Default to 10 if not set
-        created_at: platform.created_at,
-        updated_at: platform.updated_at,
-        deleted_at: platform.deleted_at,
-      })
-    );
-    setPlatforms(transformedPlatforms);
-    setLoading(false);
-  };
-
-  const fetchAllPurchaseHistory = async () => {
-    setLoading(true);
-    try {
-      // Note: Using any type to bypass TypeScript limitations until schema is updated
-      const { data, error } = await supabase
-        .from("purchase_history" as any)
-        .select(
-          `
-          *,
-          game_coins!purchase_history_platform_id_fkey(platform),
-          users!purchase_history_purchased_by_fkey(username)
-        `
-        )
-        .order("created_at", { ascending: false });
-
-      if (!error && data) {
-        const transformedHistory: PurchaseHistory[] = data.map((item: any) => ({
-          id: item.id,
-          platform_id: item.platform_id,
-          quantity: item.quantity,
-          cost_per_unit: item.cost_per_unit,
-          total_cost: item.total_cost,
-          supplier: item.supplier,
-          notes: item.notes,
-          previous_inventory: item.previous_inventory,
-          new_inventory: item.new_inventory,
-          purchased_by: item.purchased_by,
-          created_at: item.created_at,
-          platform_name: item.game_coins?.platform,
-          purchased_by_username: item.users?.username,
-        }));
-
-        setAllPurchaseHistory(transformedHistory);
-      } else {
-        console.warn("Failed to fetch all purchase history:", error);
-        setAllPurchaseHistory([]);
-      }
-    } catch (err) {
-      console.warn("Purchase history table may not exist yet:", err);
-      setAllPurchaseHistory([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPurchaseHistory = async (platformId: string) => {
-    setLoading(true);
-    try {
-      // Note: Using any type to bypass TypeScript limitations until schema is updated
-      const { data, error } = await supabase
-        .from("purchase_history" as any)
-        .select(
-          `
-          *,
-          game_coins!purchase_history_platform_id_fkey(platform),
-          users!purchase_history_purchased_by_fkey(username)
-        `
-        )
-        .eq("platform_id", platformId)
-        .order("created_at", { ascending: false });
-
-      if (!error && data) {
-        const transformedHistory: PurchaseHistory[] = data.map((item: any) => ({
-          id: item.id,
-          platform_id: item.platform_id,
-          quantity: item.quantity,
-          cost_per_unit: item.cost_per_unit,
-          total_cost: item.total_cost,
-          supplier: item.supplier,
-          notes: item.notes,
-          previous_inventory: item.previous_inventory,
-          new_inventory: item.new_inventory,
-          purchased_by: item.purchased_by,
-          created_at: item.created_at,
-          platform_name: item.game_coins?.platform || "Unknown",
-          purchased_by_username: item.users?.username || "System",
-        }));
-        setPurchaseHistory(transformedHistory);
-      } else {
-        console.warn("Failed to fetch purchase history:", error);
-        setPurchaseHistory([]);
-      }
-    } catch (err) {
-      console.warn("Purchase history table may not exist yet:", err);
-      setPurchaseHistory([]);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchPlatforms();
-  }, []);
+  // ensure local create form mirrors domain form
+  React.useEffect(() => {
+    setForm(createForm);
+  }, [createForm]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
       [name]:
-        name === "inventory" ||
-        name === "cost_price" ||
-        name === "low_stock_alert"
+        name === 'inventory' || name === 'cost_price' || name === 'low_stock_alert'
+          ? parseFloat(value) || 0
+          : value,
+    }));
+    // keep domain form in sync
+    setCreateForm((prev) => ({
+      ...prev,
+      [name]:
+        name === 'inventory' || name === 'cost_price' || name === 'low_stock_alert'
           ? parseFloat(value) || 0
           : value,
     }));
@@ -223,9 +121,7 @@ const PlatformPanel: React.FC = () => {
     setEditForm((prev) => ({
       ...prev,
       [name]:
-        name === "inventory" ||
-        name === "cost_price" ||
-        name === "low_stock_alert"
+        name === 'inventory' || name === 'cost_price' || name === 'low_stock_alert'
           ? parseFloat(value) || 0
           : value,
     }));
@@ -233,35 +129,29 @@ const PlatformPanel: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
 
-    const { error: insertError } = await supabase.from("game_coins").insert([
-      {
-        platform: form.platform_name,
-        account_type: form.account_type,
-        inventory: form.inventory,
-        cost_price: form.cost_price,
-        low_stock_alert: form.low_stock_alert,
-      },
-    ]);
-
-    if (insertError) {
-      setError("Failed to create platform: " + insertError.message);
-      setLoading(false);
+    const res = await createPlatform(form);
+    if (!res.ok) {
+      setLocalError('Failed to create platform: ' + ('error' in res ? res.error : 'unknown'));
       return;
     }
 
     setForm({
-      platform_name: "",
-      account_type: "",
+      platform_name: '',
+      account_type: '',
       inventory: 0,
       cost_price: 0,
-      low_stock_alert: 10,
+      low_stock_alert: INVENTORY_CONSTANTS.LOW_STOCK_DEFAULT,
+    });
+    setCreateForm({
+      platform_name: '',
+      account_type: '',
+      inventory: 0,
+      cost_price: 0,
+      low_stock_alert: INVENTORY_CONSTANTS.LOW_STOCK_DEFAULT,
     });
     setShowCreateModal(false);
-    fetchPlatforms();
-    setLoading(false);
   };
 
   const handleEdit = (platform: Platform) => {
@@ -280,30 +170,16 @@ const PlatformPanel: React.FC = () => {
     e.preventDefault();
     if (!selectedPlatform) return;
 
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
 
-    const { error: updateError } = await supabase
-      .from("game_coins")
-      .update({
-        platform: editForm.platform_name,
-        account_type: editForm.account_type,
-        inventory: editForm.inventory,
-        cost_price: editForm.cost_price,
-        low_stock_alert: editForm.low_stock_alert,
-      })
-      .eq("id", selectedPlatform.id);
-
-    if (updateError) {
-      setError("Failed to update platform: " + updateError.message);
-      setLoading(false);
+    const res = await updatePlatform(selectedPlatform.id, editForm);
+    if (!res.ok) {
+      setLocalError('Failed to update platform: ' + ('error' in res ? res.error : 'unknown'));
       return;
     }
 
     setShowEditModal(false);
     setSelectedPlatform(null);
-    fetchPlatforms();
-    setLoading(false);
   };
 
   const handleDelete = (platform: Platform) => {
@@ -314,81 +190,30 @@ const PlatformPanel: React.FC = () => {
   const confirmDelete = async () => {
     if (!selectedPlatform) return;
 
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
 
-    const { error: deleteError } = await (supabase as any)
-      .from("game_coins")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", selectedPlatform.id);
-
-    if (deleteError) {
-      setError("Failed to delete platform: " + deleteError.message);
-      setLoading(false);
+    const res = await softDelete(selectedPlatform.id);
+    if (!res.ok) {
+      setLocalError('Failed to delete platform: ' + ('error' in res ? res.error : 'unknown'));
       return;
     }
 
     setShowDeleteModal(false);
     setSelectedPlatform(null);
-    fetchPlatforms();
-    setLoading(false);
-  };
-
-  const fetchDeletedPlatforms = async () => {
-    setLoading(true);
-    const { data, error: fetchError } = await supabase
-      .from("game_coins")
-      .select("*")
-      .not("deleted_at", "is", null)
-      .order("platform", { ascending: true });
-
-    if (fetchError) {
-      setError("Failed to fetch deleted platforms: " + fetchError.message);
-      setLoading(false);
-      return;
-    }
-
-    const transformedPlatforms: Platform[] = (data || []).map(
-      (platform: any) => ({
-        id: platform.id,
-        platform: platform.platform,
-        account_type: platform.account_type,
-        inventory: platform.inventory,
-        cost_price: platform.cost_price,
-        low_stock_alert: platform.low_stock_alert || 10, // Default to 10 if not set
-        created_at: platform.created_at,
-        updated_at: platform.updated_at,
-        deleted_at: platform.deleted_at,
-      })
-    );
-    setDeletedPlatforms(transformedPlatforms);
-    setLoading(false);
   };
 
   const handleRestoreClick = async (platform: Platform) => {
     setSelectedPlatform(platform);
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
 
     try {
-      const { error: restoreError } = await (supabase as any)
-        .from("game_coins")
-        .update({ deleted_at: null })
-        .eq("id", platform.id);
-
-      if (restoreError) {
-        throw new Error("Failed to restore platform: " + restoreError.message);
-      }
-
-      // Refresh data
-      await Promise.all([fetchPlatforms(), fetchDeletedPlatforms()]);
+      const res = await restore(platform.id);
+      if (!res.ok) throw new Error('error' in res ? res.error : 'unknown');
 
       setShowRestoreModal(false);
       setSelectedPlatform(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
+      setLocalError(err instanceof Error ? err.message : 'An error occurred');
     }
   };
 
@@ -397,15 +222,15 @@ const PlatformPanel: React.FC = () => {
     setPurchaseForm({
       quantity: 0,
       cost_per_unit: platform.cost_price,
-      supplier: "",
-      notes: "",
+      supplier: '',
+      notes: '',
     });
     setShowPurchaseModal(true);
   };
 
   const showPurchaseHistory = async (platform: Platform) => {
     setSelectedPlatform(platform);
-    await fetchPurchaseHistory(platform.id);
+    await fetchPurchaseHistoryFor(platform.id);
     setShowHistoryModal(true);
   };
 
@@ -413,159 +238,68 @@ const PlatformPanel: React.FC = () => {
     e.preventDefault();
     if (!selectedPlatform) return;
 
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
 
     try {
       const newInventory = selectedPlatform.inventory + purchaseForm.quantity;
       const totalCost = purchaseForm.quantity * purchaseForm.cost_per_unit;
 
-      // Update platform inventory
-      const { error: updateError } = await supabase
-        .from("game_coins")
-        .update({
-          inventory: newInventory,
-        })
-        .eq("id", selectedPlatform.id);
-
-      if (updateError) throw updateError;
+      // Update platform inventory via domain hook
+      const upd = await updatePlatform(selectedPlatform.id, {
+        platform_name: selectedPlatform.platform,
+        account_type: selectedPlatform.account_type,
+        inventory: newInventory,
+        cost_price: selectedPlatform.cost_price,
+        low_stock_alert: selectedPlatform.low_stock_alert,
+      });
+      if (!upd.ok) throw new Error('error' in upd ? upd.error : 'unknown');
 
       // Try to record purchase history (will work once schema is updated)
       try {
-        const { error: historyError } = await supabase
-          .from("purchase_history" as any)
-          .insert([
-            {
-              platform_id: selectedPlatform.id,
-              quantity: purchaseForm.quantity,
-              cost_per_unit: purchaseForm.cost_per_unit,
-              total_cost: totalCost,
-              supplier: purchaseForm.supplier || null,
-              notes: purchaseForm.notes || null,
-              previous_inventory: selectedPlatform.inventory,
-              new_inventory: newInventory,
-              purchased_by: null, // You can add user context here if needed
-            },
-          ]);
-
-        if (historyError) {
-          console.warn("Failed to record purchase history:", historyError);
-          // Don't fail the entire operation for history recording
-        }
-      } catch (historyErr) {
-        console.warn("Purchase history table may not exist yet:", historyErr);
+        // Lazy import to avoid top-level dependency here
+        const { purchaseHistoryRepository } = await import(
+          '../repositories/purchaseHistoryRepository'
+        );
+        await purchaseHistoryRepository.record({
+          platform_id: selectedPlatform.id,
+          quantity: purchaseForm.quantity,
+          cost_per_unit: purchaseForm.cost_per_unit,
+          total_cost: totalCost,
+          supplier: purchaseForm.supplier || null,
+          notes: purchaseForm.notes || null,
+          previous_inventory: selectedPlatform.inventory,
+          new_inventory: newInventory,
+          purchased_by: null,
+          created_at: new Date().toISOString(),
+        } as any);
+      } catch {
+        // non-fatal
       }
 
       setPurchaseForm({
         quantity: 0,
         cost_per_unit: 0,
-        supplier: "",
-        notes: "",
+        supplier: '',
+        notes: '',
       });
       setShowPurchaseModal(false);
       setSelectedPlatform(null);
-      fetchPlatforms();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to update inventory"
-      );
+      setLocalError(err instanceof Error ? err.message : 'Failed to update inventory');
     } finally {
-      setLoading(false);
+      // no-op
     }
   };
 
-  // Filter platforms
-  const filteredPlatforms = platforms.filter((platform) => {
-    const matchesAccountType =
-      filter.account_type === "all" ||
-      platform.account_type === filter.account_type;
-    const matchesStockStatus =
-      filter.stock_status === "all" ||
-      (filter.stock_status === "low_stock" &&
-        platform.inventory < platform.low_stock_alert &&
-        platform.inventory > 0) ||
-      (filter.stock_status === "out_of_stock" && platform.inventory === 0);
-
-    return matchesAccountType && matchesStockStatus;
-  });
-
-  // Pagination logic
-  const totalFilteredPlatforms = filteredPlatforms.length;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedPlatforms = filteredPlatforms.slice(startIndex, endIndex);
-
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filter, itemsPerPage]);
-
-  // Pagination handlers
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleItemsPerPageChange = (newItemsPerPage: number) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1);
-  };
-
-  // Purchase History pagination logic
-  const purchaseHistoryStartIndex =
-    (purchaseHistoryPage - 1) * purchaseHistoryItemsPerPage;
-  const purchaseHistoryEndIndex =
-    purchaseHistoryStartIndex + purchaseHistoryItemsPerPage;
-  const paginatedPurchaseHistory = purchaseHistory.slice(
-    purchaseHistoryStartIndex,
-    purchaseHistoryEndIndex
-  );
-
-  const handlePurchaseHistoryPageChange = (page: number) => {
-    setPurchaseHistoryPage(page);
-  };
-
-  const handlePurchaseHistoryItemsPerPageChange = (newItemsPerPage: number) => {
-    setPurchaseHistoryItemsPerPage(newItemsPerPage);
-    setPurchaseHistoryPage(1);
-  };
-
-  // All Purchase History pagination logic
-  const allPurchaseHistoryStartIndex =
-    (allPurchaseHistoryPage - 1) * allPurchaseHistoryItemsPerPage;
-  const allPurchaseHistoryEndIndex =
-    allPurchaseHistoryStartIndex + allPurchaseHistoryItemsPerPage;
-  const paginatedAllPurchaseHistory = allPurchaseHistory.slice(
-    allPurchaseHistoryStartIndex,
-    allPurchaseHistoryEndIndex
-  );
-
-  const handleAllPurchaseHistoryPageChange = (page: number) => {
-    setAllPurchaseHistoryPage(page);
-  };
-
-  const handleAllPurchaseHistoryItemsPerPageChange = (
-    newItemsPerPage: number
-  ) => {
-    setAllPurchaseHistoryItemsPerPage(newItemsPerPage);
-    setAllPurchaseHistoryPage(1);
-  };
-
-  // Get unique account types for filter dropdown
-  const uniqueAccountTypes = [...new Set(platforms.map((p) => p.account_type))];
+  const combinedError = error || localError;
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg">
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
-          {error}
-        </div>
-      )}
+      <ErrorDisplay message={combinedError} />
 
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Platform Management
-        </h2>
+        <h2 className="text-xl font-semibold text-gray-800">Platform Management</h2>
         <div className="flex gap-3">
           <button
             onClick={() => {
@@ -600,10 +334,8 @@ const PlatformPanel: React.FC = () => {
       {/* Filters */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <select
-          value={filter.account_type}
-          onChange={(e) =>
-            setFilter((prev) => ({ ...prev, account_type: e.target.value }))
-          }
+          value={filterAccountType}
+          onChange={(e) => setFilterAccountType(e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
         >
           <option value="all">All Account Types</option>
@@ -615,20 +347,12 @@ const PlatformPanel: React.FC = () => {
         </select>
 
         <select
-          value={filter.stock_status}
-          onChange={(e) =>
-            setFilter((prev) => ({
-              ...prev,
-              stock_status: e.target.value as
-                | "all"
-                | "low_stock"
-                | "out_of_stock",
-            }))
-          }
+          value={filterStock}
+          onChange={(e) => setFilterStock(e.target.value as any)}
           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
         >
           <option value="all">All Stock Levels</option>
-          <option value="low_stock">Low Stock (&lt; 100)</option>
+          <option value="low_stock">Low Stock (below threshold)</option>
           <option value="out_of_stock">Out of Stock</option>
         </select>
       </div>
@@ -638,47 +362,26 @@ const PlatformPanel: React.FC = () => {
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                Platform Name
-              </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                Account Type
-              </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                Inventory
-              </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                Cost Price
-              </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                Status
-              </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                Actions
-              </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Platform Name</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Account Type</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Inventory</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Cost Price</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={6} className="text-center py-8">
-                  <div className="flex justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
-                  </div>
-                </td>
-              </tr>
-            ) : filteredPlatforms.length === 0 ? (
+              <TableSkeleton rows={Math.min(pageSize, 8)} columns={6} />
+            ) : total === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-8 text-gray-500">
                   No platforms found
                 </td>
               </tr>
             ) : (
-              paginatedPlatforms.map((platform) => (
-                <tr
-                  key={platform.id}
-                  className="border-b border-gray-100 hover:bg-gray-50"
-                >
+              paginated.map((platform) => (
+                <tr key={platform.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-4 font-medium">{platform.platform}</td>
                   <td className="py-3 px-4">{platform.account_type}</td>
                   <td className="py-3 px-4">
@@ -686,8 +389,8 @@ const PlatformPanel: React.FC = () => {
                       <span
                         className={`${
                           platform.inventory < platform.low_stock_alert
-                            ? "text-red-600 font-semibold"
-                            : ""
+                            ? 'text-red-600 font-semibold'
+                            : ''
                         }`}
                       >
                         {platform.inventory}
@@ -697,24 +400,22 @@ const PlatformPanel: React.FC = () => {
                       )}
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    ${platform.cost_price.toFixed(2)}
-                  </td>
+                  <td className="py-3 px-4">${platform.cost_price.toFixed(2)}</td>
                   <td className="py-3 px-4">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
                         platform.inventory === 0
-                          ? "bg-red-100 text-red-800"
+                          ? 'bg-red-100 text-red-800'
                           : platform.inventory < platform.low_stock_alert
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
                       }`}
                     >
                       {platform.inventory === 0
-                        ? "Out of Stock"
+                        ? 'Out of Stock'
                         : platform.inventory < platform.low_stock_alert
-                        ? "Low Stock"
-                        : "In Stock"}
+                          ? 'Low Stock'
+                          : 'In Stock'}
                     </span>
                   </td>
                   <td className="py-3 px-4">
@@ -758,826 +459,86 @@ const PlatformPanel: React.FC = () => {
 
       {/* Pagination */}
       <Pagination
-        currentPage={currentPage}
-        totalItems={totalFilteredPlatforms}
-        itemsPerPage={itemsPerPage}
-        onPageChange={handlePageChange}
-        onItemsPerPageChange={handleItemsPerPageChange}
+        currentPage={page}
+        totalItems={total}
+        itemsPerPage={pageSize}
+        onPageChange={setPage}
+        onItemsPerPageChange={(n: number) => setPageSize(n)}
       />
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6 flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-bold">Add New Platform</h3>
-                  <p className="text-pink-100 text-sm mt-1">
-                    Create a new gaming platform
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="text-pink-100 hover:text-white p-2 rounded-lg hover:bg-pink-600/50 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <form
-                id="create-platform-form"
-                onSubmit={handleSubmit}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Platform Name
-                  </label>
-                  <input
-                    type="text"
-                    name="platform_name"
-                    value={form.platform_name}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Account Type
-                  </label>
-                  <input
-                    type="text"
-                    name="account_type"
-                    value={form.account_type}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="e.g., Standard, Premium, Enterprise"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Initial Inventory
-                  </label>
-                  <input
-                    type="number"
-                    name="inventory"
-                    value={form.inventory}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    min="0"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cost Price (in cents)
-                  </label>
-                  <input
-                    type="number"
-                    name="cost_price"
-                    value={form.cost_price}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Low Stock Alert Threshold
-                  </label>
-                  <input
-                    type="number"
-                    name="low_stock_alert"
-                    value={form.low_stock_alert}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    min="0"
-                    placeholder="e.g., 10"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Alert when inventory falls below this number
-                  </p>
-                </div>
-              </form>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="create-platform-form"
-                  disabled={loading}
-                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Creating..." : "Create Platform"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <CreatePlatformModal
+        isOpen={showCreateModal}
+        loading={loading}
+        form={form}
+        onChange={handleInputChange}
+        onSubmit={handleSubmit}
+        onClose={() => setShowCreateModal(false)}
+      />
 
       {/* Edit Modal */}
-      {showEditModal && selectedPlatform && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-pink-600 to-pink-700 text-white p-6 flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-bold">Edit Platform</h3>
-                  <p className="text-pink-100 text-sm mt-1">
-                    Update platform information
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="text-pink-100 hover:text-white p-2 rounded-lg hover:bg-pink-600/50 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <form
-                id="edit-platform-form"
-                onSubmit={handleEditSubmit}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Platform Name
-                  </label>
-                  <input
-                    type="text"
-                    name="platform_name"
-                    value={editForm.platform_name}
-                    onChange={handleEditInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Account Type
-                  </label>
-                  <input
-                    type="text"
-                    name="account_type"
-                    value={editForm.account_type}
-                    onChange={handleEditInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="e.g., Standard, Premium, Enterprise"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Inventory
-                  </label>
-                  <input
-                    type="number"
-                    name="inventory"
-                    value={editForm.inventory}
-                    onChange={handleEditInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    min="0"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cost Price (in cents)
-                  </label>
-                  <input
-                    type="number"
-                    name="cost_price"
-                    value={editForm.cost_price}
-                    onChange={handleEditInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Low Stock Alert Threshold
-                  </label>
-                  <input
-                    type="number"
-                    name="low_stock_alert"
-                    value={editForm.low_stock_alert}
-                    onChange={handleEditInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    min="0"
-                    placeholder="e.g., 10"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Alert when inventory falls below this number
-                  </p>
-                </div>
-              </form>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="edit-platform-form"
-                  disabled={loading}
-                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Updating..." : "Update Platform"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Edit Modal */}
+      <EditPlatformModal
+        isOpen={showEditModal && !!selectedPlatform}
+        loading={loading}
+        form={editForm}
+        onChange={handleEditInputChange}
+        onSubmit={handleEditSubmit}
+        onClose={() => setShowEditModal(false)}
+      />
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && selectedPlatform && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-bold">Confirm Delete</h3>
-                  <p className="text-red-100 text-sm mt-1">
-                    This action cannot be undone
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="text-red-100 hover:text-white p-2 rounded-lg hover:bg-red-600/50 transition-colors"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
+      {/* Delete Confirmation Modal */}
+      <DeletePlatformModal
+        isOpen={showDeleteModal && !!selectedPlatform}
+        loading={loading}
+        platform={selectedPlatform}
+        onConfirm={confirmDelete}
+        onClose={() => setShowDeleteModal(false)}
+      />
 
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <p className="text-gray-700 mb-6">
-                Are you sure you want to delete the platform "
-                {selectedPlatform.platform}"? This action cannot be undone.
-              </p>
-            </div>
+      <PurchaseStockModal
+        isOpen={showPurchaseModal}
+        loading={loading}
+        platform={selectedPlatform}
+        form={purchaseForm}
+        onChange={(changes) => setPurchaseForm((prev) => ({ ...prev, ...changes }))}
+        onSubmit={handlePurchaseSubmit}
+        onClose={() => setShowPurchaseModal(false)}
+      />
 
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  disabled={loading}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Deleting..." : "Delete Platform"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <PlatformPurchaseHistoryModal
+        isOpen={showHistoryModal && !!selectedPlatform}
+        loading={loading}
+        platformName={selectedPlatform?.platform || null}
+        purchaseHistory={purchaseHistory}
+        paginated={paginatedPh}
+        page={phPage}
+        pageSize={phPageSize}
+        onPageChange={setPhPage}
+        onItemsPerPageChange={(n: number) => setPhPageSize(n)}
+        onClose={() => setShowHistoryModal(false)}
+      />
 
-      {/* Add Stock Modal */}
-      {showPurchaseModal && selectedPlatform && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">
-                  Add Stock - {selectedPlatform.platform}
-                </h3>
-                <button
-                  onClick={() => setShowPurchaseModal(false)}
-                  className="text-white/80 hover:text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+      <AllPurchaseHistoryModal
+        isOpen={showAllHistoryModal}
+        loading={loading}
+        purchaseHistory={allPurchaseHistory}
+        paginated={paginatedAllPh}
+        page={allPhPage}
+        pageSize={allPhPageSize}
+        onPageChange={setAllPhPage}
+        onItemsPerPageChange={(n: number) => setAllPhPageSize(n)}
+        onClose={() => setShowAllHistoryModal(false)}
+      />
 
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              <form
-                id="addStockForm"
-                onSubmit={handlePurchaseSubmit}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Quantity to Add
-                  </label>
-                  <input
-                    type="number"
-                    value={purchaseForm.quantity}
-                    onChange={(e) =>
-                      setPurchaseForm((prev) => ({
-                        ...prev,
-                        quantity: parseInt(e.target.value) || 0,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    min="1"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cost per Unit
-                  </label>
-                  <input
-                    type="number"
-                    value={purchaseForm.cost_per_unit}
-                    onChange={(e) =>
-                      setPurchaseForm((prev) => ({
-                        ...prev,
-                        cost_per_unit: parseFloat(e.target.value) || 0,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Supplier
-                  </label>
-                  <input
-                    type="text"
-                    value={purchaseForm.supplier}
-                    onChange={(e) =>
-                      setPurchaseForm((prev) => ({
-                        ...prev,
-                        supplier: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="Supplier name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notes
-                  </label>
-                  <input
-                    type="text"
-                    value={purchaseForm.notes}
-                    onChange={(e) =>
-                      setPurchaseForm((prev) => ({
-                        ...prev,
-                        notes: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="Additional notes"
-                  />
-                </div>
-
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    Current Stock:{" "}
-                    <span className="font-medium">
-                      {selectedPlatform.inventory}
-                    </span>
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    After Addition:{" "}
-                    <span className="font-medium">
-                      {selectedPlatform.inventory + purchaseForm.quantity}
-                    </span>
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Total Cost:{" "}
-                    <span className="font-medium">
-                      $
-                      {(
-                        purchaseForm.quantity * purchaseForm.cost_per_unit
-                      ).toFixed(2)}
-                    </span>
-                  </p>
-                </div>
-              </form>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPurchaseModal(false)}
-                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="addStockForm"
-                  disabled={loading || purchaseForm.quantity <= 0}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                >
-                  {loading ? "Adding..." : "Add Stock"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Purchase History Modal */}
-      {showHistoryModal && selectedPlatform && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">
-                  Purchase History - {selectedPlatform.platform}
-                </h3>
-                <button
-                  onClick={() => setShowHistoryModal(false)}
-                  className="text-white/80 hover:text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              {purchaseHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <History className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>No purchase history found for this platform.</p>
-                  <p className="text-sm mt-2">
-                    Add stock to start tracking purchase history.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Date
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Quantity
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Cost/Unit
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Total Cost
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Supplier
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Inventory Change
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Notes
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedPurchaseHistory.map((purchase) => (
-                        <tr
-                          key={purchase.id}
-                          className="border-b border-gray-100 hover:bg-gray-50"
-                        >
-                          <td className="py-3 px-4">
-                            {new Date(purchase.created_at).toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 font-medium">
-                            {purchase.quantity}
-                          </td>
-                          <td className="py-3 px-4">
-                            ${purchase.cost_per_unit.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 font-medium">
-                            ${purchase.total_cost.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4">
-                            {purchase.supplier || "-"}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="text-sm text-gray-600">
-                              {purchase.previous_inventory} →{" "}
-                              {purchase.new_inventory}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-600">
-                            {purchase.notes || "-"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Purchase History Pagination */}
-              {purchaseHistory.length > 0 && (
-                <Pagination
-                  currentPage={purchaseHistoryPage}
-                  totalItems={purchaseHistory.length}
-                  itemsPerPage={purchaseHistoryItemsPerPage}
-                  onPageChange={handlePurchaseHistoryPageChange}
-                  onItemsPerPageChange={handlePurchaseHistoryItemsPerPageChange}
-                />
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
-              <button
-                onClick={() => setShowHistoryModal(false)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* All Purchase History Modal */}
-      {showAllHistoryModal && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-6xl shadow-2xl flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="bg-pink-600 text-white px-6 py-4 rounded-t-xl flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">All Purchase History</h3>
-                <button
-                  onClick={() => setShowAllHistoryModal(false)}
-                  className="text-white/80 hover:text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              {allPurchaseHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <History className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>No purchase history found.</p>
-                  <p className="text-sm mt-2">
-                    Start adding stock to platforms to see purchase history.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Date
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Platform
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Quantity
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Cost/Unit
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Total Cost
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Supplier
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Inventory Change
-                        </th>
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                          Notes
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedAllPurchaseHistory.map((purchase) => (
-                        <tr
-                          key={purchase.id}
-                          className="border-b border-gray-100 hover:bg-gray-50"
-                        >
-                          <td className="py-3 px-4">
-                            {new Date(purchase.created_at).toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 font-medium">
-                            <span className="text-pink-600">
-                              {purchase.platform_name || "Unknown Platform"}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 font-medium">
-                            {purchase.quantity}
-                          </td>
-                          <td className="py-3 px-4">
-                            ${purchase.cost_per_unit.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 font-medium">
-                            ${purchase.total_cost.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4">
-                            {purchase.supplier || "-"}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="text-sm text-gray-600">
-                              {purchase.previous_inventory} →{" "}
-                              {purchase.new_inventory}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-600">
-                            {purchase.notes || "-"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* All Purchase History Pagination */}
-              {allPurchaseHistory.length > 0 && (
-                <Pagination
-                  currentPage={allPurchaseHistoryPage}
-                  totalItems={allPurchaseHistory.length}
-                  itemsPerPage={allPurchaseHistoryItemsPerPage}
-                  onPageChange={handleAllPurchaseHistoryPageChange}
-                  onItemsPerPageChange={
-                    handleAllPurchaseHistoryItemsPerPageChange
-                  }
-                />
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
-              <div className="text-sm text-gray-600">
-                Total Records: {allPurchaseHistory.length} | Total Value: $
-                {allPurchaseHistory
-                  .reduce((sum, p) => sum + p.total_cost, 0)
-                  .toFixed(2)}
-              </div>
-              <button
-                onClick={() => setShowAllHistoryModal(false)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Restore Platforms Modal */}
-      {showRestoreModal && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-bold">
-                    Restore Deleted Platforms
-                  </h3>
-                  <p className="text-blue-100 text-sm mt-1">
-                    Select platforms to restore
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowRestoreModal(false)}
-                  className="text-blue-100 hover:text-white p-2 rounded-lg hover:bg-blue-600/50 transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {deletedPlatforms.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No deleted platforms found</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {deletedPlatforms.map((platform) => (
-                    <div
-                      key={platform.id}
-                      className="border border-gray-200 rounded-lg p-4 bg-gray-50"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-semibold text-gray-800">
-                            {platform.platform}
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            Account Type: {platform.account_type}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Deleted:{" "}
-                            {new Date(platform.deleted_at!).toLocaleString()}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleRestoreClick(platform)}
-                          disabled={loading}
-                          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <svg
-                            className="w-4 h-4 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                            />
-                          </svg>
-                          {loading ? "Restoring..." : "Restore"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
-              <button
-                onClick={() => setShowRestoreModal(false)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RestorePlatformsModal
+        isOpen={showRestoreModal}
+        loading={loading}
+        platforms={deletedPlatforms}
+        onRestore={handleRestoreClick}
+        onClose={() => setShowRestoreModal(false)}
+      />
     </div>
   );
 };

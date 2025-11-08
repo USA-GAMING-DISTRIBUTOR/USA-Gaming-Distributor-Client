@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
-import Pagination from "./common/Pagination";
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import Pagination from './common/Pagination';
 
 interface Log {
   id: string;
@@ -21,11 +21,11 @@ const ActivityLogPanel: React.FC = () => {
   const fetchLogs = async () => {
     setError(null);
     const { data, error: fetchError } = await supabase
-      .from("logs")
-      .select("id, action, user_id, details, timestamp")
-      .order("timestamp", { ascending: false });
+      .from('logs')
+      .select('id, action, user_id, details, timestamp')
+      .order('timestamp', { ascending: false });
     if (fetchError) {
-      setError("Failed to fetch logs: " + fetchError.message);
+      setError('Failed to fetch logs: ' + fetchError.message);
       return;
     }
     if (data) setLogs(data);
@@ -52,41 +52,26 @@ const ActivityLogPanel: React.FC = () => {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg">
       <h2 className="text-lg font-semibold mb-4">Activity Log</h2>
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
-      )}
+      {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
       <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
-      <thead>
-      <tr className="border-b border-gray-200">
-      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-        Timestamp
-      </th>
-      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-          User
-          </th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-700">
-          Action
-      </th>
-      <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                Details
-              </th>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Timestamp</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">User</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Action</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Details</th>
             </tr>
           </thead>
           <tbody>
             {paginatedLogs.map((log) => (
-              <tr
-                key={log.id}
-                className="border-b border-gray-100 hover:bg-gray-50"
-              >
+              <tr key={log.id} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="py-3 px-4">
-                {log.timestamp
-                ? new Date(log.timestamp).toLocaleString()
-                : "N/A"}
+                  {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
                 </td>
-                <td className="py-3 px-4">{log.user_id || "N/A"}</td>
+                <td className="py-3 px-4">{log.user_id || 'N/A'}</td>
                 <td className="py-3 px-4">{log.action}</td>
-                <td className="py-3 px-4">{log.details || "N/A"}</td>
+                <td className="py-3 px-4">{log.details || 'N/A'}</td>
               </tr>
             ))}
           </tbody>

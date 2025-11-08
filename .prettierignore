@@ -1,0 +1,17 @@
+# Output directories
+/node_modules
+/dist
+/build
+
+# Local caches
+/.vite
+/.turbo
+/.cache
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Supabase generated artifacts (optional to ignore)
+# /src/types/database.types.ts

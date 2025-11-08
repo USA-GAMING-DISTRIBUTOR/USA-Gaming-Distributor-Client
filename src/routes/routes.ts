@@ -1,34 +1,34 @@
-import { lazy } from 'react'
-import type { UserRole } from '../types/auth'
+import { lazy } from 'react';
+import type { UserRole } from '../domains/auth/types';
 
 // Route types
 export interface RouteConfig {
-  path: string
-  name: string
-  component: React.LazyExoticComponent<React.ComponentType<any>>
-  allowedRoles?: UserRole[]
-  layout?: 'auth' | 'dashboard' | 'public'
-  exact?: boolean
+  path: string;
+  name: string;
+  component: React.LazyExoticComponent<React.ComponentType>;
+  allowedRoles?: UserRole[];
+  layout?: 'auth' | 'dashboard' | 'public';
+  exact?: boolean;
 }
 
 // Lazy load components for code splitting
-const LoginPage = lazy(() => import('../pages/auth/LoginPage'))
-const SuperAdminDashboard = lazy(() => import('../components/Dashboard'))
-const AdminDashboard = lazy(() => import('../components/AdminDashboard'))
-const EmployeeDashboard = lazy(() => import('../components/EmployeeDashboard'))
-const UsernamesPanel = lazy(() => import('../components/UsernamesPanel'))
+const LoginPage = lazy(() => import('../pages/auth/LoginPage'));
+const SuperAdminDashboard = lazy(() => import('../components/Dashboard'));
+const AdminDashboard = lazy(() => import('../components/AdminDashboard'));
+const EmployeeDashboard = lazy(() => import('../components/EmployeeDashboard'));
+const UsernamesPanel = lazy(() => import('../components/UsernamesPanel'));
 
 // Route definitions
 export const ROUTE_PATHS = {
   // Public routes
   LOGIN: '/login',
-  
+
   // Dashboard routes
   DASHBOARD: '/dashboard',
   SUPER_ADMIN: '/super-admin',
   ADMIN: '/admin',
   EMPLOYEE: '/employee',
-  
+
   // Feature routes
   USERS: '/users',
   PLATFORMS: '/platforms',
@@ -38,7 +38,7 @@ export const ROUTE_PATHS = {
   REPORTS: '/reports',
   LOGS: '/logs',
   ISSUES: '/issues',
-} as const
+} as const;
 
 // Public routes (no authentication required)
 export const publicRoutes: RouteConfig[] = [
@@ -48,7 +48,7 @@ export const publicRoutes: RouteConfig[] = [
     component: LoginPage,
     layout: 'auth',
   },
-]
+];
 
 // Private routes (authentication required)
 export const privateRoutes: RouteConfig[] = [
@@ -80,25 +80,25 @@ export const privateRoutes: RouteConfig[] = [
     allowedRoles: ['SuperAdmin', 'Admin'],
     layout: 'dashboard',
   },
-]
+];
 
 // Role-based dashboard mapping
 export const getRoleBasedDashboard = (role: UserRole): string => {
   switch (role) {
     case 'SuperAdmin':
-      return ROUTE_PATHS.SUPER_ADMIN
+      return ROUTE_PATHS.SUPER_ADMIN;
     case 'Admin':
-      return ROUTE_PATHS.ADMIN
+      return ROUTE_PATHS.ADMIN;
     case 'Employee':
-      return ROUTE_PATHS.EMPLOYEE
+      return ROUTE_PATHS.EMPLOYEE;
     default:
-      return ROUTE_PATHS.LOGIN
+      return ROUTE_PATHS.LOGIN;
   }
-}
+};
 
 // Helper to check if user has access to route
 export const hasRouteAccess = (route: RouteConfig, userRole?: UserRole): boolean => {
-  if (!route.allowedRoles) return true
-  if (!userRole) return false
-  return route.allowedRoles.includes(userRole)
-}
+  if (!route.allowedRoles) return true;
+  if (!userRole) return false;
+  return route.allowedRoles.includes(userRole);
+};

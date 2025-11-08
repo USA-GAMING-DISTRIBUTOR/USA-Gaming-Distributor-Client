@@ -1,41 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '../types/database.types'
+import { createClient } from '@supabase/supabase-js';
+import { logger } from './logger';
+import { env } from '../config/env';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
+import type { Database } from '../types/database.types';
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
-
-// Legacy inline types for backward compatibility (you can remove these if not needed)
-export interface LegacyDatabase {
-  public: {
-    Tables: {
-      users: {
-        Row: {
-          id: string
-          username: string
-          password: string
-          role: 'SuperAdmin' | 'Admin' | 'Employee'
-          created_at: string
-          created_by: string | null
-        }
-        Insert: {
-          id?: string
-          username: string
-          password: string
-          role: 'SuperAdmin' | 'Admin' | 'Employee'
-          created_at?: string
-          created_by?: string | null
-        }
-        Update: {
-          id?: string
-          username?: string
-          password?: string
-          role?: 'SuperAdmin' | 'Admin' | 'Employee'
-          created_at?: string
-          created_by?: string | null
-        }
-      }
-    }
-  }
+if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+  logger.error('[supabase] Missing required Supabase environment variables.');
 }
+
+/**
+ * Singleton Supabase client typed with generated Database types.
+ * Consumers should import from this module to avoid multiple client instances.
+ */
+export const supabase = createClient<Database>(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+
+// Legacy interface removed; rely on generated Database types.

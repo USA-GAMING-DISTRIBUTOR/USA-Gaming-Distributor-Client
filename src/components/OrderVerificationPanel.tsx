@@ -1,35 +1,36 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
-import Pagination from "./common/Pagination";
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import Pagination from './common/Pagination';
 
-interface Order {
+interface OrderItemRowUI {
+  coin_id: string; // maps to order_items.platform_id
+  coin_name?: string; // resolved from game_coins.platform
+  quantity: number;
+  price: number; // unit price
+}
+interface OrderUI {
   id: string;
   customer_id: string;
   customer: { name: string } | null;
-  items: {
-    coin_id: string;
-    coin_name?: string;
-    quantity: number;
-    price: number;
-  }[];
-  payment_method: string;
-  invoice_url?: string;
+  items: OrderItemRowUI[];
+  payment_method: string | null;
   status: string;
   created_at: string;
-  created_by?: string;
+  created_by?: string; // resolved to username if possible
+  invoice_url?: string; // optional (derived elsewhere, not stored in orders table anymore)
 }
 
 const OrderVerificationPanel: React.FC = () => {
   // Edit modal state and handlers
-  const [editOrder, setEditOrder] = useState<Order | null>(null);
+  const [editOrder, setEditOrder] = useState<OrderUI | null>(null);
   const [editModal, setEditModal] = useState(false);
 
-  const handleEditClick = (order: Order) => {
+  const handleEditClick = (order: OrderUI) => {
     setEditOrder(order);
     setEditModal(true);
   };
 
-  const handleEditChange = (field: keyof Order, value: any) => {
+  const handleEditChange = (field: keyof OrderUI, value: string) => {
     if (!editOrder) return;
     setEditOrder({ ...editOrder, [field]: value });
   };
@@ -39,16 +40,16 @@ const OrderVerificationPanel: React.FC = () => {
     setLoading(true);
     setError(null);
     const { error } = await supabase
-      .from("orders")
+      .from('orders')
       .update({
         customer_id: editOrder.customer_id,
         items: editOrder.items,
         payment_method: editOrder.payment_method,
         status: editOrder.status,
       })
-      .eq("id", editOrder.id);
+      .eq('id', editOrder.id);
     if (error) {
-      setError("Failed to update order: " + error.message);
+      setError('Failed to update order: ' + error.message);
       setLoading(false);
       return;
     }
@@ -57,72 +58,87 @@ const OrderVerificationPanel: React.FC = () => {
     fetchOrders();
     setLoading(false);
   };
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderUI[]>([]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
   // ...existing code...
-  const [customers, setCustomers] = useState<{ id: string; name: string }[]>(
-    []
-  );
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
   const [coins, setCoins] = useState<{ id: string; platform: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verifyId, setVerifyId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [detailOrder, setDetailOrder] = useState<OrderUI | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
-    // Fetch orders and join customers for name
-    const { data, error: fetchError } = await supabase
-      .from("orders")
-      .select(
-        "id, customer_id, items, payment_method, status, created_at, invoice_url, created_by, customers(name)"
+    try {
+      // 1. Fetch base orders (items no longer stored directly on orders table)
+      const { data: orderRows, error: ordersError } = await supabase
+        .from('orders')
+        .select('id, customer_id, payment_method, status, created_at, created_by')
+        .order('created_at', { ascending: false });
+      if (ordersError) throw ordersError;
+
+      const orderIds = (orderRows || []).map((o) => o.id);
+
+      // 2. Fetch order items separately
+      const { data: orderItemsRows, error: itemsError } = await supabase
+        .from('order_items')
+        .select('order_id, platform_id, quantity, unit_price')
+        .in('order_id', orderIds.length ? orderIds : ['00000000-0000-0000-0000-000000000000']); // guard empty IN
+      if (itemsError) throw itemsError;
+
+      // 3. Fetch supporting lookups (coins, customers, users)
+      const [{ data: coinsData }, { data: customersData }, { data: usersData }] = await Promise.all(
+        [
+          supabase.from('game_coins').select('id, platform'),
+          supabase.from('customers').select('id, name'),
+          supabase.from('users').select('id, username'),
+        ],
       );
-    // Fetch all coins to map coin_id to coin_name
-    const { data: coinsData } = await supabase
-      .from("game_coins")
-      .select("id, platform");
-    setCoins(coinsData || []);
-    // Fetch all customers to map customer_id to customer name
-    const { data: customersData } = await supabase
-      .from("customers")
-      .select("id, name");
-    setCustomers(customersData || []);
-    // Fetch all users to map created_by to username
-    const { data: usersData } = await supabase
-      .from("users")
-      .select("id, username");
-    // Map coin_id to coin_name in items and customer_id to customer name
-    const mapped = (data || []).map((order: any) => ({
-      ...order,
-      customer: customersData?.find((c: any) => c.id === order.customer_id) || {
-        name: order.customer_id,
-      },
-      items: Array.isArray(order.items)
-        ? order.items.map((item: any) => ({
-            ...item,
+
+      setCoins(coinsData || []);
+      setCustomers(customersData || []);
+
+      // 4. Assemble orders with items
+      const mapped: OrderUI[] = (orderRows || []).map((o) => {
+        const itemsForOrder = (orderItemsRows || [])
+          .filter((itm) => itm.order_id === o.id)
+          .map<OrderItemRowUI>((itm) => ({
+            coin_id: itm.platform_id,
             coin_name:
-              coinsData?.find((c: any) => c.id === item.coin_id)?.platform ||
-              item.coin_id,
-          }))
-        : [],
-      created_by_name:
-        usersData?.find((u: any) => u.id === order.created_by)?.username ||
-        order.created_by ||
-        "-",
-    }));
-    setOrders(mapped);
-    if (fetchError) {
-      setError("Failed to fetch orders: " + fetchError.message);
+              coinsData?.find((c) => c.id === itm.platform_id)?.platform || itm.platform_id,
+            quantity: itm.quantity,
+            price: Number(itm.unit_price),
+          }));
+
+        return {
+          id: o.id,
+          customer_id: o.customer_id,
+          customer: customersData?.find((c) => c.id === o.customer_id) || {
+            name: o.customer_id,
+          },
+          items: itemsForOrder,
+          payment_method: o.payment_method,
+          status: o.status,
+          created_at: o.created_at,
+          created_by:
+            usersData?.find((u) => u.id === o.created_by)?.username || o.created_by || undefined,
+          invoice_url: undefined, // not persisted; could be derived elsewhere
+        };
+      });
+      setOrders(mapped);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError('Failed to fetch orders: ' + message);
+    } finally {
       setLoading(false);
-      return;
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -153,11 +169,11 @@ const OrderVerificationPanel: React.FC = () => {
     setLoading(true);
     setError(null);
     const { error } = await supabase
-      .from("orders")
-      .update({ status: "verified" })
-      .eq("id", verifyId);
+      .from('orders')
+      .update({ status: 'verified' })
+      .eq('id', verifyId);
     if (error) {
-      setError("Failed to verify order: " + error.message);
+      setError('Failed to verify order: ' + error.message);
       setLoading(false);
       return;
     }
@@ -170,40 +186,22 @@ const OrderVerificationPanel: React.FC = () => {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-lg w-full max-w-5xl mx-auto">
       <h2 className="text-lg font-semibold mb-4">Order Verification</h2>
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
-      )}
+      {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
       <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
-      <thead>
-      <tr className="border-b border-gray-200">
-      <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">
-        Order ID
-      </th>
-      <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">
-        Customer
-      </th>
-      <th className="text-left py-3 px-4 font-semibold text-gray-700 w-56">
-        Items
-      </th>
-        <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">
-            Payment Method
-              </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-20">
-                Status
-              </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">
-                Created By
-              </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">
-                Created At
-              </th>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">Order ID</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">Customer</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-56">Items</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">
-                Invoice
+                Payment Method
               </th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">
-                Action
-              </th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-20">Status</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">Created By</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">Created At</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">Invoice</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -222,27 +220,19 @@ const OrderVerificationPanel: React.FC = () => {
                 </td>
                 <td className="py-3 px-4">
                   {Array.isArray(order.items)
-                    ? `${order.items.length} item${
-                        order.items.length !== 1 ? "s" : ""
-                      }`
-                    : "—"}
+                    ? `${order.items.length} item${order.items.length !== 1 ? 's' : ''}`
+                    : '—'}
                 </td>
                 <td className="py-3 px-4">{order.payment_method}</td>
                 <td className="py-3 px-4">
-                {order.status === "verified" ? (
-                <span className="text-green-600 font-semibold">
-                Verified
-                </span>
-                ) : (
-                <span className="text-yellow-600 font-semibold">
-                Pending
-                </span>
-                )}
+                  {order.status === 'verified' ? (
+                    <span className="text-green-600 font-semibold">Verified</span>
+                  ) : (
+                    <span className="text-yellow-600 font-semibold">Pending</span>
+                  )}
                 </td>
                 <td className="py-3 px-4">{order.created_by}</td>
-                <td className="py-3 px-4">
-                {new Date(order.created_at).toLocaleString()}
-                </td>
+                <td className="py-3 px-4">{new Date(order.created_at).toLocaleString()}</td>
                 <td className="py-3 px-4">
                   {order.invoice_url ? (
                     <a
@@ -258,11 +248,8 @@ const OrderVerificationPanel: React.FC = () => {
                     <span className="text-gray-400">No Invoice</span>
                   )}
                 </td>
-                <td
-                  className="py-2 px-3 flex gap-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {order.status !== "verified" && (
+                <td className="py-2 px-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  {order.status !== 'verified' && (
                     <button
                       className="bg-blue-500 text-white px-3 py-1 rounded"
                       onClick={() => handleVerifyClick(order.id)}
@@ -283,21 +270,17 @@ const OrderVerificationPanel: React.FC = () => {
                   <div
                     className="fixed inset-0 z-50 flex items-center justify-center"
                     style={{
-                      backdropFilter: "blur(8px)",
-                      background: "rgba(0,0,0,0.2)",
+                      backdropFilter: 'blur(8px)',
+                      background: 'rgba(0,0,0,0.2)',
                     }}
                   >
                     <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-2xl">
                       <h3 className="text-lg font-semibold mb-4">Edit Order</h3>
                       <div className="mb-4">
-                        <label className="block mb-2 font-medium">
-                          Customer
-                        </label>
+                        <label className="block mb-2 font-medium">Customer</label>
                         <select
                           value={editOrder.customer_id}
-                          onChange={(e) =>
-                            handleEditChange("customer_id", e.target.value)
-                          }
+                          onChange={(e) => handleEditChange('customer_id', e.target.value)}
                           className="w-full px-3 py-2 rounded-lg border"
                         >
                           <option value="">Select Customer</option>
@@ -350,9 +333,7 @@ const OrderVerificationPanel: React.FC = () => {
                                     min={1}
                                     onChange={(e) => {
                                       const newItems = [...editOrder.items];
-                                      newItems[idx].quantity = Number(
-                                        e.target.value
-                                      );
+                                      newItems[idx].quantity = Number(e.target.value);
                                       setEditOrder({
                                         ...editOrder,
                                         items: newItems,
@@ -368,9 +349,7 @@ const OrderVerificationPanel: React.FC = () => {
                                     min={0}
                                     onChange={(e) => {
                                       const newItems = [...editOrder.items];
-                                      newItems[idx].price = Number(
-                                        e.target.value
-                                      );
+                                      newItems[idx].price = Number(e.target.value);
                                       setEditOrder({
                                         ...editOrder,
                                         items: newItems,
@@ -383,9 +362,7 @@ const OrderVerificationPanel: React.FC = () => {
                                   <button
                                     className="bg-red-500 text-white px-2 py-1 rounded"
                                     onClick={() => {
-                                      const newItems = editOrder.items.filter(
-                                        (_, i) => i !== idx
-                                      );
+                                      const newItems = editOrder.items.filter((_, i) => i !== idx);
                                       setEditOrder({
                                         ...editOrder,
                                         items: newItems,
@@ -404,10 +381,7 @@ const OrderVerificationPanel: React.FC = () => {
                           onClick={() => {
                             setEditOrder({
                               ...editOrder,
-                              items: [
-                                ...editOrder.items,
-                                { coin_id: "", quantity: 1, price: 0 },
-                              ],
+                              items: [...editOrder.items, { coin_id: '', quantity: 1, price: 0 }],
                             });
                           }}
                         >
@@ -415,15 +389,11 @@ const OrderVerificationPanel: React.FC = () => {
                         </button>
                       </div>
                       <div className="mb-4">
-                        <label className="block mb-2 font-medium">
-                          Payment Method
-                        </label>
+                        <label className="block mb-2 font-medium">Payment Method</label>
                         <input
                           type="text"
                           value={editOrder.payment_method}
-                          onChange={(e) =>
-                            handleEditChange("payment_method", e.target.value)
-                          }
+                          onChange={(e) => handleEditChange('payment_method', e.target.value)}
                           className="w-full px-3 py-2 rounded-lg border"
                         />
                       </div>
@@ -431,9 +401,7 @@ const OrderVerificationPanel: React.FC = () => {
                         <label className="block mb-2 font-medium">Status</label>
                         <select
                           value={editOrder.status}
-                          onChange={(e) =>
-                            handleEditChange("status", e.target.value)
-                          }
+                          onChange={(e) => handleEditChange('status', e.target.value)}
                           className="w-full px-3 py-2 rounded-lg border"
                         >
                           <option value="Pending">Pending</option>
@@ -480,7 +448,7 @@ const OrderVerificationPanel: React.FC = () => {
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.2)" }}
+          style={{ backdropFilter: 'blur(8px)', background: 'rgba(0,0,0,0.2)' }}
         >
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Confirm Verification</h3>
@@ -509,8 +477,8 @@ const OrderVerificationPanel: React.FC = () => {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{
-            backdropFilter: "blur(6px)",
-            background: "rgba(0,0,0,0.35)",
+            backdropFilter: 'blur(6px)',
+            background: 'rgba(0,0,0,0.35)',
           }}
         >
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative">
@@ -527,31 +495,27 @@ const OrderVerificationPanel: React.FC = () => {
             <h3 className="text-lg font-semibold mb-2">Order Details</h3>
             <div className="mb-4 text-sm grid grid-cols-2 gap-x-4 gap-y-1">
               <div>
-                <span className="font-semibold">Order ID:</span>{" "}
-                {detailOrder.id}
+                <span className="font-semibold">Order ID:</span> {detailOrder.id}
               </div>
               <div>
-                <span className="font-semibold">Created:</span>{" "}
+                <span className="font-semibold">Created:</span>{' '}
                 {new Date(detailOrder.created_at).toLocaleString()}
               </div>
               <div>
-                <span className="font-semibold">Customer:</span>{" "}
+                <span className="font-semibold">Customer:</span>{' '}
                 {detailOrder.customer?.name || detailOrder.customer_id}
               </div>
               <div>
-                <span className="font-semibold">Payment:</span>{" "}
-                {detailOrder.payment_method}
+                <span className="font-semibold">Payment:</span> {detailOrder.payment_method}
               </div>
               <div>
-                <span className="font-semibold">Status:</span>{" "}
-                {detailOrder.status}
+                <span className="font-semibold">Status:</span> {detailOrder.status}
               </div>
               <div>
-                <span className="font-semibold">Created By:</span>{" "}
-                {detailOrder.created_by || "-"}
+                <span className="font-semibold">Created By:</span> {detailOrder.created_by || '-'}
               </div>
               <div className="col-span-2">
-                <span className="font-semibold">Invoice:</span>{" "}
+                <span className="font-semibold">Invoice:</span>{' '}
                 {detailOrder.invoice_url ? (
                   <a
                     href={detailOrder.invoice_url}
@@ -568,52 +532,33 @@ const OrderVerificationPanel: React.FC = () => {
             </div>
             <h4 className="font-semibold mb-2">Items</h4>
             <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-            <thead>
-            <tr className="border-b border-gray-200">
-            <th className="text-left py-3 px-4 font-semibold text-gray-700">
-              Platform
-            </th>
-            <th className="text-right py-3 px-4 font-semibold text-gray-700">
-                Quantity
-                </th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">
-                      Unit Price
-                    </th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">
-                      Total
-                    </th>
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Platform</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Quantity</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Unit Price</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.isArray(detailOrder.items) &&
-                  detailOrder.items.length > 0 ? (
+                  {Array.isArray(detailOrder.items) && detailOrder.items.length > 0 ? (
                     detailOrder.items.map((item, idx) => {
                       const total = Number(item.price) * Number(item.quantity);
                       return (
-                        <tr
-                        key={idx}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                        >
-                        <td className="py-3 px-4 font-medium">
-                        {item.coin_name || item.coin_id}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                        {item.quantity}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                            ${item.price}
+                        <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4 font-medium">
+                            {item.coin_name || item.coin_id}
                           </td>
+                          <td className="py-3 px-4 text-right">{item.quantity}</td>
+                          <td className="py-3 px-4 text-right">${item.price}</td>
                           <td className="py-3 px-4 text-right">${total}</td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td
-                        colSpan={4}
-                        className="py-4 text-center text-gray-500"
-                      >
+                      <td colSpan={4} className="py-4 text-center text-gray-500">
                         No items
                       </td>
                     </tr>
@@ -621,19 +566,15 @@ const OrderVerificationPanel: React.FC = () => {
                 </tbody>
                 <tfoot>
                   <tr className="border-t bg-gray-50">
-                    <td
-                      colSpan={3}
-                      className="py-2 px-2 text-right font-semibold"
-                    >
+                    <td colSpan={3} className="py-2 px-2 text-right font-semibold">
                       Grand Total
                     </td>
                     <td className="py-2 px-2 text-right font-semibold">
                       $
                       {Array.isArray(detailOrder.items)
                         ? detailOrder.items.reduce(
-                            (sum, item) =>
-                              sum + Number(item.price) * Number(item.quantity),
-                            0
+                            (sum, item) => sum + Number(item.price) * Number(item.quantity),
+                            0,
                           )
                         : 0}
                     </td>

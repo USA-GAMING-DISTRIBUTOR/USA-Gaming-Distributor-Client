@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 interface LoadingSpinnerProps {
   size?: number;
@@ -8,8 +8,8 @@ interface LoadingSpinnerProps {
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = 20,
-  className = "",
-  stroke = "#ec4899",
+  className = '',
+  stroke = '#ec4899',
 }) => {
   return (
     <span className={`inline-flex items-center justify-center ${className}`}>

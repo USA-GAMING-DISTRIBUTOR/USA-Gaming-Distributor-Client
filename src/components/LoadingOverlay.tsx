@@ -1,5 +1,5 @@
-import React from "react";
-import LoadingSpinner from "./LoadingSpinner";
+import React from 'react';
+import LoadingSpinner from './LoadingSpinner';
 
 interface LoadingOverlayProps {
   isVisible: boolean;
@@ -9,8 +9,8 @@ interface LoadingOverlayProps {
 
 const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   isVisible,
-  message = "Loading...",
-  className = "",
+  message = 'Loading...',
+  className = '',
 }) => {
   if (!isVisible) return null;
 

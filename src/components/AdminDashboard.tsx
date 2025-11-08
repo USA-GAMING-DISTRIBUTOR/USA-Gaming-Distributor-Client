@@ -5,6 +5,7 @@ import CustomerIssuesPanel from "./CustomerIssuesPanel";
 import CustomerPanel from "./CustomerPanel";
 import OverviewPanel from "./OverviewPanel";
 import OrderPanel from "./OrderPanel";
+import UsernamesPanel from "./UsernamesPanel";
 import {
   Home,
   Coins,
@@ -13,6 +14,7 @@ import {
   MessageSquare,
   UserCog,
   LogOut,
+  UserCheck,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import { logout } from "../store/authSlice";
@@ -33,6 +35,7 @@ const AdminDashboard: React.FC = () => {
     { id: "overview", label: "Overview", icon: Home, active: true },
     { id: "platform", label: "Platform", icon: Coins },
     { id: "customers", label: "Customers", icon: Users },
+    { id: "usernames", label: "Usernames", icon: UserCheck },
     {
       id: "orders",
       label: "Order Management",
@@ -122,12 +125,14 @@ const AdminDashboard: React.FC = () => {
           {activeMenuItem === "orders" && <OrderPanel />}
           {activeMenuItem === "customer-issues" && <CustomerIssuesPanel />}
           {activeMenuItem === "customers" && <CustomerPanel />}
+          {activeMenuItem === "usernames" && <UsernamesPanel />}
           {activeMenuItem !== "overview" &&
             activeMenuItem !== "platform" &&
             activeMenuItem !== "employees" &&
             activeMenuItem !== "orders" &&
             activeMenuItem !== "customer-issues" &&
-            activeMenuItem !== "customers" && (
+            activeMenuItem !== "customers" &&
+            activeMenuItem !== "usernames" && (
               <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">
                   {menuItems.find((item) => item.id === activeMenuItem)?.label}{" "}

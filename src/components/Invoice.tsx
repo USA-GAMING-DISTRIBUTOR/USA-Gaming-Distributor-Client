@@ -183,7 +183,7 @@ const Invoice: React.FC<InvoiceProps> = ({
                 marginBottom: "4px",
               }}
             >
-              � {customer.contact_numbers[0]}
+              📞 {customer.contact_numbers[0]}
             </div>
           )}
           {customer?.contact_numbers && customer.contact_numbers.length > 1 && (
@@ -309,6 +309,17 @@ const Invoice: React.FC<InvoiceProps> = ({
               <th
                 style={{
                   padding: "16px 12px",
+                  textAlign: "left",
+                  fontWeight: "600",
+                  fontSize: "14px",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Username
+              </th>
+              <th
+                style={{
+                  padding: "16px 12px",
                   textAlign: "center",
                   fontWeight: "600",
                   fontSize: "14px",
@@ -363,6 +374,34 @@ const Invoice: React.FC<InvoiceProps> = ({
                     }}
                   >
                     {item.platform || platform?.platform || "Unknown Platform"}
+                  </td>
+                  <td
+                    style={{
+                      padding: "16px 12px",
+                      fontWeight: "500",
+                      color: "#6b7280",
+                    }}
+                  >
+                    {item.username ? (
+                      <span
+                        style={{
+                          backgroundColor: "#dbeafe",
+                          color: "#1e40af",
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          display: "inline-flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        👤 {item.username}
+                      </span>
+                    ) : (
+                      <span style={{ color: "#9ca3af", fontStyle: "italic" }}>
+                        No username
+                      </span>
+                    )}
                   </td>
                   <td
                     style={{

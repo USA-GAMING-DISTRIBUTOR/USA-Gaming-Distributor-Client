@@ -13,6 +13,7 @@ import {
   Activity,
   Shield,
   Power,
+  UserCheck,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -56,6 +57,12 @@ const navigationItems: NavItem[] = [
     name: "Customers",
     icon: <Users className="h-5 w-5" />,
     path: "/customers",
+    roles: ["SuperAdmin", "Admin"],
+  },
+  {
+    name: "Usernames",
+    icon: <UserCheck className="h-5 w-5" />,
+    path: "/usernames",
     roles: ["SuperAdmin", "Admin"],
   },
   {

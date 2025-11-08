@@ -4,7 +4,8 @@ id: string;
 customer_id: string | null;
 order_number: string;
 items: OrderItem[];
-payment_method: PaymentMethod;
+payment_method?: PaymentMethod;
+payment_details?: PaymentDetails;
 status: 'pending' | 'processing' | 'verified' | 'completed' | 'replacement' | 'refunded';
 payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
 total_amount: number;
@@ -28,9 +29,10 @@ account_type?: string;
 quantity: number;
 unitPrice: number;
   total_price: number;
+  username?: string; // Customer's username for this platform
 }
 
-export type PaymentMethod = 'Crypto' | 'Bank Transfer' | 'Cash';
+export type PaymentMethod = 'Crypto' | 'Bank Transfer' | 'Cash' | 'None';
 
 // Payment Details based on database schema
 export interface PaymentDetailsBase {
@@ -78,8 +80,8 @@ export type PaymentDetails = CryptoPaymentDetails | BankTransferDetails | CashPa
 export interface OrderCreateData {
   customer_id: string;
   items: OrderItemCreateData[];
-  payment_method: PaymentMethod;
-  payment_details: PaymentDetails;
+  payment_method?: PaymentMethod;
+  payment_details?: PaymentDetails;
   discount_amount?: number;
   notes?: string;
 }
@@ -88,6 +90,7 @@ export interface OrderItemCreateData {
   platform_id: string;
   quantity: number;
   unit_price: number;
+  username?: string; // Customer's username for this platform
 }
 
 export interface OrderUpdateData {

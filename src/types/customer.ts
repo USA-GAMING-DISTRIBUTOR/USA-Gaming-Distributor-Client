@@ -7,6 +7,36 @@ export interface Customer {
   updated_at?: string | null;
 }
 
+// Customer usernames per platform
+export interface CustomerUsername {
+  id: string;
+  customer_id: string;
+  platform_id: string;
+  username: string;
+  notes?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  platform_name?: string;
+  account_type?: string;
+}
+
+export interface CustomerUsernameCreateData {
+  customer_id: string;
+  platform_id: string;
+  username: string;
+  notes?: string;
+  is_active?: boolean;
+}
+
+export interface CustomerUsernameUpdateData {
+  id: string;
+  username?: string;
+  notes?: string;
+  is_active?: boolean;
+}
+
 export interface CustomerCreateData {
   name: string;
   contact_numbers: string[];

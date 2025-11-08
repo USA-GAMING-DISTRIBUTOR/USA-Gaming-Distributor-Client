@@ -42,12 +42,15 @@ const OrderPanel: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [paymentDetails, setPaymentDetails] = useState<any[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [customerUsernames, setCustomerUsernames] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Invoice state
@@ -108,15 +111,56 @@ const OrderPanel: React.FC = () => {
     notes: "",
   });
 
+  // Edit order form state
+  const [editForm, setEditForm] = useState<{
+    id: string;
+    customer_id: string;
+    items: OrderItem[];
+    payment_method: PaymentMethod;
+    payment_details: PaymentDetails;
+    discount_amount?: number;
+    notes?: string;
+  }>({
+    id: "",
+    customer_id: "",
+    items: [],
+    payment_method: "Cash",
+    payment_details: { type: "Cash", received_by: "" } as any,
+    discount_amount: 0,
+    notes: "",
+  });
+
   // Order item being added
   const [newItem, setNewItem] = useState({
     platform_id: "",
     quantity: 1,
     unit_price: 0,
+    username: "",
   });
 
   // Price editing state
   const [isPriceEditable, setIsPriceEditable] = useState(false);
+
+  // Function to get available usernames for a customer and platform
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getAvailableUsernames = (customerId: string, platformId: string) => {
+    console.log("Getting usernames for:", { customerId, platformId });
+    console.log("Available customer usernames:", customerUsernames);
+    
+    const filtered = customerUsernames.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (username: any) => {
+        const match = username.customer_id === customerId &&
+                     username.platform_id === platformId &&
+                     username.is_active;
+        console.log("Username match:", username, "matches:", match);
+        return match;
+      }
+    );
+    
+    console.log("Filtered usernames:", filtered);
+    return filtered;
+  };
 
   // Function to get customer pricing for a specific platform and quantity
   const getCustomerPrice = (
@@ -166,6 +210,7 @@ const OrderPanel: React.FC = () => {
         customersRes,
         customerPricingRes,
         platformsRes,
+        customerUsernamesRes,
       ] = await Promise.all([
         supabase
           .from("orders")
@@ -187,6 +232,11 @@ const OrderPanel: React.FC = () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).from("customer_pricing").select("*"),
         supabase.from("game_coins").select("*").order("platform"),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).from("customer_usernames").select(`
+            *,
+            game_coins!platform_id(platform, account_type)
+          `).eq("is_active", true),
       ]);
 
       if (ordersRes.error)
@@ -212,6 +262,9 @@ const OrderPanel: React.FC = () => {
         throw new Error(
           "Failed to fetch platforms: " + platformsRes.error.message
         );
+      if (customerUsernamesRes.error)
+        console.error("Failed to fetch customer usernames:", customerUsernamesRes.error);
+        // Don't throw error, just log it so the rest of the app works
 
       // First transform platforms so we can use them in order transformation
       const transformedPlatforms: Platform[] = (platformsRes.data || []).map(
@@ -249,6 +302,7 @@ const OrderPanel: React.FC = () => {
             const platform = transformedPlatforms.find(
               (p) => p.id === item.platform_id
             );
+            
             return {
               order_id: String(item.order_id || order.id || ""),
               platform_id: String(item.platform_id || ""),
@@ -258,8 +312,9 @@ const OrderPanel: React.FC = () => {
                 platform?.account_type ||
                 "Standard",
               quantity: Number(item.quantity || 0),
-              unitPrice: Number(item.unitPrice || 0),
+              unitPrice: Number(item.unit_price || item.unitPrice || 0),
               total_price: Number(item.total_price || 0),
+              username: item.username || null,
             };
           });
 
@@ -274,11 +329,9 @@ const OrderPanel: React.FC = () => {
             created_by: String(order.created_by || ""),
             created_by_username: order.users?.username || null,
             items: items,
-            payment_method: (order.payment_method as PaymentMethod) || "Cash",
+            payment_method: (order.payment_method as PaymentMethod) || "None",
             payment_status: (order.payment_status as any) || "pending",
-            payment_details: (order.payment_details as PaymentDetails) || {
-              type: "Cash",
-            },
+            payment_details: order.payment_details || null,
             total_amount: Number(order.total_amount || 0),
             discount_amount: Number(order.discount_amount || 0),
             final_amount: Number(order.final_amount || order.total_amount || 0),
@@ -319,6 +372,11 @@ const OrderPanel: React.FC = () => {
       setCustomerPricing(customerPricingRes.data || []);
       setPaymentDetails(paymentDetailsRes.data || []);
       setPlatforms(transformedPlatforms);
+      
+      // Debug customer usernames
+      console.log("Customer usernames fetched:", customerUsernamesRes.data);
+      console.log("Customer usernames error:", customerUsernamesRes.error);
+      setCustomerUsernames(customerUsernamesRes.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -425,40 +483,63 @@ const OrderPanel: React.FC = () => {
     }
 
     // Check if this platform is already in the order
-    const existingItem = createForm.items.find(
+    const existingItemIndex = createForm.items.findIndex(
       (item) => item.platform_id === newItem.platform_id
     );
-    const totalRequestedQuantity =
-      (existingItem?.quantity || 0) + newItem.quantity;
 
-    if (totalRequestedQuantity > platform.inventory) {
-      alert(
-        `Error: Total requested quantity (${totalRequestedQuantity}) exceeds available inventory (${platform.inventory}) for ${platform.platform}.`
-      );
-      return;
+    if (existingItemIndex !== -1) {
+      // Platform already exists, update quantity and total price
+      const existingItem = createForm.items[existingItemIndex];
+      const newQuantity = existingItem.quantity + newItem.quantity;
+      const newTotalPrice = newQuantity * (Number(newItem.unit_price) || platform.cost_price || 0);
+
+      // Check if total quantity exceeds available inventory
+      if (newQuantity > platform.inventory) {
+        alert(
+          `Error: Total requested quantity (${newQuantity}) exceeds available inventory (${platform.inventory}) for ${platform.platform}.`
+        );
+        return;
+      }
+
+      setCreateForm((prev) => ({
+        ...prev,
+        items: prev.items.map((item, index) =>
+          index === existingItemIndex
+            ? {
+                ...item,
+                quantity: newQuantity,
+                unitPrice: Number(newItem.unit_price) || platform.cost_price || 0,
+                total_price: newTotalPrice,
+              }
+            : item
+        ),
+      }));
+    } else {
+      // Platform doesn't exist, add as new item
+      const orderItem: OrderItem = {
+        order_id: "", // Will be set when order is created
+        platform_id: newItem.platform_id,
+        platform: platform.platform,
+        quantity: newItem.quantity,
+        unitPrice: Number(newItem.unit_price) || platform.cost_price || 0,
+        total_price:
+          newItem.quantity *
+          (Number(newItem.unit_price) || platform.cost_price || 0),
+        username: newItem.username || undefined,
+      };
+
+      setCreateForm((prev) => ({
+        ...prev,
+        items: [...prev.items, orderItem],
+      }));
     }
-
-    const orderItem: OrderItem = {
-      order_id: "", // Will be set when order is created
-      platform_id: newItem.platform_id,
-      platform: platform.platform,
-      quantity: newItem.quantity,
-      unitPrice: Number(newItem.unit_price) || platform.cost_price || 0,
-      total_price:
-        newItem.quantity *
-        (Number(newItem.unit_price) || platform.cost_price || 0),
-    };
-
-    setCreateForm((prev) => ({
-      ...prev,
-      items: [...prev.items, orderItem],
-    }));
 
     // Reset new item form
     setNewItem({
       platform_id: "",
       quantity: 1,
       unit_price: 0,
+      username: "",
     });
 
     // Reset price editing state
@@ -473,6 +554,93 @@ const OrderPanel: React.FC = () => {
     }));
   };
 
+  // Add item to edit order
+  const addItemToEditOrder = () => {
+    if (!newItem.platform_id) return;
+
+    const platform = platforms.find((p) => p.id === newItem.platform_id);
+    if (!platform) return;
+
+    // Check if requested quantity exceeds available inventory
+    if (newItem.quantity > platform.inventory) {
+      alert(
+        `Error: Requested quantity (${newItem.quantity}) exceeds available inventory (${platform.inventory}) for ${platform.platform}.`
+      );
+      return;
+    }
+
+    // Check if this platform is already in the order
+    const existingItemIndex = editForm.items.findIndex(
+      (item) => item.platform_id === newItem.platform_id
+    );
+
+    if (existingItemIndex !== -1) {
+      // Platform already exists, update quantity and total price
+      const existingItem = editForm.items[existingItemIndex];
+      const newQuantity = existingItem.quantity + newItem.quantity;
+      const newTotalPrice = newQuantity * (Number(newItem.unit_price) || platform.cost_price || 0);
+
+      // Check if total quantity exceeds available inventory
+      if (newQuantity > platform.inventory) {
+        alert(
+          `Error: Total requested quantity (${newQuantity}) exceeds available inventory (${platform.inventory}) for ${platform.platform}.`
+        );
+        return;
+      }
+
+      setEditForm((prev) => ({
+        ...prev,
+        items: prev.items.map((item, index) =>
+          index === existingItemIndex
+            ? {
+                ...item,
+                quantity: newQuantity,
+                unitPrice: Number(newItem.unit_price) || platform.cost_price || 0,
+                total_price: newTotalPrice,
+              }
+            : item
+        ),
+      }));
+    } else {
+      // Platform doesn't exist, add as new item
+      const orderItem: OrderItem = {
+        order_id: editForm.id, // Use edit form ID
+        platform_id: newItem.platform_id,
+        platform: platform.platform,
+        quantity: newItem.quantity,
+        unitPrice: Number(newItem.unit_price) || platform.cost_price || 0,
+        total_price:
+          newItem.quantity *
+          (Number(newItem.unit_price) || platform.cost_price || 0),
+        username: newItem.username || undefined,
+      };
+
+      setEditForm((prev) => ({
+        ...prev,
+        items: [...prev.items, orderItem],
+      }));
+    }
+
+    // Reset new item form
+    setNewItem({
+      platform_id: "",
+      quantity: 1,
+      unit_price: 0,
+      username: "",
+    });
+
+    // Reset price editing state
+    setIsPriceEditable(false);
+  };
+
+  // Remove item from edit order
+  const removeItemFromEditOrder = (platformId: string) => {
+    setEditForm((prev) => ({
+      ...prev,
+      items: prev.items.filter((item) => item.platform_id !== platformId),
+    }));
+  };
+
   // Calculate order totals
   const calculateTotals = () => {
     const subtotal = createForm.items.reduce(
@@ -480,6 +648,16 @@ const OrderPanel: React.FC = () => {
       0
     );
     const finalTotal = subtotal - (createForm.discount_amount || 0);
+    return { subtotal, finalTotal };
+  };
+
+  // Calculate edit order totals
+  const calculateEditTotals = () => {
+    const subtotal = editForm.items.reduce(
+      (sum, item) => sum + item.total_price,
+      0
+    );
+    const finalTotal = subtotal - (editForm.discount_amount || 0);
     return { subtotal, finalTotal };
   };
 
@@ -502,9 +680,8 @@ const OrderPanel: React.FC = () => {
       // Generate a unique order number
       const orderNumber = `ORD-${Date.now()}`;
 
-      // Check if current user is Admin to auto-verify orders
-      const isAdminUser = user?.role === "Admin" || user?.role === "SuperAdmin";
-      const orderStatus = isAdminUser ? "verified" : "pending";
+      // All orders start as pending status
+      const orderStatus = "pending";
 
       const orderData = {
         customer_id: createForm.customer_id,
@@ -515,12 +692,6 @@ const OrderPanel: React.FC = () => {
         status: orderStatus as Order["status"],
         notes: createForm.notes,
         created_by: user?.id || null,
-        // Set verification details if auto-verified
-        ...(isAdminUser &&
-          user && {
-            verified_at: new Date().toISOString(),
-            verified_by: user.id,
-          }),
       };
 
       // First create the order
@@ -540,6 +711,7 @@ const OrderPanel: React.FC = () => {
         quantity: item.quantity,
         unit_price: item.unitPrice,
         total_price: item.total_price,
+        username: item.username || null,
       }));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -640,20 +812,15 @@ const OrderPanel: React.FC = () => {
       setCreateForm({
         customer_id: "",
         items: [],
-        payment_method: "Cash",
-        payment_details: { type: "Cash", received_by: "" } as any,
+        payment_method: "None",
+        payment_details: null,
         discount_amount: 0,
         notes: "",
       });
       setShowCreateModal(false);
 
-      // // Show success message with auto-verification status
-      // const successMessage = isAdminUser
-      //   ? "Order created and automatically verified (Admin privilege)"
-      //   : "Order created successfully";
-      // alert(successMessage);
-
       fetchData();
+      alert("Order created successfully! It is now pending verification.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create order");
     } finally {
@@ -684,6 +851,258 @@ const OrderPanel: React.FC = () => {
       setError(
         err instanceof Error ? err.message : "Failed to update order status"
       );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle edit order - populate edit form with existing order data
+  const handleEditOrder = (order: Order) => {
+    setEditForm({
+      id: order.id,
+      customer_id: order.customer_id || "",
+      items: order.items,
+      payment_method: order.payment_method || "None",
+      payment_details: order.payment_method === "None" ? null : order.payment_details,
+      discount_amount: order.discount_amount || 0,
+      notes: order.notes || "",
+    });
+    setShowEditModal(true);
+  };
+
+  // Update order
+  const handleUpdateOrder = async (e: React.FormEvent) => {
+    console.log("=== STARTING ORDER UPDATE ===");
+    console.log("Edit form data:", editForm);
+    console.log("User:", user);
+    console.log("Orders array length:", orders.length);
+
+    e.preventDefault();
+    if (!user?.id) {
+      console.error("ERROR: User not authenticated");
+      setError("User not authenticated. Please log in to update an order.");
+      return;
+    }
+    if (editForm.items.length === 0) {
+      console.error("ERROR: No items in order");
+      setError("Please add at least one item to the order");
+      return;
+    }
+
+    console.log("Validation passed, proceeding with update...");
+    setLoading(true);
+    try {
+      const { finalTotal } = calculateEditTotals();
+      console.log("Calculated final total:", finalTotal);
+
+      // Get original order data to compare changes
+      const originalOrder = orders.find(o => o.id === editForm.id);
+      console.log("Original order found:", originalOrder);
+      if (!originalOrder) {
+        console.error("ERROR: Original order not found for ID:", editForm.id);
+        throw new Error("Original order not found");
+      }
+
+      // Calculate inventory adjustments
+      const inventoryAdjustments: { [platformId: string]: number } = {};
+
+      // First, subtract the original quantities
+      for (const originalItem of originalOrder.items) {
+        inventoryAdjustments[originalItem.platform_id] =
+          (inventoryAdjustments[originalItem.platform_id] || 0) + originalItem.quantity;
+      }
+
+      // Then, add the new quantities
+      for (const newItem of editForm.items) {
+        inventoryAdjustments[newItem.platform_id] =
+          (inventoryAdjustments[newItem.platform_id] || 0) - newItem.quantity;
+      }
+
+      // Check inventory availability for new quantities
+      for (const item of editForm.items) {
+        const platform = platforms.find((p) => p.id === item.platform_id);
+        if (!platform) continue;
+
+        const currentInventory = platform.inventory;
+        const originalQuantity = originalOrder.items.find(
+          (oi) => oi.platform_id === item.platform_id
+        )?.quantity || 0;
+        const inventoryChange = item.quantity - originalQuantity;
+
+        if (inventoryChange > 0 && item.quantity > currentInventory + originalQuantity) {
+          throw new Error(
+            `Insufficient inventory for ${platform.platform}. Available: ${currentInventory + originalQuantity}, Requested: ${item.quantity}`
+          );
+        }
+      }
+
+      // Update the order
+      console.log("About to update order with data:", {
+        customer_id: editForm.customer_id,
+        payment_method: editForm.payment_method,
+        total_amount: finalTotal,
+        notes: editForm.notes,
+        updated_at: new Date().toISOString(),
+      });
+      const { error: orderError } = await supabase
+        .from("orders")
+        .update({
+          customer_id: editForm.customer_id,
+          payment_method: editForm.payment_method,
+          total_amount: finalTotal,
+          notes: editForm.notes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editForm.id);
+
+      if (orderError) {
+        console.error("Order update error:", orderError);
+        throw orderError;
+      }
+
+      // Delete existing order items
+      const { error: deleteItemsError } = await (supabase as any)
+        .from("order_items")
+        .delete()
+        .eq("order_id", editForm.id);
+
+      if (deleteItemsError) throw deleteItemsError;
+
+      // Insert updated order items
+      const orderItems = editForm.items.map((item) => ({
+        order_id: editForm.id,
+        platform_id: item.platform_id,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        total_price: item.total_price,
+        username: item.username || null,
+      }));
+      console.log("Order items to insert:", orderItems);
+
+      const { error: itemsError } = await (supabase as any)
+        .from("order_items")
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // Always delete existing payment details first
+      console.log("Deleting existing payment details for order:", editForm.id);
+      const { error: deletePaymentError } = await (supabase as any)
+        .from("payment_details")
+        .delete()
+        .eq("order_id", editForm.id);
+
+      if (deletePaymentError) {
+        console.error("Error deleting payment details:", deletePaymentError);
+        throw deletePaymentError;
+      }
+
+      // Insert new payment details only if payment method is not "None"
+      if (editForm.payment_details && editForm.payment_method !== "None") {
+        console.log("Inserting new payment details:", editForm.payment_details);
+        const { finalTotal } = calculateEditTotals();
+
+        // Insert updated payment details
+        const paymentDetailsData = {
+          order_id: editForm.id,
+          payment_method: editForm.payment_method,
+          amount: finalTotal,
+          currency: "USD",
+          payment_data: editForm.payment_details,
+        };
+
+        // Add specific fields based on payment method
+        if (editForm.payment_method === "Crypto") {
+          const cryptoDetails = editForm.payment_details as any;
+          const cryptoType = cryptoDetails.crypto_type || "USDT";
+
+          Object.assign(paymentDetailsData, {
+            crypto_currency: cryptoType,
+            crypto_network: ["TRC20", "BEP20"].includes(cryptoType)
+              ? cryptoType
+              : null,
+            crypto_username: ["USDT", "USDC"].includes(cryptoType)
+              ? cryptoDetails.username
+              : null,
+            crypto_wallet_address: !["USDT", "USDC"].includes(cryptoType)
+              ? cryptoDetails.wallet_address
+              : null,
+            crypto_transaction_hash: cryptoDetails.transaction_id,
+          });
+        } else if (editForm.payment_method === "Bank Transfer") {
+          const bankDetails = editForm.payment_details as any;
+          Object.assign(paymentDetailsData, {
+            bank_transaction_reference: bankDetails.bank_transaction_reference,
+            bank_sender_name: bankDetails.sender_name,
+            bank_sender_bank: bankDetails.sender_bank,
+            bank_transaction_time: bankDetails.transaction_time
+              ? new Date(bankDetails.transaction_time).toISOString()
+              : null,
+            bank_exchange_rate: bankDetails.exchange_rate,
+            bank_amount_in_currency: bankDetails.bank_amount_in_currency,
+            currency: bankDetails.currency || "USD",
+            bank_purpose: bankDetails.purpose,
+            bank_transaction_type: bankDetails.transaction_type,
+          });
+        } else if (editForm.payment_method === "Cash") {
+          const cashDetails = editForm.payment_details as any;
+          Object.assign(paymentDetailsData, {
+            cash_received_by: cashDetails.received_by,
+            cash_receipt_number: cashDetails.receipt_number,
+            notes: cashDetails.notes,
+          });
+        }
+
+        const { error: paymentError } = await (supabase as any)
+          .from("payment_details")
+          .insert([paymentDetailsData]);
+
+        if (paymentError) {
+          console.error("Error inserting payment details:", paymentError);
+          throw paymentError;
+        }
+      } else {
+        console.log("No payment details to insert (payment method is None or no details provided)");
+      }
+
+      // Adjust inventory based on changes
+      for (const [platformId, adjustment] of Object.entries(inventoryAdjustments)) {
+        if (adjustment !== 0) {
+          const { data: currentPlatform, error: fetchError } = await supabase
+            .from("game_coins")
+            .select("inventory")
+            .eq("id", platformId)
+            .single();
+
+          if (fetchError) throw fetchError;
+
+          const newInventory = (currentPlatform?.inventory || 0) - adjustment;
+
+          const { error: inventoryError } = await supabase
+            .from("game_coins")
+            .update({ inventory: newInventory })
+            .eq("id", platformId);
+
+          if (inventoryError) throw inventoryError;
+        }
+      }
+
+      // Reset form and close modal
+      setEditForm({
+        id: "",
+        customer_id: "",
+        items: [],
+        payment_method: "None",
+        payment_details: null,
+        discount_amount: 0,
+        notes: "",
+      });
+      setShowEditModal(false);
+
+      fetchData();
+      alert("Order updated successfully!");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update order");
     } finally {
       setLoading(false);
     }
@@ -1469,6 +1888,16 @@ const OrderPanel: React.FC = () => {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex space-x-2">
+                      {(order.status === "pending" || order.status === "processing") && (
+                        <button
+                          onClick={() => handleEditOrder(order)}
+                          className="p-1 text-orange-600 hover:bg-orange-100 rounded"
+                          title="Edit Order"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+
                       <button
                         onClick={() => {
                           setSelectedOrder(order);
@@ -1504,7 +1933,9 @@ const OrderPanel: React.FC = () => {
                           className="p-1 text-green-600 hover:bg-green-100 rounded"
                           title="Verify Order"
                         >
-                          <Edit className="w-4 h-4" />
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
                         </button>
                       )}
 
@@ -1632,7 +2063,9 @@ const OrderPanel: React.FC = () => {
                   <h4 className="text-md font-semibold text-gray-700 mb-3">
                     Add Items
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
+                  
+                  {/* Platform and Username Selection Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                     <select
                       value={newItem.platform_id}
                       onChange={(e) => {
@@ -1641,6 +2074,7 @@ const OrderPanel: React.FC = () => {
                           ...prev,
                           platform_id: platformId,
                           unit_price: 0, // Reset price, will be updated below
+                          username: "", // Reset username when platform changes
                         }));
 
                         // Reset price editing state when platform changes
@@ -1680,16 +2114,54 @@ const OrderPanel: React.FC = () => {
                           }));
                         }
                       }}
-                      className="md:col-span-6 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     >
                       <option value="">Select Platform</option>
                       {platforms.map((platform) => (
                         <option key={platform.id} value={platform.id}>
-                          {platform.platform} - {platform.account_type} ($
-                          {platform.cost_price})
+                          {platform.platform} - {platform.account_type}
                         </option>
                       ))}
                     </select>
+
+                    {/* Username Dropdown */}
+                    <select
+                      value={newItem.username}
+                      onChange={(e) =>
+                        setNewItem((prev) => ({
+                          ...prev,
+                          username: e.target.value,
+                        }))
+                      }
+                      disabled={!createForm.customer_id || !newItem.platform_id}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!createForm.customer_id
+                          ? "Select Customer First"
+                          : !newItem.platform_id
+                          ? "Select Platform First"
+                          : customerUsernames.length === 0
+                          ? "No usernames available (create some in Customer Panel)"
+                          : getAvailableUsernames(createForm.customer_id, newItem.platform_id).length === 0
+                          ? "No usernames for this customer+platform"
+                          : "Select Username"}
+                      </option>
+                      {createForm.customer_id &&
+                        newItem.platform_id &&
+                        getAvailableUsernames(
+                          createForm.customer_id,
+                          newItem.platform_id
+                        ).map((username: any) => (
+                          <option key={username.id} value={username.username}>
+                            {username.username}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  {/* Quantity, Price and Add Button Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
 
                     <input
                       type="number"
@@ -1735,10 +2207,10 @@ const OrderPanel: React.FC = () => {
                           return updatedItem;
                         });
                       }}
-                      className="md:col-span-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     />
 
-                    <div className="md:col-span-2 relative">
+                    <div className="relative">
                       <input
                         type="number"
                         placeholder="Unit Price"
@@ -1775,7 +2247,8 @@ const OrderPanel: React.FC = () => {
                     <button
                       type="button"
                       onClick={addItemToOrder}
-                      className="md:col-span-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                      disabled={!newItem.platform_id}
+                      className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed col-span-2 md:col-span-1"
                     >
                       Add Item
                     </button>
@@ -1796,13 +2269,20 @@ const OrderPanel: React.FC = () => {
                             className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
                           >
                             <div>
-                              <span className="font-medium">
+                              <div className="font-medium">
                                 {item.platform}
-                              </span>
-                              <span className="text-sm text-gray-600 ml-2">
-                                {item.quantity} × $
-                                {(item.unitPrice || 0).toFixed(2)}
-                              </span>
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {item.username && (
+                                  <span className="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-md mr-2 text-xs">
+                                    👤 {item.username}
+                                  </span>
+                                )}
+                                <span>
+                                  {item.quantity} × $
+                                  {(item.unitPrice || 0).toFixed(2)}
+                                </span>
+                              </div>
                             </div>
                             <div className="flex items-center space-x-2">
                               <span className="font-semibold">
@@ -1859,52 +2339,54 @@ const OrderPanel: React.FC = () => {
                 {/* Payment Method */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Method *
+                    Payment Method (optional)
                   </label>
                   <select
                     value={createForm.payment_method}
                     onChange={(e) => {
                       const paymentMethod = e.target.value as PaymentMethod;
-                      let defaultPaymentDetails: PaymentDetails;
+                      let defaultPaymentDetails: PaymentDetails | null = null;
 
-                      switch (paymentMethod) {
-                        case "Crypto":
-                          defaultPaymentDetails = {
-                            payment_method: "Crypto",
-                            id: "",
-                            order_id: "",
-                            amount: 0,
-                            currency: "USDT",
-                            crypto_type: "USDT",
-                            username: "",
-                            wallet_address: "",
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
-                          } as CryptoPaymentDetails;
-                          break;
-                        case "Bank Transfer":
-                          defaultPaymentDetails = {
-                            payment_method: "Bank Transfer",
-                            id: "",
-                            order_id: "",
-                            amount: 0,
-                            currency: "USD",
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
-                          } as BankTransferDetails;
-                          break;
-                        case "Cash":
-                        default:
-                          defaultPaymentDetails = {
-                            payment_method: "Cash",
-                            id: "",
-                            order_id: "",
-                            amount: 0,
-                            currency: "USD",
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
-                          } as CashPaymentDetails;
-                          break;
+                      if (paymentMethod !== "None") {
+                        switch (paymentMethod) {
+                          case "Crypto":
+                            defaultPaymentDetails = {
+                              payment_method: "Crypto",
+                              id: "",
+                              order_id: "",
+                              amount: 0,
+                              currency: "USDT",
+                              crypto_type: "USDT",
+                              username: "",
+                              wallet_address: "",
+                              created_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString(),
+                            } as CryptoPaymentDetails;
+                            break;
+                          case "Bank Transfer":
+                            defaultPaymentDetails = {
+                              payment_method: "Bank Transfer",
+                              id: "",
+                              order_id: "",
+                              amount: 0,
+                              currency: "USD",
+                              created_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString(),
+                            } as BankTransferDetails;
+                            break;
+                          case "Cash":
+                          default:
+                            defaultPaymentDetails = {
+                              payment_method: "Cash",
+                              id: "",
+                              order_id: "",
+                              amount: 0,
+                              currency: "USD",
+                              created_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString(),
+                            } as CashPaymentDetails;
+                            break;
+                        }
                       }
 
                       setCreateForm((prev) => ({
@@ -1914,8 +2396,8 @@ const OrderPanel: React.FC = () => {
                       }));
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    required
                   >
+                    <option value="None">None</option>
                     <option value="Cash">Cash</option>
                     <option value="Crypto">Crypto</option>
                     <option value="Bank Transfer">Bank Transfer</option>
@@ -1931,14 +2413,15 @@ const OrderPanel: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <select
                         value={
-                          (createForm.payment_details as any).crypto_type ||
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          (createForm.payment_details as any)?.crypto_type ||
                           "USDT"
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as any),
+                              ...(prev.payment_details as PaymentDetails),
                               crypto_type: e.target.value,
                               username: "", // Reset username/wallet when changing type
                               wallet_address: "",
@@ -1955,20 +2438,20 @@ const OrderPanel: React.FC = () => {
                       </select>
 
                       {["USDT", "USDC"].includes(
-                        (createForm.payment_details as any).crypto_type ||
+                        (createForm.payment_details as PaymentDetails)?.crypto_type ||
                           "USDT"
                       ) ? (
                         <input
                           type="text"
                           placeholder="Username"
                           value={
-                            (createForm.payment_details as any)?.username || ""
+                            (createForm.payment_details as PaymentDetails)?.username || ""
                           }
                           onChange={(e) =>
                             setCreateForm((prev) => ({
                               ...prev,
                               payment_details: {
-                                ...(prev.payment_details as any),
+                                ...(prev.payment_details as PaymentDetails),
                                 username: e.target.value,
                               },
                             }))
@@ -1988,7 +2471,7 @@ const OrderPanel: React.FC = () => {
                             setCreateForm((prev) => ({
                               ...prev,
                               payment_details: {
-                                ...(prev.payment_details as any),
+                                ...(prev.payment_details as PaymentDetails),
                                 wallet_address: e.target.value,
                               },
                             }))
@@ -2011,14 +2494,15 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Reference Number"
                         value={
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           (createForm.payment_details as any)
-                            .bank_transaction_reference || ""
+                            ?.bank_transaction_reference || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as any),
+                              ...(prev.payment_details as PaymentDetails),
                               bank_transaction_reference: e.target.value,
                             },
                           }))
@@ -2031,13 +2515,13 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Sender Name"
                         value={
-                          (createForm.payment_details as any).sender_name || ""
+                          (createForm.payment_details as any)?.sender_name || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
-                              ...(prev.payment_details as any),
+                              ...(prev.payment_details as PaymentDetails),
                               sender_name: e.target.value,
                             },
                           }))
@@ -2050,7 +2534,7 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Sender Institution"
                         value={
-                          (createForm.payment_details as any).sender_bank || ""
+                          (createForm.payment_details as any)?.sender_bank || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
@@ -2068,7 +2552,7 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Purpose"
                         value={
-                          (createForm.payment_details as any).purpose || ""
+                          (createForm.payment_details as any)?.purpose || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
@@ -2087,7 +2571,7 @@ const OrderPanel: React.FC = () => {
                         placeholder="Transaction Type"
                         value={
                           (createForm.payment_details as any)
-                            .transaction_type || ""
+                            ?.transaction_type || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
@@ -2106,7 +2590,7 @@ const OrderPanel: React.FC = () => {
                         placeholder="Transaction Time"
                         value={
                           (createForm.payment_details as any)
-                            .transaction_time || ""
+                            ?.transaction_time || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
@@ -2123,7 +2607,7 @@ const OrderPanel: React.FC = () => {
 
                       <select
                         value={
-                          (createForm.payment_details as any).currency || "USD"
+                          (createForm.payment_details as any)?.currency || "USD"
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
@@ -2147,7 +2631,7 @@ const OrderPanel: React.FC = () => {
                         placeholder="Amount in Local Currency"
                         value={
                           (createForm.payment_details as any)
-                            .bank_amount_in_currency || ""
+                            ?.bank_amount_in_currency || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
@@ -2168,7 +2652,7 @@ const OrderPanel: React.FC = () => {
                         step="0.0001"
                         placeholder="Exchange Rate (optional)"
                         value={
-                          (createForm.payment_details as any).exchange_rate ||
+                          (createForm.payment_details as any)?.exchange_rate ||
                           ""
                         }
                         onChange={(e) =>
@@ -2197,7 +2681,7 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Received By"
                         value={
-                          (createForm.payment_details as any).received_by || ""
+                          (createForm.payment_details as any)?.received_by || ""
                         }
                         onChange={(e) =>
                           setCreateForm((prev) => ({
@@ -2216,7 +2700,7 @@ const OrderPanel: React.FC = () => {
                         type="text"
                         placeholder="Receipt Number (optional)"
                         value={
-                          (createForm.payment_details as any).receipt_number ||
+                          (createForm.payment_details as any)?.receipt_number ||
                           ""
                         }
                         onChange={(e) =>
@@ -2235,7 +2719,7 @@ const OrderPanel: React.FC = () => {
                         <textarea
                           placeholder="Payment Notes (optional)"
                           value={
-                            (createForm.payment_details as any).notes || ""
+                            (createForm.payment_details as any)?.notes || ""
                           }
                           onChange={(e) =>
                             setCreateForm((prev) => ({
@@ -2298,6 +2782,829 @@ const OrderPanel: React.FC = () => {
                   className="px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Creating..." : "Create Order"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Order Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-orange-600 to-orange-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-bold">Edit Order</h3>
+                  <p className="text-orange-100 text-sm mt-1">
+                    Modify order #{editForm.id.slice(-8)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-orange-100 hover:text-white p-2 rounded-lg hover:bg-orange-600/50 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <form id="edit-order-form" onSubmit={handleUpdateOrder}>
+                {/* Customer Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Customer *
+                  </label>
+                  <select
+                    value={editForm.customer_id}
+                    onChange={async (e) => {
+                      const customerId = e.target.value;
+                      setEditForm((prev) => ({
+                        ...prev,
+                        customer_id: customerId,
+                      }));
+
+                      // Automatically update item price when customer changes
+                      if (
+                        customerId &&
+                        newItem.platform_id &&
+                        newItem.quantity > 0
+                      ) {
+                        // Calculate total quantity including existing items of this platform in the order
+                        const existingQuantity = editForm.items
+                          .filter(
+                            (item) => item.platform_id === newItem.platform_id
+                          )
+                          .reduce((total, item) => total + item.quantity, 0);
+
+                        const totalQuantity =
+                          existingQuantity + newItem.quantity;
+
+                        const price = getCustomerPrice(
+                          customerId,
+                          newItem.platform_id,
+                          totalQuantity
+                        );
+                        setNewItem((prev) => ({
+                          ...prev,
+                          unit_price: price,
+                        }));
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select Customer</option>
+                    {customers.map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Add Items Section */}
+                <div className="mb-6">
+                  <h4 className="text-md font-semibold text-gray-700 mb-3">
+                    Order Items
+                  </h4>
+                  
+                  {/* Platform and Username Selection Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <select
+                      value={newItem.platform_id}
+                      onChange={(e) => {
+                        const platformId = e.target.value;
+                        setNewItem((prev) => ({
+                          ...prev,
+                          platform_id: platformId,
+                          unit_price: 0, // Reset price, will be updated below
+                          username: "", // Reset username when platform changes
+                        }));
+
+                        // Reset price editing state when platform changes
+                        setIsPriceEditable(false);
+
+                        // Automatically calculate price based on customer pricing
+                        if (
+                          editForm.customer_id &&
+                          platformId &&
+                          newItem.quantity > 0
+                        ) {
+                          // Calculate total quantity including existing items of this platform in the order
+                          const existingQuantity = editForm.items
+                            .filter((item) => item.platform_id === platformId)
+                            .reduce((total, item) => total + item.quantity, 0);
+
+                          const totalQuantity =
+                            existingQuantity + newItem.quantity;
+
+                          const price = getCustomerPrice(
+                            editForm.customer_id,
+                            platformId,
+                            totalQuantity
+                          );
+                          setNewItem((prev) => ({
+                            ...prev,
+                            unit_price: price,
+                          }));
+                        } else if (platformId) {
+                          // Fallback to platform cost price if no customer selected
+                          const platform = platforms.find(
+                            (p) => p.id === platformId
+                          );
+                          setNewItem((prev) => ({
+                            ...prev,
+                            unit_price: platform?.cost_price || 0,
+                          }));
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    >
+                      <option value="">Select Platform</option>
+                      {platforms.map((platform) => (
+                        <option key={platform.id} value={platform.id}>
+                          {platform.platform} - {platform.account_type}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Username Dropdown */}
+                    <select
+                      value={newItem.username}
+                      onChange={(e) =>
+                        setNewItem((prev) => ({
+                          ...prev,
+                          username: e.target.value,
+                        }))
+                      }
+                      disabled={!editForm.customer_id || !newItem.platform_id}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {!editForm.customer_id
+                          ? "Select Customer First"
+                          : !newItem.platform_id
+                          ? "Select Platform First"
+                          : customerUsernames.length === 0
+                          ? "No usernames available (create some in Customer Panel)"
+                          : getAvailableUsernames(editForm.customer_id, newItem.platform_id).length === 0
+                          ? "No usernames for this customer+platform"
+                          : "Select Username"}
+                      </option>
+                      {editForm.customer_id &&
+                        newItem.platform_id &&
+                        getAvailableUsernames(
+                          editForm.customer_id,
+                          newItem.platform_id
+                        ).map((username: any) => (
+                          <option key={username.id} value={username.username}>
+                            {username.username}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  {/* Quantity, Price and Add Button Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+
+                    <input
+                      type="number"
+                      placeholder="Quantity"
+                      min="1"
+                      value={newItem.quantity}
+                      onChange={(e) => {
+                        const quantity = parseInt(e.target.value) || 1;
+                        setNewItem((prev) => {
+                          const updatedItem = {
+                            ...prev,
+                            quantity: quantity,
+                          };
+
+                          // Automatically calculate price based on customer pricing
+                          if (
+                            editForm.customer_id &&
+                            prev.platform_id &&
+                            quantity > 0
+                          ) {
+                            // Calculate total quantity including existing items of this platform in the order
+                            const existingQuantity = editForm.items
+                              .filter(
+                                (item) => item.platform_id === prev.platform_id
+                              )
+                              .reduce(
+                                (total, item) => total + item.quantity,
+                                0
+                              );
+
+                            const totalQuantity = existingQuantity + quantity;
+
+                            const price = getCustomerPrice(
+                              editForm.customer_id,
+                              prev.platform_id,
+                              totalQuantity
+                            );
+                            updatedItem.unit_price = price;
+                            // Reset price editing state when price is auto-calculated
+                            setIsPriceEditable(false);
+                          }
+
+                          return updatedItem;
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+
+                    <div className="relative">
+                      <input
+                        type="number"
+                        placeholder="Unit Price"
+                        step="0.01"
+                        min="0"
+                        value={newItem.unit_price}
+                        disabled={!isPriceEditable}
+                        onChange={(e) =>
+                          setNewItem((prev) => ({
+                            ...prev,
+                            unit_price: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
+                          !isPriceEditable
+                            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                            : "bg-white"
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsPriceEditable(!isPriceEditable)}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-orange-500 transition-colors"
+                        title={
+                          isPriceEditable
+                            ? "Disable price editing"
+                            : "Enable price editing"
+                        }
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={addItemToEditOrder}
+                      disabled={!newItem.platform_id}
+                      className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed col-span-2 md:col-span-1"
+                    >
+                      Add Item
+                    </button>
+                  </div>
+
+                  {/* Order Items List */}
+                  {editForm.items.length > 0 && (
+                    <div className="border border-gray-200 rounded-lg">
+                      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                        <h5 className="font-medium text-gray-700">
+                          Current Order Items
+                        </h5>
+                      </div>
+                      <div className="p-4">
+                        {editForm.items.map((item, index) => (
+                          <div
+                            key={`edit-item-${index}`}
+                            className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">
+                                  {item.platform}
+                                </span>
+                                {item.username && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                    👤 {item.username}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-sm text-gray-600">
+                                {item.quantity} × $
+                                {(item.unitPrice || 0).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-semibold">
+                                ${(item.total_price || 0).toFixed(2)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeItemFromEditOrder(item.platform_id)
+                                }
+                                className="text-red-600 hover:bg-red-100 p-1 rounded"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Order Totals */}
+                {editForm.items.length > 0 && (
+                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span>Subtotal:</span>
+                      <span>${calculateEditTotals().subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span>Discount:</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={calculateEditTotals().subtotal}
+                        value={editForm.discount_amount}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            discount_amount: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-24 px-2 py-1 border border-gray-300 rounded text-right"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center font-semibold text-lg border-t border-gray-200 pt-2">
+                      <span>Total:</span>
+                      <span>${calculateEditTotals().finalTotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Method */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Method (optional)
+                  </label>
+                  <select
+                    value={editForm.payment_method}
+                    onChange={(e) => {
+                      const paymentMethod = e.target.value as PaymentMethod;
+                      if (paymentMethod === "None") {
+                        setEditForm((prev) => ({
+                          ...prev,
+                          payment_method: paymentMethod,
+                          payment_details: null,
+                        }));
+                      } else {
+                        let defaultPaymentDetails: PaymentDetails;
+
+                        switch (paymentMethod) {
+                          case "Crypto":
+                            defaultPaymentDetails = {
+                              payment_method: "Crypto",
+                              id: "",
+                              order_id: "",
+                              amount: 0,
+                              currency: "USDT",
+                              crypto_type: "USDT",
+                              username: "",
+                              wallet_address: "",
+                              created_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString(),
+                            } as CryptoPaymentDetails;
+                            break;
+                          case "Bank Transfer":
+                            defaultPaymentDetails = {
+                              payment_method: "Bank Transfer",
+                              id: "",
+                              order_id: "",
+                              amount: 0,
+                              currency: "USD",
+                              created_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString(),
+                            } as BankTransferDetails;
+                            break;
+                          case "Cash":
+                          default:
+                            defaultPaymentDetails = {
+                              payment_method: "Cash",
+                              id: "",
+                              order_id: "",
+                              amount: 0,
+                              currency: "USD",
+                              created_at: new Date().toISOString(),
+                              updated_at: new Date().toISOString(),
+                            } as CashPaymentDetails;
+                            break;
+                        }
+
+                        setEditForm((prev) => ({
+                          ...prev,
+                          payment_method: paymentMethod,
+                          payment_details: defaultPaymentDetails,
+                        }));
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  >
+                    <option value="None">None</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Crypto">Crypto</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                  </select>
+                </div>
+
+                {/* Payment Details Forms */}
+                {editForm.payment_method === "Crypto" && (
+                  <div className="mb-4 p-4 border border-gray-200 rounded-lg">
+                    <h5 className="font-medium text-gray-700 mb-3">
+                      Crypto Payment Details
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <select
+                        value={
+                          (editForm.payment_details as any)?.crypto_type ||
+                          "USDT"
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              crypto_type: e.target.value,
+                              username: "", // Reset username/wallet when changing type
+                              wallet_address: "",
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="USDT">USDT</option>
+                        <option value="USDC">USDC</option>
+                        <option value="BTC">BTC</option>
+                        <option value="TRC20">TRC20</option>
+                        <option value="BEP20">BEP20</option>
+                      </select>
+
+                      {["USDT", "USDC"].includes(
+                        (editForm.payment_details as any)?.crypto_type ||
+                          "USDT"
+                      ) ? (
+                        <input
+                          type="text"
+                          placeholder="Username"
+                          value={
+                            (editForm.payment_details as any)?.username || ""
+                          }
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              payment_details: {
+                                ...(prev.payment_details as any),
+                                username: e.target.value,
+                              },
+                            }))
+                          }
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          required
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="Wallet Address"
+                          value={
+                            (editForm.payment_details as any)?.wallet_address || ""
+                          }
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              payment_details: {
+                                ...(prev.payment_details as any),
+                                wallet_address: e.target.value,
+                              },
+                            }))
+                          }
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                          required
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {editForm.payment_method === "Bank Transfer" && (
+                  <div className="mb-4 p-4 border border-gray-200 rounded-lg">
+                    <h5 className="font-medium text-gray-700 mb-3">
+                      Bank Transfer Details
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Reference Number"
+                        value={
+                          (editForm.payment_details as any)
+                            ?.bank_transaction_reference || ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              bank_transaction_reference: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        required
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Sender Name"
+                        value={
+                          (editForm.payment_details as any)?.sender_name || ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              sender_name: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        required
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Sender Institution"
+                        value={
+                          (editForm.payment_details as any)?.sender_bank || ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              sender_bank: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Purpose"
+                        value={
+                          (editForm.payment_details as any)?.purpose || ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              purpose: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Transaction Type"
+                        value={
+                          (editForm.payment_details as any)
+                            ?.transaction_type || ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              transaction_type: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+
+                      <input
+                        type="datetime-local"
+                        placeholder="Transaction Time"
+                        value={
+                          (editForm.payment_details as any)
+                            ?.transaction_time || ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              transaction_time: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        required
+                      />
+
+                      <select
+                        value={
+                          (editForm.payment_details as any)?.currency || "USD"
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              currency: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      >
+                        <option value="USD">USD</option>
+                        <option value="PKR">PKR</option>
+                      </select>
+
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Amount in Local Currency"
+                        value={
+                          (editForm.payment_details as any)
+                            ?.bank_amount_in_currency || ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              bank_amount_in_currency:
+                                parseFloat(e.target.value) || 0,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        required
+                      />
+
+                      <input
+                        type="number"
+                        step="0.0001"
+                        placeholder="Exchange Rate (optional)"
+                        value={
+                          (editForm.payment_details as any)?.exchange_rate ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              exchange_rate:
+                                parseFloat(e.target.value) || undefined,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {editForm.payment_method === "Cash" && (
+                  <div className="mb-4 p-4 border border-gray-200 rounded-lg">
+                    <h5 className="font-medium text-gray-700 mb-3">
+                      Cash Payment Details
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Received By"
+                        value={
+                          (editForm.payment_details as any)?.received_by || ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              received_by: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        required
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Receipt Number (optional)"
+                        value={
+                          (editForm.payment_details as any)?.receipt_number ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            payment_details: {
+                              ...(prev.payment_details as any),
+                              receipt_number: e.target.value,
+                            },
+                          }))
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+
+                      <div className="col-span-2">
+                        <textarea
+                          placeholder="Payment Notes (optional)"
+                          value={
+                            (editForm.payment_details as any)?.notes || ""
+                          }
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              payment_details: {
+                                ...(prev.payment_details as any),
+                                notes: e.target.value,
+                              },
+                            }))
+                          }
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    value={editForm.notes || ""}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        notes: e.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Any additional notes about this order..."
+                  />
+                </div>
+              </form>
+            </div>
+
+            {/* Modal Footer - Sticky */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
+              <div className="text-sm text-gray-500">
+                Items: {editForm.items.length} | Total: $
+                {editForm.items
+                  .reduce((sum, item) => sum + item.total_price, 0)
+                  .toFixed(2)}
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="edit-order-form"
+                  disabled={loading || editForm.items.length === 0}
+                  className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Updating..." : "Update Order"}
                 </button>
               </div>
             </div>
@@ -2485,10 +3792,17 @@ const OrderPanel: React.FC = () => {
                                 <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center text-white font-bold text-sm mr-3">
                                   {item.platform.charAt(0)}
                                 </div>
-                                <div>
-                                  <h5 className="font-semibold text-gray-900">
-                                    {item.platform}
-                                  </h5>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h5 className="font-semibold text-gray-900">
+                                      {item.platform}
+                                    </h5>
+                                    {item.username && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                        👤 {item.username}
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-sm text-gray-600">
                                     {item.account_type || "Standard"}
                                   </p>

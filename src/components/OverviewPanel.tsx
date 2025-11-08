@@ -101,10 +101,8 @@ const OverviewPanel: React.FC = () => {
           created_at: String(order.created_at || new Date().toISOString()),
           created_by: String(order.created_by || ""),
           items: Array.isArray(order.items) ? (order.items as OrderItem[]) : [],
-          payment_method: (order.payment_method as PaymentMethod) || "Cash",
-          payment_details: (order.payment_details as PaymentDetails) || {
-            type: "Cash",
-          },
+          payment_method: (order.payment_method as PaymentMethod) || "None",
+          payment_details: order.payment_details as PaymentDetails || null,
           total_amount: Number(order.total_amount || 0),
           discount_amount: Number(order.discount_amount || 0),
           final_amount: Number(order.final_amount || order.total_amount || 0),

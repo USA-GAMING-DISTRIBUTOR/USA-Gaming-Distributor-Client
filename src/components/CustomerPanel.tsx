@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
-import type { Customer, CustomerPricing } from "../types/customer";
+import type { Customer, CustomerPricing, CustomerUsername } from "../types/customer";
 import type { Platform } from "../types/platform";
 import {
   Plus,
@@ -10,6 +10,9 @@ import {
   X,
   DollarSign,
   Search,
+  User,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { LoadingSpinner } from "./common/Loader";
 import Pagination from "./common/Pagination";
@@ -20,10 +23,14 @@ const CustomerPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isUsernamesModalOpen, setIsUsernamesModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [selectedCustomerForPricing, setSelectedCustomerForPricing] =
     useState<Customer | null>(null);
+  const [selectedCustomerForUsernames, setSelectedCustomerForUsernames] =
+    useState<Customer | null>(null);
   const [customerPricing, setCustomerPricing] = useState<CustomerPricing[]>([]);
+  const [customerUsernames, setCustomerUsernames] = useState<CustomerUsername[]>([]);
 
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,6 +61,18 @@ const CustomerPanel: React.FC = () => {
     max_quantity: null,
     unit_price: 0,
     is_default: false,
+  });
+
+  const [usernameForm, setUsernameForm] = useState<{
+    platform_id: string;
+    username: string;
+    notes: string;
+    is_active: boolean;
+  }>({
+    platform_id: "",
+    username: "",
+    notes: "",
+    is_active: true,
   });
 
   // Filter customers based on search term
@@ -228,6 +247,119 @@ const CustomerPanel: React.FC = () => {
       await fetchCustomerPricing(selectedCustomerForPricing.id);
     } catch (error) {
       console.error("Error deleting pricing:", error);
+    }
+  };
+
+  // Username management functions
+  const fetchCustomerUsernames = async (customerId: string) => {
+    try {
+      const { data, error } = await (supabase as any)
+        .from("customer_usernames")
+        .select(
+          `
+          *,
+          game_coins!platform_id (
+            platform,
+            account_type
+          )
+        `
+        )
+        .eq("customer_id", customerId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Transform data to include platform info
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformedUsernames = (data || []).map((username: any) => ({
+        ...username,
+        platform_name: username.game_coins?.platform || "Unknown Platform",
+        account_type: username.game_coins?.account_type || "Standard",
+      }));
+
+      setCustomerUsernames(transformedUsernames);
+    } catch (error) {
+      console.error("Error fetching customer usernames:", error);
+    }
+  };
+
+  const openUsernamesModal = async (customer: Customer) => {
+    setSelectedCustomerForUsernames(customer);
+    await fetchCustomerUsernames(customer.id);
+    setIsUsernamesModalOpen(true);
+  };
+
+  const closeUsernamesModal = () => {
+    setIsUsernamesModalOpen(false);
+    setSelectedCustomerForUsernames(null);
+    setCustomerUsernames([]);
+    setUsernameForm({
+      platform_id: "",
+      username: "",
+      notes: "",
+      is_active: true,
+    });
+  };
+
+  const handleUsernameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCustomerForUsernames) return;
+
+    try {
+      const { error } = await (supabase as any)
+        .from("customer_usernames")
+        .insert({
+          customer_id: selectedCustomerForUsernames.id,
+          platform_id: usernameForm.platform_id,
+          username: usernameForm.username,
+          notes: usernameForm.notes || null,
+          is_active: usernameForm.is_active,
+        });
+
+      if (error) throw error;
+
+      await fetchCustomerUsernames(selectedCustomerForUsernames.id);
+      setUsernameForm({
+        platform_id: "",
+        username: "",
+        notes: "",
+        is_active: true,
+      });
+    } catch (error) {
+      console.error("Error saving customer username:", error);
+    }
+  };
+
+  const handleDeleteUsername = async (usernameId: string) => {
+    if (!confirm("Are you sure you want to delete this username?")) return;
+    if (!selectedCustomerForUsernames) return;
+
+    try {
+      const { error } = await (supabase as any)
+        .from("customer_usernames")
+        .delete()
+        .eq("id", usernameId);
+
+      if (error) throw error;
+      await fetchCustomerUsernames(selectedCustomerForUsernames.id);
+    } catch (error) {
+      console.error("Error deleting username:", error);
+    }
+  };
+
+  const handleToggleUsernameActive = async (usernameId: string, currentStatus: boolean) => {
+    if (!selectedCustomerForUsernames) return;
+
+    try {
+      const { error } = await (supabase as any)
+        .from("customer_usernames")
+        .update({ is_active: !currentStatus })
+        .eq("id", usernameId);
+
+      if (error) throw error;
+      await fetchCustomerUsernames(selectedCustomerForUsernames.id);
+    } catch (error) {
+      console.error("Error toggling username active status:", error);
     }
   };
 
@@ -475,6 +607,13 @@ const CustomerPanel: React.FC = () => {
                           title="Manage pricing for this customer"
                         >
                           <DollarSign className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => openUsernamesModal(customer)}
+                          className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
+                          title="Manage usernames for this customer"
+                        >
+                          <User className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => openModal(customer)}
@@ -838,6 +977,238 @@ const CustomerPanel: React.FC = () => {
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
               <button
                 onClick={closePricingModal}
+                className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Usernames Modal */}
+      {isUsernamesModalOpen && selectedCustomerForUsernames && (
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold">
+                    Manage Usernames - {selectedCustomerForUsernames.name}
+                  </h2>
+                  <p className="text-purple-100 text-sm mt-1">
+                    Add and manage platform usernames for this customer
+                  </p>
+                </div>
+                <button
+                  onClick={closeUsernamesModal}
+                  className="text-purple-100 hover:text-white p-2 rounded-lg hover:bg-purple-600/50 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Add New Username Form */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="text-md font-medium mb-3">
+                  Add New Username
+                </h3>
+                <form
+                  onSubmit={handleUsernameSubmit}
+                  className="grid grid-cols-1 md:grid-cols-4 gap-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Platform
+                    </label>
+                    <select
+                      value={usernameForm.platform_id}
+                      onChange={(e) =>
+                        setUsernameForm({
+                          ...usernameForm,
+                          platform_id: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Select Platform</option>
+                      {platforms.map((platform) => (
+                        <option key={platform.id} value={platform.id}>
+                          {platform.platform} - {platform.account_type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      value={usernameForm.username}
+                      onChange={(e) =>
+                        setUsernameForm({
+                          ...usernameForm,
+                          username: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Notes (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={usernameForm.notes}
+                      onChange={(e) =>
+                        setUsernameForm({
+                          ...usernameForm,
+                          notes: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Optional notes"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <div className="w-full">
+                      <label className="flex items-center mb-2">
+                        <input
+                          type="checkbox"
+                          checked={usernameForm.is_active}
+                          onChange={(e) =>
+                            setUsernameForm({
+                              ...usernameForm,
+                              is_active: e.target.checked,
+                            })
+                          }
+                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                          Active
+                        </span>
+                      </label>
+                      <button
+                        type="submit"
+                        className="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
+                      >
+                        Add Username
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+              {/* Usernames Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Platform
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Username
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Notes
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customerUsernames.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8 text-gray-500">
+                          No usernames added yet for this customer.
+                        </td>
+                      </tr>
+                    ) : (
+                      customerUsernames.map((username) => (
+                        <tr
+                          key={username.id}
+                          className="border-b border-gray-100 hover:bg-gray-50"
+                        >
+                          <td className="py-3 px-4 font-medium">
+                            {username.platform_name} - {username.account_type}
+                          </td>
+                          <td className="py-3 px-4 font-medium">
+                            {username.username}
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">
+                            {username.notes || "-"}
+                          </td>
+                          <td className="py-3 px-4">
+                            {username.is_active ? (
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-medium">
+                                Inactive
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() =>
+                                  handleToggleUsernameActive(
+                                    username.id,
+                                    username.is_active
+                                  )
+                                }
+                                className={`p-2 rounded-lg transition-colors ${
+                                  username.is_active
+                                    ? "text-orange-600 hover:bg-orange-100"
+                                    : "text-green-600 hover:bg-green-100"
+                                }`}
+                                title={
+                                  username.is_active
+                                    ? "Deactivate username"
+                                    : "Activate username"
+                                }
+                              >
+                                {username.is_active ? (
+                                  <XCircle className="w-4 h-4" />
+                                ) : (
+                                  <CheckCircle className="w-4 h-4" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUsername(username.id)}
+                                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                title="Delete username"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+              <button
+                onClick={closeUsernamesModal}
                 className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Close

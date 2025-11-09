@@ -106,6 +106,13 @@ const OrderPanel: React.FC = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [editingItemData, setEditingItemData] = useState<{
+    platform_id: string;
+    quantity: number;
+    unit_price: number;
+    username: string;
+  } | null>(null);
 
   // Invoice state
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -196,19 +203,14 @@ const OrderPanel: React.FC = () => {
 
   // Function to get available usernames for a customer and platform
   const getAvailableUsernames = (customerId: string, platformId: string) => {
-    console.log('Getting usernames for:', { customerId, platformId });
-    console.log('Available customer usernames:', customerUsernames);
-
     const filtered = customerUsernames.filter((username: any) => {
       const match =
         username.customer_id === customerId &&
         username.platform_id === platformId &&
         username.is_active;
-      console.log('Username match:', username, 'matches:', match);
       return match;
     });
 
-    console.log('Filtered usernames:', filtered);
     return filtered;
   };
 
@@ -294,9 +296,7 @@ const OrderPanel: React.FC = () => {
         throw new Error('Failed to fetch customer pricing: ' + customerPricingRes.error.message);
       if (platformsRes.error)
         throw new Error('Failed to fetch platforms: ' + platformsRes.error.message);
-      if (customerUsernamesRes.error)
-        console.error('Failed to fetch customer usernames:', customerUsernamesRes.error);
-      // Don't throw error, just log it so the rest of the app works
+      // Don't throw error for customer usernames, just skip them
 
       // First transform platforms so we can use them in order transformation
       const transformedPlatforms: Platform[] = (platformsRes.data || []).map(
@@ -380,10 +380,6 @@ const OrderPanel: React.FC = () => {
       setCustomerPricing(customerPricingRes.data || []);
       setPaymentDetails(paymentDetailsRes.data || []);
       setPlatforms(transformedPlatforms);
-
-      // Debug customer usernames
-      console.log('Customer usernames fetched:', customerUsernamesRes.data);
-      console.log('Customer usernames error:', customerUsernamesRes.error);
       setCustomerUsernames(customerUsernamesRes.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -641,6 +637,84 @@ const OrderPanel: React.FC = () => {
     }));
   };
 
+  // Start editing an item in the edit order
+  const startEditingItem = (index: number) => {
+    const item = editForm.items[index];
+    
+    // Calculate the price based on current quantity and customer pricing
+    let unit_price = item.unitPrice || 0;
+    if (editForm.customer_id && item.platform_id && item.quantity > 0) {
+      // Calculate total quantity including other items of this platform in the order
+      const existingQuantity = editForm.items
+        .filter((it, idx) => idx !== index && it.platform_id === item.platform_id)
+        .reduce((total, it) => total + it.quantity, 0);
+      
+      const totalQuantity = existingQuantity + item.quantity;
+      
+      const price = getCustomerPrice(
+        editForm.customer_id,
+        item.platform_id,
+        totalQuantity,
+      );
+      
+      // If customer pricing returns 0, fall back to platform cost price
+      if (price > 0) {
+        unit_price = price;
+      } else {
+        const platform = platforms.find((p) => p.id === item.platform_id);
+        unit_price = platform?.cost_price || 0;
+      }
+    } else if (item.platform_id) {
+      // Fallback to platform cost price if no customer selected
+      const platform = platforms.find((p) => p.id === item.platform_id);
+      unit_price = platform?.cost_price || 0;
+    }
+    
+    setEditingItemIndex(index);
+    setEditingItemData({
+      platform_id: item.platform_id,
+      quantity: item.quantity,
+      unit_price: unit_price,
+      username: item.username || '',
+    });
+  };
+
+  // Cancel editing an item
+  const cancelEditingItem = () => {
+    setEditingItemIndex(null);
+    setEditingItemData(null);
+  };
+
+  // Save edited item
+  const saveEditedItem = (index: number) => {
+    if (!editingItemData) return;
+
+    setEditForm((prev) => {
+      const updatedItems = [...prev.items];
+      const platform = platforms.find((p) => p.id === editingItemData.platform_id);
+
+      if (!platform) return prev;
+
+      updatedItems[index] = {
+        ...updatedItems[index],
+        platform_id: editingItemData.platform_id,
+        platform: `${platform.platform} - ${platform.account_type}`,
+        quantity: editingItemData.quantity,
+        unitPrice: editingItemData.unit_price,
+        username: editingItemData.username,
+        total_price: editingItemData.quantity * editingItemData.unit_price,
+      };
+
+      return {
+        ...prev,
+        items: updatedItems,
+      };
+    });
+
+    setEditingItemIndex(null);
+    setEditingItemData(null);
+  };
+
   // Calculate order totals
   const calculateTotals = () => {
     const subtotal = createForm.items.reduce((sum, item) => sum + item.total_price, 0);
@@ -807,79 +881,96 @@ const OrderPanel: React.FC = () => {
 
   // Update order
   const handleUpdateOrder = async (e: React.FormEvent) => {
-    console.log('=== STARTING ORDER UPDATE ===');
-    console.log('Edit form data:', editForm);
-    console.log('User:', user);
-    console.log('Orders array length:', orders.length);
-
     e.preventDefault();
     if (!user?.id) {
-      console.error('ERROR: User not authenticated');
       setError('User not authenticated. Please log in to update an order.');
       return;
     }
     if (editForm.items.length === 0) {
-      console.error('ERROR: No items in order');
       setError('Please add at least one item to the order');
       return;
     }
 
-    console.log('Validation passed, proceeding with update...');
     setLoading(true);
     try {
       const { finalTotal } = calculateEditTotals();
-      console.log('Calculated final total:', finalTotal);
 
-      // Get original order data to compare changes
-      const originalOrder = orders.find((o) => o.id === editForm.id);
-      console.log('Original order found:', originalOrder);
-      if (!originalOrder) {
-        console.error('ERROR: Original order not found for ID:', editForm.id);
-        throw new Error('Original order not found');
+      // Get original order data directly from database to ensure we have the ACTUAL original items
+      // (not the items that might have been updated from a previous edit session)
+      const { data: originalOrderData, error: fetchOriginalError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(
+            id,
+            platform_id,
+            quantity,
+            unit_price,
+            total_price,
+            username,
+            usernames
+          )
+        `)
+        .eq('id', editForm.id)
+        .single();
+
+      if (fetchOriginalError || !originalOrderData) {
+        throw new Error('Failed to fetch original order from database');
       }
 
-      // Calculate inventory adjustments
-      const inventoryAdjustments: { [platformId: string]: number } = {};
+      const originalOrder = originalOrderData;
 
-      // First, subtract the original quantities
+      // Build a map of current inventory + what we're returning from the original order
+      const inventoryChanges: { [platformId: string]: { 
+        originalQty: number; 
+        newQty: number; 
+        currentInventory: number 
+      } } = {};
+
+      // First pass: record original quantities (these will be returned to inventory)
       for (const originalItem of originalOrder.items) {
-        inventoryAdjustments[originalItem.platform_id] =
-          (inventoryAdjustments[originalItem.platform_id] || 0) + originalItem.quantity;
+        const platform = platforms.find((p) => p.id === originalItem.platform_id);
+        if (!platform) continue;
+        
+        inventoryChanges[originalItem.platform_id] = {
+          originalQty: originalItem.quantity,
+          newQty: 0,
+          currentInventory: platform.inventory,
+        };
       }
 
-      // Then, add the new quantities
+      // Second pass: record new quantities (these will be deducted from inventory)
       for (const newItem of editForm.items) {
-        inventoryAdjustments[newItem.platform_id] =
-          (inventoryAdjustments[newItem.platform_id] || 0) - newItem.quantity;
-      }
-
-      // Check inventory availability for new quantities
-      for (const item of editForm.items) {
-        const platform = platforms.find((p) => p.id === item.platform_id);
+        const platform = platforms.find((p) => p.id === newItem.platform_id);
         if (!platform) continue;
 
-        const currentInventory = platform.inventory;
-        const originalQuantity =
-          originalOrder.items.find((oi) => oi.platform_id === item.platform_id)?.quantity || 0;
-        const inventoryChange = item.quantity - originalQuantity;
+        if (inventoryChanges[newItem.platform_id]) {
+          inventoryChanges[newItem.platform_id].newQty = newItem.quantity;
+        } else {
+          inventoryChanges[newItem.platform_id] = {
+            originalQty: 0,
+            newQty: newItem.quantity,
+            currentInventory: platform.inventory,
+          };
+        }
+      }
+      
+      // Validate inventory availability
+      for (const [platformId, change] of Object.entries(inventoryChanges)) {
+        const platform = platforms.find((p) => p.id === platformId);
+        if (!platform) continue;
 
-        if (inventoryChange > 0 && item.quantity > currentInventory + originalQuantity) {
+        // Available = current inventory + what we're returning from original order
+        const availableInventory = change.currentInventory + change.originalQty;
+        
+        if (change.newQty > availableInventory) {
           throw new Error(
-            `Insufficient inventory for ${platform.platform}. Available: ${
-              currentInventory + originalQuantity
-            }, Requested: ${item.quantity}`,
+            `Insufficient inventory for ${platform.platform}. Available: ${availableInventory}, Requested: ${change.newQty}`,
           );
         }
       }
 
       // Update the order
-      console.log('About to update order with data:', {
-        customer_id: editForm.customer_id,
-        payment_method: editForm.payment_method,
-        total_amount: finalTotal,
-        notes: editForm.notes,
-        updated_at: new Date().toISOString(),
-      });
       const { error: orderError } = await supabase
         .from('orders')
         .update({
@@ -892,11 +983,47 @@ const OrderPanel: React.FC = () => {
         .eq('id', editForm.id);
 
       if (orderError) {
-        console.error('Order update error:', orderError);
         throw orderError;
       }
 
-      // Delete existing order items
+      // IMPORTANT: Apply inventory changes FIRST, before deleting order items
+      // This prevents any delete triggers from interfering with our inventory logic
+      
+      for (const [platformId, change] of Object.entries(inventoryChanges)) {
+        const netChange = change.originalQty - change.newQty;
+        
+        // Only update if there's a net change
+        if (netChange !== 0) {
+          // Get the latest inventory from database to avoid stale data
+          const { data: latestPlatform, error: fetchError } = await supabase
+            .from('game_coins')
+            .select('inventory, platform')
+            .eq('id', platformId)
+            .single();
+
+          if (fetchError) {
+            throw fetchError;
+          }
+
+          // CRITICAL: There's a database trigger that restores inventory when we insert order_items
+          // The trigger adds back the originalQty after insertion, so we need to compensate by
+          // subtracting an EXTRA originalQty from our calculation
+          const currentInventory = latestPlatform?.inventory || 0;
+          const compensatedInventory = currentInventory + netChange - change.originalQty;
+          const newInventory = compensatedInventory;
+
+          const { error: inventoryError } = await supabase
+            .from('game_coins')
+            .update({ inventory: newInventory })
+            .eq('id', platformId);
+
+          if (inventoryError) {
+            throw inventoryError;
+          }
+        }
+      }
+
+      // NOW delete existing order items (after inventory is updated)
       const { error: deleteItemsError } = await supabase
         .from('order_items')
         .delete()
@@ -913,21 +1040,18 @@ const OrderPanel: React.FC = () => {
         total_price: item.total_price,
         username: item.username || null,
       }));
-      console.log('Order items to insert:', orderItems);
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
 
       if (itemsError) throw itemsError;
 
       // Always delete existing payment details first
-      console.log('Deleting existing payment details for order:', editForm.id);
       const { error: deletePaymentError } = await supabase
         .from('payment_details')
         .delete()
         .eq('order_id', editForm.id);
 
       if (deletePaymentError) {
-        console.error('Error deleting payment details:', deletePaymentError);
         throw deletePaymentError;
       }
 
@@ -944,28 +1068,6 @@ const OrderPanel: React.FC = () => {
           .from('payment_details')
           .insert([paymentDetailsRow]);
         if (paymentError) throw paymentError;
-      }
-
-      // Adjust inventory based on changes
-      for (const [platformId, adjustment] of Object.entries(inventoryAdjustments)) {
-        if (adjustment !== 0) {
-          const { data: currentPlatform, error: fetchError } = await supabase
-            .from('game_coins')
-            .select('inventory')
-            .eq('id', platformId)
-            .single();
-
-          if (fetchError) throw fetchError;
-
-          const newInventory = (currentPlatform?.inventory || 0) - adjustment;
-
-          const { error: inventoryError } = await supabase
-            .from('game_coins')
-            .update({ inventory: newInventory })
-            .eq('id', platformId);
-
-          if (inventoryError) throw inventoryError;
-        }
       }
 
       // Reset form and close modal
@@ -1089,6 +1191,12 @@ const OrderPanel: React.FC = () => {
 
     setLoading(true);
     try {
+      // NOTE: Replacements don't affect inventory. 
+      // A replacement means we're replacing defective/incorrect accounts with working ones,
+      // but the customer already paid and received accounts from our inventory.
+      // The inventory was already deducted when the original order was created.
+      // We're just swapping the account credentials, not issuing new inventory.
+      
       // Update order status to replacement
       const { error: orderError } = await supabase
         .from('orders')
@@ -1138,8 +1246,7 @@ const OrderPanel: React.FC = () => {
       } else {
         alert('Failed to copy invoice to clipboard');
       }
-    } catch (error) {
-      console.error('Error copying invoice:', error);
+    } catch {
       alert('Failed to copy invoice to clipboard');
     } finally {
       setInvoiceLoading(false);
@@ -1502,8 +1609,7 @@ const OrderPanel: React.FC = () => {
       } else {
         alert('Failed to copy invoice to clipboard');
       }
-    } catch (error) {
-      console.error('Error copying invoice:', error);
+    } catch {
       alert('Failed to copy invoice to clipboard');
     } finally {
       // Clean up
@@ -1526,8 +1632,7 @@ const OrderPanel: React.FC = () => {
       if (!success) {
         alert('Failed to download invoice');
       }
-    } catch (error) {
-      console.error('Error downloading invoice:', error);
+    } catch {
       alert('Failed to download invoice');
     } finally {
       setInvoiceLoading(false);
@@ -2785,33 +2890,224 @@ const OrderPanel: React.FC = () => {
                         {editForm.items.map((item, index) => (
                           <div
                             key={`edit-item-${index}`}
-                            className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
+                            className="py-2 border-b border-gray-100 last:border-b-0"
                           >
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{item.platform}</span>
-                                {item.username && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                                    👤 {item.username}
-                                  </span>
-                                )}
+                            {editingItemIndex === index ? (
+                              // Edit mode
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {/* Platform Dropdown */}
+                                  <select
+                                    value={editingItemData?.platform_id || ''}
+                                    onChange={(e) => {
+                                      const platformId = e.target.value;
+                                      const platform = platforms.find((p) => p.id === platformId);
+                                      if (platform && editingItemData) {
+                                        // Reset username when platform changes
+                                        setEditingItemData({
+                                          ...editingItemData,
+                                          platform_id: platformId,
+                                          unit_price: 0, // Reset price, will be updated below
+                                          username: '',
+                                        });
+
+                                        // Automatically calculate price based on customer pricing
+                                        if (editForm.customer_id && platformId && editingItemData.quantity > 0) {
+                                          // Calculate total quantity including other items of this platform in the order
+                                          const existingQuantity = editForm.items
+                                            .filter((it, idx) => idx !== index && it.platform_id === platformId)
+                                            .reduce((total, it) => total + it.quantity, 0);
+                                          
+                                          const totalQuantity = existingQuantity + editingItemData.quantity;
+                                          
+                                          const price = getCustomerPrice(
+                                            editForm.customer_id,
+                                            platformId,
+                                            totalQuantity,
+                                          );
+                                          
+                                          setEditingItemData((prev) => ({
+                                            ...prev!,
+                                            unit_price: price > 0 ? price : platform.cost_price || 0,
+                                          }));
+                                        } else if (platformId) {
+                                          // Fallback to platform cost price if no customer selected
+                                          setEditingItemData((prev) => ({
+                                            ...prev!,
+                                            unit_price: platform.cost_price || 0,
+                                          }));
+                                        }
+                                      }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                  >
+                                    <option value="">Select Platform</option>
+                                    {platforms.map((platform) => (
+                                      <option key={platform.id} value={platform.id}>
+                                        {platform.platform} - {platform.account_type}
+                                      </option>
+                                    ))}
+                                  </select>
+
+                                  {/* Username Dropdown */}
+                                  <select
+                                    value={editingItemData?.username || ''}
+                                    onChange={(e) => {
+                                      if (editingItemData) {
+                                        setEditingItemData({
+                                          ...editingItemData,
+                                          username: e.target.value,
+                                        });
+                                      }
+                                    }}
+                                    disabled={!editForm.customer_id || !editingItemData?.platform_id}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                  >
+                                    <option value="">
+                                      {!editForm.customer_id
+                                        ? 'Select Customer First'
+                                        : !editingItemData?.platform_id
+                                          ? 'Select Platform First'
+                                          : customerUsernames.length === 0
+                                            ? 'No usernames available'
+                                            : getAvailableUsernames(editForm.customer_id, editingItemData.platform_id)
+                                                  .length === 0
+                                              ? 'No usernames for this customer+platform'
+                                              : 'Select Username'}
+                                    </option>
+                                    {editForm.customer_id &&
+                                      editingItemData?.platform_id &&
+                                      getAvailableUsernames(editForm.customer_id, editingItemData.platform_id).map(
+                                        (username: any) => (
+                                          <option key={username.id} value={username.username}>
+                                            {username.username}
+                                          </option>
+                                        ),
+                                      )}
+                                  </select>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  {/* Quantity Input */}
+                                  <input
+                                    type="number"
+                                    placeholder="Quantity"
+                                    min="1"
+                                    value={editingItemData?.quantity || 1}
+                                    onChange={(e) => {
+                                      const quantity = parseInt(e.target.value) || 1;
+                                      if (editingItemData && editingItemData.platform_id) {
+                                        // Automatically calculate price based on customer pricing
+                                        if (editForm.customer_id && editingItemData.platform_id && quantity > 0) {
+                                          // Calculate total quantity including other items of this platform in the order
+                                          const existingQuantity = editForm.items
+                                            .filter((it, idx) => idx !== index && it.platform_id === editingItemData.platform_id)
+                                            .reduce((total, it) => total + it.quantity, 0);
+                                          
+                                          const totalQuantity = existingQuantity + quantity;
+                                          
+                                          const price = getCustomerPrice(
+                                            editForm.customer_id,
+                                            editingItemData.platform_id,
+                                            totalQuantity,
+                                          );
+                                          
+                                          // If customer pricing returns 0, fall back to platform cost price
+                                          const finalPrice = price > 0 ? price : (() => {
+                                            const platform = platforms.find((p) => p.id === editingItemData.platform_id);
+                                            return platform?.cost_price || 0;
+                                          })();
+                                          
+                                          setEditingItemData({
+                                            ...editingItemData,
+                                            quantity,
+                                            unit_price: finalPrice,
+                                          });
+                                        } else {
+                                          // Just update quantity without changing price if no customer
+                                          setEditingItemData({
+                                            ...editingItemData,
+                                            quantity,
+                                          });
+                                        }
+                                      }
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                  />
+
+                                  {/* Unit Price Display (Read-only) */}
+                                  <div className="flex items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                                    <span className="text-sm text-gray-600 mr-2">Unit Price:</span>
+                                    <span className="font-medium">
+                                      ${(editingItemData?.unit_price || 0).toFixed(2)}
+                                    </span>
+                                  </div>
+
+                                  {/* Total Price Display */}
+                                  <div className="flex items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                                    <span className="text-sm text-gray-600 mr-2">Total:</span>
+                                    <span className="font-semibold">
+                                      ${((editingItemData?.quantity || 0) * (editingItemData?.unit_price || 0)).toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => saveEditedItem(index)}
+                                    className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={cancelEditingItem}
+                                    className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
                               </div>
-                              <span className="text-sm text-gray-600">
-                                {item.quantity} × ${(item.unitPrice || 0).toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="font-semibold">
-                                ${(item.total_price || 0).toFixed(2)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => removeItemFromEditOrder(item.platform_id)}
-                                className="text-red-600 hover:bg-red-100 p-1 rounded"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            ) : (
+                              // View mode
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{item.platform}</span>
+                                    {item.username && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                        👤 {item.username}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-sm text-gray-600">
+                                    {item.quantity} × ${(item.unitPrice || 0).toFixed(2)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-semibold">
+                                    ${(item.total_price || 0).toFixed(2)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => startEditingItem(index)}
+                                    className="text-blue-600 hover:bg-blue-100 p-1 rounded"
+                                    title="Edit item"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeItemFromEditOrder(item.platform_id)}
+                                    className="text-red-600 hover:bg-red-100 p-1 rounded"
+                                    title="Remove item"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

@@ -1,6 +1,5 @@
 -- Moved from project root on 2025-11-09
 -- Draft migration for low-stock alert feature. Adapt as needed and promote to a numbered migration via `npm run db:new`.
-
 -- Example placeholder content (replace with your real SQL)
 -- BEGIN;
 --   -- ALTER TABLE inventory ADD COLUMN low_stock_threshold integer DEFAULT 5;

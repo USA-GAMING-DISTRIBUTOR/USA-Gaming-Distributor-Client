@@ -77,7 +77,9 @@ const VirtualizedPurchaseHistoryTable: React.FC<VirtualizedPurchaseHistoryTableP
         <div className="py-3 px-4 min-w-[160px]">{formatDateTime(purchase.created_at)}</div>
         <div className="py-3 px-4 font-medium min-w-[90px]">{formatNumber(purchase.quantity)}</div>
         <div className="py-3 px-4 min-w-[110px]">{formatCurrency(purchase.cost_per_unit)}</div>
-        <div className="py-3 px-4 font-medium min-w-[120px]">{formatCurrency(purchase.total_cost)}</div>
+        <div className="py-3 px-4 font-medium min-w-[120px]">
+          {formatCurrency(purchase.total_cost)}
+        </div>
         <div className="py-3 px-4 min-w-[140px]">{purchase.supplier || '-'}</div>
         <div className="py-3 px-4 min-w-[150px]">
           <span className="text-sm text-gray-600">

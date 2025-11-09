@@ -5,15 +5,18 @@ This is an optional developer experience add-on to document and test UI primitiv
 We recommend adopting Storybook only if your team plans to iterate on UI frequently or share a component library.
 
 ## Why Storybook here
+
 - Document UI primitives in `src/components/common/*` and modular panels
 - Test states (loading, empty, error) visually
 - Catch regression with Storybook tests (CSF + interactions)
 
 ## Tech choice
+
 - Storybook 8 (Builder Vite) for React + TypeScript
 - Tailwind CSS v4 (via `@tailwindcss/vite`) works out of the box when using the app’s Vite config
 
 ## Install (optional)
+
 Run these commands to add Storybook (optional and not required for app builds):
 
 ```powershell
@@ -25,6 +28,7 @@ npm i -D @types/node
 ```
 
 ## Initialize files
+
 Create the following files if you adopt Storybook:
 
 ```
@@ -37,6 +41,7 @@ src/components/common/
 ```
 
 Example `.storybook/main.ts`:
+
 ```ts
 import type { StorybookConfig } from '@storybook/react-vite';
 
@@ -57,6 +62,7 @@ export default config;
 ```
 
 Example `.storybook/preview.ts`:
+
 ```ts
 import type { Preview } from '@storybook/react';
 import '../src/index.css'; // Tailwind v4 via @tailwindcss/vite plugin
@@ -73,6 +79,7 @@ export default preview;
 ```
 
 Example story for `Button` (`src/components/common/Button.stories.tsx`):
+
 ```tsx
 import type { Meta, StoryObj } from '@storybook/react';
 import Button from './Button';
@@ -96,6 +103,7 @@ export const Disabled: Story = {
 ```
 
 ## Scripts (optional)
+
 Add to `package.json` if you proceed:
 
 ```json
@@ -108,6 +116,7 @@ Add to `package.json` if you proceed:
 ```
 
 ## Notes
+
 - Keep stories co-located with components for discoverability.
 - Prefer CSF stories over MDX initially; add MDX when documenting complex flows.
 - Use `@storybook/addon-interactions` for simple behavioral checks; keep heavy tests in Vitest.

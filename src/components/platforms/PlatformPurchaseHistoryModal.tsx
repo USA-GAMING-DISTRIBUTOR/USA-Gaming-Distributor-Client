@@ -35,11 +35,25 @@ const PlatformPurchaseHistoryModal: React.FC<PlatformPurchaseHistoryModalProps> 
   const useVirtualized = purchaseHistory.length >= UI_CONSTANTS.VIRTUALIZATION_THRESHOLD;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Purchase History - ${platformName ?? 'Platform'}`} size="xl">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Purchase History - ${platformName ?? 'Platform'}`}
+      size="xl"
+    >
       {useVirtualized ? (
-        <VirtualizedPurchaseHistoryTable loading={loading} rows={purchaseHistory} variant="platform" />
+        <VirtualizedPurchaseHistoryTable
+          loading={loading}
+          rows={purchaseHistory}
+          variant="platform"
+        />
       ) : (
-        <PurchaseHistoryTable loading={loading} rows={paginated} variant="platform" pageSize={pageSize} />
+        <PurchaseHistoryTable
+          loading={loading}
+          rows={paginated}
+          variant="platform"
+          pageSize={pageSize}
+        />
       )}
 
       {!useVirtualized && purchaseHistory.length > 0 && !loading && (

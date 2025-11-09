@@ -193,7 +193,9 @@ Log levels:
 See `docs/LOGGING.md` for full guidelines.
 
 ## Security Notes
+
 See `docs/SECURITY.md` for a detailed roadmap (authentication migration, RLS hardening, secrets, rate limiting) and per-release checklist.
+
 ## Changelog
 
 See `CHANGELOG.md` for a human-readable list of notable changes, planned work, and versioning policy. Add entries under the Unreleased section when submitting feature PRs.
@@ -340,6 +342,7 @@ Current policies are permissive (select/insert/update for all). Harden them befo
 Happy shipping!
 
 ## Atomic Inventory RPC
+
 ## Storybook (Optional)
 
 If you want interactive, isolated component development, see `docs/STORYBOOK.md` for evaluation criteria and a minimal setup. This is optional and not required for production builds.

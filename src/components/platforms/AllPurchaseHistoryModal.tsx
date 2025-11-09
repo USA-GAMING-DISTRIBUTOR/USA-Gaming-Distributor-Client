@@ -40,7 +40,12 @@ const AllPurchaseHistoryModal: React.FC<AllPurchaseHistoryModalProps> = ({
       {useVirtualized ? (
         <VirtualizedPurchaseHistoryTable loading={loading} rows={purchaseHistory} variant="all" />
       ) : (
-        <PurchaseHistoryTable loading={loading} rows={paginated} variant="all" pageSize={pageSize} />
+        <PurchaseHistoryTable
+          loading={loading}
+          rows={paginated}
+          variant="all"
+          pageSize={pageSize}
+        />
       )}
 
       {!useVirtualized && purchaseHistory.length > 0 && !loading && (

@@ -13,9 +13,7 @@ interface TableSkeletonProps {
 const TableSkeleton: React.FC<TableSkeletonProps> = ({ rows = 5, columns = 6, className = '' }) => {
   const colCount = typeof columns === 'number' ? columns : columns.length;
   const widthClasses =
-    typeof columns === 'number'
-      ? ['w-5/6', 'w-2/3', 'w-1/2', 'w-1/3']
-      : (columns as string[]);
+    typeof columns === 'number' ? ['w-5/6', 'w-2/3', 'w-1/2', 'w-1/3'] : (columns as string[]);
 
   return (
     <>
@@ -25,9 +23,7 @@ const TableSkeleton: React.FC<TableSkeletonProps> = ({ rows = 5, columns = 6, cl
             <td key={cIdx} className="py-3 px-4">
               <div className="animate-pulse">
                 <div
-                  className={`h-4 bg-gray-200 rounded ${
-                    widthClasses[cIdx % widthClasses.length]
-                  }`}
+                  className={`h-4 bg-gray-200 rounded ${widthClasses[cIdx % widthClasses.length]}`}
                 />
               </div>
             </td>

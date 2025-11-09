@@ -7,6 +7,7 @@ This avoids UI race conditions where a purchase history record is created but in
 ## Postgres function (Supabase RPC)
 
 Create a SQL function that:
+
 - Validates inputs
 - Reads current inventory
 - Inserts a `purchase_history` row
@@ -60,6 +61,7 @@ $$ language plpgsql security definer;
 ```
 
 Notes:
+
 - `security definer` lets policies be evaluated as the function owner. Combine with strict input checks and RLS considerations.
 - Add explicit RLS policies that allow calling this function only for authorized roles.
 
@@ -83,6 +85,7 @@ const { data, error } = await supabase.rpc('record_purchase_and_update_inventory
 See `src/services/inventoryRpc.ts` for a typed wrapper.
 
 ## Migration strategy
+
 - Keep existing non-atomic flow while testing the RPC in staging.
 - Toggle usage behind a small feature flag (`USE_ATOMIC_INVENTORY`) or environment boolean.
 - When confident, switch the purchase flow to call the RPC and remove the old dual-call path.

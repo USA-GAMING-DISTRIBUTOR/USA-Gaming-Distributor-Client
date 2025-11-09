@@ -95,7 +95,7 @@ src/
 - [ ] Types are accurate; no implicit anys
 - [ ] No direct Supabase calls in components
 - [ ] Errors logged via logger, not console
- - [ ] No stray `console.*` calls (except in test/dev scripts)
+- [ ] No stray `console.*` calls (except in test/dev scripts)
 - [ ] Added/updated Zod schemas when adding inputs
 - [ ] Updated docs if behavior changed (README/ARCHITECTURE)
 - [ ] Added/updated tests when logic changed

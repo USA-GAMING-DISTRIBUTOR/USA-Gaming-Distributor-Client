@@ -9,6 +9,7 @@ interface RestorePlatformsModalProps {
   platforms: Platform[];
   onRestore: (platform: Platform) => void;
   onClose: () => void;
+  accentColor?: 'pink' | 'blue' | 'green' | 'red';
 }
 
 const RestorePlatformsModal: React.FC<RestorePlatformsModalProps> = ({
@@ -17,9 +18,19 @@ const RestorePlatformsModal: React.FC<RestorePlatformsModalProps> = ({
   platforms,
   onRestore,
   onClose,
+  accentColor = 'pink',
 }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Restore Deleted Platforms" size="lg">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Restore Deleted Platforms"
+      subtitle="Recover deleted platform records"
+      headerVariant="themed"
+      headerColor={accentColor}
+      overlayVariant="blur"
+      size="lg"
+    >
       {platforms.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <p>No deleted platforms found</p>
@@ -43,6 +54,7 @@ const RestorePlatformsModal: React.FC<RestorePlatformsModalProps> = ({
                 variant="primary"
                 size="sm"
                 disabled={loading}
+                color={accentColor}
                 onClick={() => onRestore(platform)}
               >
                 {loading ? 'Restoring...' : 'Restore'}
@@ -51,8 +63,8 @@ const RestorePlatformsModal: React.FC<RestorePlatformsModalProps> = ({
           ))}
         </div>
       )}
-      <div className="mt-6 flex justify-end">
-        <Button variant="secondary" onClick={onClose}>
+      <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+        <Button variant="secondary" onClick={onClose} color={accentColor}>
           Close
         </Button>
       </div>

@@ -11,6 +11,7 @@ interface CreatePlatformModalProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
+  accentColor?: 'pink' | 'blue' | 'green' | 'red';
 }
 
 const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({
@@ -20,9 +21,19 @@ const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({
   onChange,
   onSubmit,
   onClose,
+  accentColor = 'pink',
 }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add New Platform" size="md">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add New Platform"
+      subtitle="Create a new platform for your inventory"
+      headerVariant="themed"
+      headerColor={accentColor}
+      overlayVariant="blur"
+      size="md"
+    >
       <form id="create-platform-form" onSubmit={onSubmit} className="space-y-4">
         <Input
           label="Platform Name"
@@ -75,13 +86,15 @@ const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({
           required
         />
 
-        <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
+        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+          <div className="flex gap-3">
+          <Button type="button" variant="secondary" onClick={onClose} color={accentColor}>
             Cancel
           </Button>
-          <Button type="submit" loading={loading}>
+          <Button type="submit" loading={loading} color={accentColor}>
             {loading ? 'Creating...' : 'Create Platform'}
           </Button>
+          </div>
         </div>
       </form>
     </Modal>

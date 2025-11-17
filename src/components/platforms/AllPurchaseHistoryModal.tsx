@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Modal from '../common/Modal';
+import Button from '../common/Button';
 import Pagination from '../common/Pagination';
 import PurchaseHistoryTable from './PurchaseHistoryTable';
 import VirtualizedPurchaseHistoryTable from './VirtualizedPurchaseHistoryTable';
@@ -18,6 +19,7 @@ interface AllPurchaseHistoryModalProps {
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (size: number) => void;
   onClose: () => void;
+  accentColor?: 'pink' | 'blue' | 'green' | 'red';
 }
 
 const AllPurchaseHistoryModal: React.FC<AllPurchaseHistoryModalProps> = ({
@@ -30,13 +32,23 @@ const AllPurchaseHistoryModal: React.FC<AllPurchaseHistoryModalProps> = ({
   onPageChange,
   onItemsPerPageChange,
   onClose,
+  accentColor = 'pink',
 }) => {
   const totalValue = purchaseHistory.reduce((sum, p) => sum + p.total_cost, 0);
 
   const useVirtualized = purchaseHistory.length >= UI_CONSTANTS.VIRTUALIZATION_THRESHOLD;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="All Purchase History" size="xl">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="All Purchase History"
+      subtitle="View purchases across all platforms"
+      headerVariant="themed"
+      headerColor={accentColor}
+      overlayVariant="blur"
+      size="xl"
+    >
       {useVirtualized ? (
         <VirtualizedPurchaseHistoryTable loading={loading} rows={purchaseHistory} variant="all" />
       ) : (
@@ -60,16 +72,13 @@ const AllPurchaseHistoryModal: React.FC<AllPurchaseHistoryModalProps> = ({
         </div>
       )}
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
         <div className="text-sm text-gray-600">
           Total Records: {purchaseHistory.length} | Total Value: {formatCurrency(totalValue)}
         </div>
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-        >
+        <Button variant="secondary" onClick={onClose} color={accentColor}>
           Close
-        </button>
+        </Button>
       </div>
     </Modal>
   );

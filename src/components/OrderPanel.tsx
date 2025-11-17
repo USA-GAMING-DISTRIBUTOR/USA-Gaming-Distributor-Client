@@ -6,6 +6,7 @@ import { useAppSelector } from '../hooks/redux';
 import Invoice from './Invoice';
 import { copyInvoiceToClipboard, downloadInvoiceImage } from '../utils/invoiceUtils';
 import Pagination from './common/Pagination';
+import { formatNumber, formatCurrency } from '../utils/format';
 import type { Database } from '../types/database.types';
 import type {
   Order,
@@ -1487,10 +1488,10 @@ const OrderPanel: React.FC = () => {
                         ${item.quantity}
                       </td>
                       <td style="padding: 16px 12px; text-align: right; font-weight: 600; color: #374151;">
-                        $${(item.unitPrice || 0).toFixed(2)}
+                        {formatCurrency(item.unitPrice || 0)}
                       </td>
                       <td style="padding: 16px 12px; text-align: right; font-weight: 700; color: #059669; font-size: 15px;">
-                        $${(item.total_price || 0).toFixed(2)}
+                        {formatCurrency(item.total_price || 0)}
                       </td>
                     </tr>
                   `;
@@ -1521,9 +1522,7 @@ const OrderPanel: React.FC = () => {
               
               <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
                 <span style="font-size: 16px; font-weight: 500; color: #6b7280;">Subtotal:</span>
-                <span style="font-size: 16px; font-weight: 600; color: #374151;">$${order.total_amount.toFixed(
-                  2,
-                )}</span>
+                <span style="font-size: 16px; font-weight: 600; color: #374151;">${formatCurrency(order.total_amount)}</span>
               </div>
               
               ${
@@ -1531,9 +1530,7 @@ const OrderPanel: React.FC = () => {
                   ? `
                 <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
                   <span style="font-size: 16px; font-weight: 500; color: #dc2626;">Discount:</span>
-                  <span style="font-size: 16px; font-weight: 600; color: #dc2626;">-$${order.discount_amount.toFixed(
-                    2,
-                  )}</span>
+                  <span style="font-size: 16px; font-weight: 600; color: #dc2626;">-${formatCurrency(order.discount_amount)}</span>
                 </div>
               `
                   : ''
@@ -1552,7 +1549,7 @@ const OrderPanel: React.FC = () => {
                   border-radius: 8px;
                   border: 2px solid #ec4899;
                 ">
-                  $${order.final_amount.toFixed(2)}
+                  ${formatCurrency(order.final_amount)}
                 </span>
               </div>
             </div>
@@ -1786,7 +1783,7 @@ const OrderPanel: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="font-semibold">${order.final_amount.toFixed(2)}</span>
+                    <span className="font-semibold">{formatCurrency(order.final_amount)}</span>
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-sm">{order.payment_method}</span>
@@ -2161,14 +2158,12 @@ const OrderPanel: React.FC = () => {
                                   </span>
                                 )}
                                 <span>
-                                  {item.quantity} × ${(item.unitPrice || 0).toFixed(2)}
+                                  {formatNumber(item.quantity)} × {formatCurrency(item.unitPrice || 0)}
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <span className="font-semibold">
-                                ${(item.total_price || 0).toFixed(2)}
-                              </span>
+                              <span className="font-semibold">{formatCurrency(item.total_price || 0)}</span>
                               <button
                                 type="button"
                                 onClick={() => removeItemFromOrder(item.platform_id)}
@@ -2189,7 +2184,7 @@ const OrderPanel: React.FC = () => {
                   <div className="mb-6 bg-gray-50 p-4 rounded-lg">
                     <div className="flex justify-between items-center mb-2">
                       <span>Subtotal:</span>
-                      <span>${calculateTotals().subtotal.toFixed(2)}</span>
+                      <span>{formatCurrency(calculateTotals().subtotal)}</span>
                     </div>
                     <div className="flex justify-between items-center mb-2">
                       <span>Discount:</span>
@@ -2210,7 +2205,7 @@ const OrderPanel: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center font-semibold text-lg border-t border-gray-200 pt-2">
                       <span>Total:</span>
-                      <span>${calculateTotals().finalTotal.toFixed(2)}</span>
+                      <span>{formatCurrency(calculateTotals().finalTotal)}</span>
                     </div>
                   </div>
                 )}
@@ -2322,43 +2317,53 @@ const OrderPanel: React.FC = () => {
                         <option value="BEP20">BEP20</option>
                       </select>
 
-                      {['USDT', 'USDC'].includes(
-                        (createForm.payment_details as any)?.crypto_currency || 'USDT',
-                      ) ? (
-                        <input
-                          type="text"
-                          placeholder="Username"
-                          value={(createForm.payment_details as any)?.crypto_username || ''}
-                          onChange={(e) =>
-                            setCreateForm((prev) => ({
-                              ...prev,
-                              payment_details: {
-                                ...(prev.payment_details as PaymentDetails),
-                                crypto_username: e.target.value,
-                              },
-                            }))
-                          }
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                          required
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          placeholder="Wallet Address"
-                          value={(createForm.payment_details as any)?.crypto_wallet_address || ''}
-                          onChange={(e) =>
-                            setCreateForm((prev) => ({
-                              ...prev,
-                              payment_details: {
-                                ...(prev.payment_details as PaymentDetails),
-                                crypto_wallet_address: e.target.value,
-                              },
-                            }))
-                          }
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                          required
-                        />
-                      )}
+                      {/* When a network (TRC20/BEP20) is selected show wallet address. */}
+                      {(() => {
+                        const details = createForm.payment_details as any;
+                        const hasNetwork = !!details?.crypto_network;
+                        const currency = details?.crypto_currency;
+                        const showUsername = !!currency && ['USDT', 'USDC'].includes(currency) && !hasNetwork;
+
+                        if (showUsername) {
+                          return (
+                            <input
+                              type="text"
+                              placeholder="Username"
+                              value={(createForm.payment_details as any)?.crypto_username || ''}
+                              onChange={(e) =>
+                                setCreateForm((prev) => ({
+                                  ...prev,
+                                  payment_details: {
+                                    ...(prev.payment_details as PaymentDetails),
+                                    crypto_username: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                              required
+                            />
+                          );
+                        }
+
+                        return (
+                          <input
+                            type="text"
+                            placeholder="Wallet Address"
+                            value={(createForm.payment_details as any)?.crypto_wallet_address || ''}
+                            onChange={(e) =>
+                              setCreateForm((prev) => ({
+                                ...prev,
+                                payment_details: {
+                                  ...(prev.payment_details as PaymentDetails),
+                                  crypto_wallet_address: e.target.value,
+                                },
+                              }))
+                            }
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                            required
+                          />
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
@@ -2607,7 +2612,7 @@ const OrderPanel: React.FC = () => {
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
               <div className="text-sm text-gray-500">
                 Items: {createForm.items.length} | Total: $
-                {createForm.items.reduce((sum, item) => sum + item.total_price, 0).toFixed(2)}
+                {formatCurrency(createForm.items.reduce((sum, item) => sum + item.total_price, 0))}
               </div>
               <div className="flex space-x-3">
                 <button
@@ -3039,7 +3044,7 @@ const OrderPanel: React.FC = () => {
                                   <div className="flex items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                                     <span className="text-sm text-gray-600 mr-2">Unit Price:</span>
                                     <span className="font-medium">
-                                      ${(editingItemData?.unit_price || 0).toFixed(2)}
+                                      {formatCurrency(editingItemData?.unit_price || 0)}
                                     </span>
                                   </div>
 
@@ -3047,7 +3052,7 @@ const OrderPanel: React.FC = () => {
                                   <div className="flex items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                                     <span className="text-sm text-gray-600 mr-2">Total:</span>
                                     <span className="font-semibold">
-                                      ${((editingItemData?.quantity || 0) * (editingItemData?.unit_price || 0)).toFixed(2)}
+                                      {formatCurrency(((editingItemData?.quantity || 0) * (editingItemData?.unit_price || 0)) || 0)}
                                     </span>
                                   </div>
                                 </div>
@@ -3082,12 +3087,12 @@ const OrderPanel: React.FC = () => {
                                     )}
                                   </div>
                                   <span className="text-sm text-gray-600">
-                                    {item.quantity} × ${(item.unitPrice || 0).toFixed(2)}
+                                    {formatNumber(item.quantity)} × {formatCurrency(item.unitPrice || 0)}
                                   </span>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <span className="font-semibold">
-                                    ${(item.total_price || 0).toFixed(2)}
+                                    {formatCurrency(item.total_price || 0)}
                                   </span>
                                   <button
                                     type="button"
@@ -3120,7 +3125,7 @@ const OrderPanel: React.FC = () => {
                   <div className="mb-6 bg-gray-50 p-4 rounded-lg">
                     <div className="flex justify-between items-center mb-2">
                       <span>Subtotal:</span>
-                      <span>${calculateEditTotals().subtotal.toFixed(2)}</span>
+                      <span>{formatCurrency(calculateEditTotals().subtotal)}</span>
                     </div>
                     <div className="flex justify-between items-center mb-2">
                       <span>Discount:</span>
@@ -3141,7 +3146,7 @@ const OrderPanel: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center font-semibold text-lg border-t border-gray-200 pt-2">
                       <span>Total:</span>
-                      <span>${calculateEditTotals().finalTotal.toFixed(2)}</span>
+                      <span>{formatCurrency(calculateEditTotals().finalTotal)}</span>
                     </div>
                   </div>
                 )}
@@ -3259,43 +3264,52 @@ const OrderPanel: React.FC = () => {
                         <option value="BEP20">BEP20</option>
                       </select>
 
-                      {['USDT', 'USDC'].includes(
-                        (editForm.payment_details as any)?.crypto_currency || 'USDT',
-                      ) ? (
-                        <input
-                          type="text"
-                          placeholder="Username"
-                          value={(editForm.payment_details as any)?.crypto_username || ''}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              payment_details: {
-                                ...(prev.payment_details as any),
-                                crypto_username: e.target.value,
-                              },
-                            }))
-                          }
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                          required
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          placeholder="Wallet Address"
-                          value={(editForm.payment_details as any)?.crypto_wallet_address || ''}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              payment_details: {
-                                ...(prev.payment_details as any),
-                                crypto_wallet_address: e.target.value,
-                              },
-                            }))
-                          }
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                          required
-                        />
-                      )}
+                      {(() => {
+                        const details = editForm.payment_details as any;
+                        const hasNetwork = !!details?.crypto_network;
+                        const currency = details?.crypto_currency;
+                        const showUsername = !!currency && ['USDT', 'USDC'].includes(currency) && !hasNetwork;
+
+                        if (showUsername) {
+                          return (
+                            <input
+                              type="text"
+                              placeholder="Username"
+                              value={(editForm.payment_details as any)?.crypto_username || ''}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  payment_details: {
+                                    ...(prev.payment_details as PaymentDetails),
+                                    crypto_username: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                              required
+                            />
+                          );
+                        }
+
+                        return (
+                          <input
+                            type="text"
+                            placeholder="Wallet Address"
+                            value={(editForm.payment_details as any)?.crypto_wallet_address || ''}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                payment_details: {
+                                  ...(prev.payment_details as PaymentDetails),
+                                  crypto_wallet_address: e.target.value,
+                                },
+                              }))
+                            }
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                            required
+                          />
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
@@ -3721,7 +3735,7 @@ const OrderPanel: React.FC = () => {
                             d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                           />
                         </svg>
-                        Order Items ({selectedOrder.items.length})
+                        Order Items ({formatNumber(selectedOrder.items.length)})
                       </h4>
                     </div>
                     <div className="divide-y divide-gray-200">
@@ -3749,16 +3763,16 @@ const OrderPanel: React.FC = () => {
                               </div>
                               <div className="flex items-center text-sm text-gray-600 ml-13">
                                 <span className="bg-gray-100 px-2 py-1 rounded mr-2">
-                                  Qty: {item.quantity}
+                                  Qty: {formatNumber(item.quantity)}
                                 </span>
                                 <span className="bg-gray-100 px-2 py-1 rounded">
-                                  ${item.unitPrice.toFixed(2)} each
+                                  {formatCurrency(item.unitPrice)} each
                                 </span>
                               </div>
                             </div>
                             <div className="text-right ml-4">
                               <p className="text-lg font-bold text-gray-900">
-                                ${item.total_price.toFixed(2)}
+                                {formatCurrency(item.total_price)}
                               </p>
                               <p className="text-sm text-gray-500">Total</p>
                             </div>
@@ -3813,20 +3827,20 @@ const OrderPanel: React.FC = () => {
                       Order Summary
                     </h4>
                     <div className="space-y-2">
-                      <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-gray-600">
                         <span>Subtotal:</span>
-                        <span>${selectedOrder.total_amount.toFixed(2)}</span>
+                        <span>{formatCurrency(selectedOrder.total_amount)}</span>
                       </div>
                       {selectedOrder.discount_amount > 0 && (
                         <div className="flex justify-between text-red-600">
                           <span>Discount:</span>
-                          <span>-${selectedOrder.discount_amount.toFixed(2)}</span>
+                          <span>-{formatCurrency(selectedOrder.discount_amount)}</span>
                         </div>
                       )}
                       <div className="border-t border-green-200 pt-2 mt-2">
                         <div className="flex justify-between text-lg font-bold text-gray-900">
                           <span>Total Amount:</span>
-                          <span>${selectedOrder.final_amount.toFixed(2)}</span>
+                          <span>{formatCurrency(selectedOrder.final_amount)}</span>
                         </div>
                       </div>
                     </div>
@@ -3903,11 +3917,13 @@ const OrderPanel: React.FC = () => {
                                       </span>
                                     </div>
                                   )}
-                                  {orderPaymentDetails.crypto_username && (
+                                  {/* Prefer showing wallet address for crypto payments. If wallet is missing,
+                                      fall back to showing the username but label it consistently as "Wallet Address" */}
+                                  {(orderPaymentDetails.crypto_wallet_address || orderPaymentDetails.crypto_username) && (
                                     <div>
-                                      <span className="font-medium text-gray-600">Username:</span>
-                                      <p className="text-gray-900">
-                                        {orderPaymentDetails.crypto_username}
+                                      <span className="font-medium text-gray-600">Wallet Address:</span>
+                                      <p className="text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded mt-1">
+                                        {orderPaymentDetails.crypto_wallet_address || orderPaymentDetails.crypto_username}
                                       </p>
                                     </div>
                                   )}

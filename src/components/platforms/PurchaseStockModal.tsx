@@ -19,6 +19,7 @@ interface PurchaseStockModalProps {
   onChange: (changes: Partial<PurchaseFormState>) => void;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
+  accentColor?: 'pink' | 'blue' | 'green' | 'red';
 }
 
 const PurchaseStockModal: React.FC<PurchaseStockModalProps> = ({
@@ -29,6 +30,7 @@ const PurchaseStockModal: React.FC<PurchaseStockModalProps> = ({
   onChange,
   onSubmit,
   onClose,
+  accentColor = 'pink',
 }) => {
   const totalCost = form.quantity * form.cost_per_unit;
 
@@ -37,6 +39,10 @@ const PurchaseStockModal: React.FC<PurchaseStockModalProps> = ({
       isOpen={isOpen && !!platform}
       onClose={onClose}
       title={platform ? `Add Stock - ${platform.platform}` : 'Add Stock'}
+      subtitle={platform ? `Add inventory for ${platform.platform}` : 'Add inventory'}
+      headerVariant="themed"
+      headerColor={accentColor}
+      overlayVariant="blur"
       size="md"
     >
       <form id="purchase-stock-form" onSubmit={onSubmit} className="space-y-4">
@@ -87,8 +93,9 @@ const PurchaseStockModal: React.FC<PurchaseStockModalProps> = ({
           </div>
         )}
 
-        <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
+        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+          <div className="flex gap-3">
+          <Button type="button" variant="secondary" onClick={onClose} color={accentColor}>
             Cancel
           </Button>
           <Button
@@ -96,9 +103,11 @@ const PurchaseStockModal: React.FC<PurchaseStockModalProps> = ({
             variant="primary"
             loading={loading}
             disabled={loading || form.quantity <= 0}
+            color={accentColor}
           >
             {loading ? 'Adding...' : 'Add Stock'}
           </Button>
+          </div>
         </div>
       </form>
     </Modal>

@@ -2,6 +2,7 @@ import React from 'react';
 
 import Modal from '../common/Modal';
 import Pagination from '../common/Pagination';
+import Button from '../common/Button';
 import PurchaseHistoryTable from './PurchaseHistoryTable';
 import VirtualizedPurchaseHistoryTable from './VirtualizedPurchaseHistoryTable';
 import { UI_CONSTANTS } from '@utils/constants';
@@ -18,6 +19,7 @@ interface PlatformPurchaseHistoryModalProps {
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (size: number) => void;
   onClose: () => void;
+  accentColor?: 'pink' | 'blue' | 'green' | 'red';
 }
 
 const PlatformPurchaseHistoryModal: React.FC<PlatformPurchaseHistoryModalProps> = ({
@@ -31,6 +33,7 @@ const PlatformPurchaseHistoryModal: React.FC<PlatformPurchaseHistoryModalProps> 
   onPageChange,
   onItemsPerPageChange,
   onClose,
+  accentColor = 'pink',
 }) => {
   const useVirtualized = purchaseHistory.length >= UI_CONSTANTS.VIRTUALIZATION_THRESHOLD;
 
@@ -39,6 +42,10 @@ const PlatformPurchaseHistoryModal: React.FC<PlatformPurchaseHistoryModalProps> 
       isOpen={isOpen}
       onClose={onClose}
       title={`Purchase History - ${platformName ?? 'Platform'}`}
+      subtitle={platformName ? `Transactions for ${platformName}` : 'Platform purchase history'}
+      headerVariant="themed"
+      headerColor={accentColor}
+      overlayVariant="blur"
       size="xl"
     >
       {useVirtualized ? (
@@ -68,13 +75,10 @@ const PlatformPurchaseHistoryModal: React.FC<PlatformPurchaseHistoryModalProps> 
         </div>
       )}
 
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-        >
+      <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
+        <Button variant="secondary" onClick={onClose} color={accentColor}>
           Close
-        </button>
+        </Button>
       </div>
     </Modal>
   );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatCurrency, formatNumber } from '../utils/format';
 import type { Order } from '../types/order';
 import type { Customer } from '../types/customer';
 import type { Platform } from '../types/platform';
@@ -101,10 +102,54 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                 marginBottom: '2px',
               }}
             >
-              📧 support@usagaming.com | 📞 +1-800-123-4567
+              📧 USAGamingDistributor@gmail.com | 📞 +1 (347) 690-3982
             </div>
-            <div style={{ fontSize: '14px', color: '#6b7280' }}>
-              📍 123 Main Street, New York, NY 10001
+            <div
+              style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <img
+                src="/whatsapp.svg" // put your WhatsApp icon in public/assets or adjust path
+                alt="WhatsApp"
+                style={{
+                  width: 18,
+                  height: 18,
+                  objectFit: 'contain',
+                  borderRadius: 4,
+                }}
+              />
+              <span style={{ lineHeight: 2 }}>+1 (347) 690-3982</span>
+            </div>
+            <div
+              style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <img
+                src="/facebook.svg" // put your WhatsApp icon in public/assets or adjust path
+                alt="Facebook"
+                style={{
+                  width: 18,
+                  height: 18,
+                  objectFit: 'contain',
+                  borderRadius: 4,
+                }}
+              />
+              <a
+                style={{ lineHeight: 2, color: '#ec4899', textDecoration: 'underline' }}
+                href="https://www.facebook.com/USAGamingDistributor"
+              >
+                www.facebook.com/USAGamingDistributor
+              </a>
             </div>
           </div>
         </div>
@@ -332,7 +377,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                   letterSpacing: '0.5px',
                 }}
               >
-                Unit Price
+                Per Coin Price
               </th>
               <th
                 style={{
@@ -402,7 +447,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       color: '#374151',
                     }}
                   >
-                    {item.quantity}
+                    {formatNumber(item.quantity)}
                   </td>
                   <td
                     style={{
@@ -412,7 +457,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       color: '#374151',
                     }}
                   >
-                    ${item.unitPrice.toFixed(2)}
+                    {formatCurrency(item.unitPrice)}
                   </td>
                   <td
                     style={{
@@ -423,7 +468,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       fontSize: '15px',
                     }}
                   >
-                    ${item.total_price.toFixed(2)}
+                    {formatCurrency(item.total_price)}
                   </td>
                 </tr>
               );
@@ -470,7 +515,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
           >
             <span style={{ fontSize: '16px', fontWeight: '500', color: '#6b7280' }}>Subtotal:</span>
             <span style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>
-              ${order.total_amount.toFixed(2)}
+              {formatCurrency(order.total_amount)}
             </span>
           </div>
 
@@ -530,7 +575,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                 border: '2px solid #ec4899',
               }}
             >
-              ${order.total_amount.toFixed(2)}
+              {formatCurrency(order.total_amount)}
             </span>
           </div>
         </div>
@@ -649,10 +694,13 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       </span>
                     </div>
                   )}
-                  {paymentDetails.crypto_username && (
+                  {/* Prefer wallet address in invoice; fallback to username if address missing. */}
+                  {(paymentDetails.crypto_wallet_address || paymentDetails.crypto_username) && (
                     <div>
-                      <span style={{ fontWeight: '600', color: '#374151' }}>Username:</span>
-                      <span style={{ marginLeft: '8px' }}>{paymentDetails.crypto_username}</span>
+                      <span style={{ fontWeight: '600', color: '#374151' }}>Wallet Address:</span>
+                      <span style={{ marginLeft: '8px', fontFamily: 'monospace' }}>
+                        {paymentDetails.crypto_wallet_address || paymentDetails.crypto_username}
+                      </span>
                     </div>
                   )}
                   {paymentDetails.crypto_wallet_address && (
@@ -973,9 +1021,8 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               color: '#9ca3af',
             }}
           >
-            <div>📧 support@usagaming.com</div>
-            <div>📞 +1-800-123-4567</div>
-            <div>💬 Live Chat Available 24/7</div>
+            <div>📧 USAGamingDistributor@gmail.com</div>
+            <div>📞 +1 (347) 690-3982</div>
           </div>
           <div
             style={{

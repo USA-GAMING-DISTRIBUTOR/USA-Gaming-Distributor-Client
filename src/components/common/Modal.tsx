@@ -10,6 +10,14 @@ export interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   closeOnOverlayClick?: boolean;
   showCloseButton?: boolean;
+  /** Optional subtitle shown below title (used by themed header) */
+  subtitle?: string;
+  /** Header variant for themed headers like Customer modal */
+  headerVariant?: 'default' | 'themed';
+  /** Color of themed header and color accents */
+  headerColor?: 'pink' | 'blue' | 'green' | 'red';
+  /** Overlay style - 'dark' uses opaque black, 'blur' uses blurred white overlay like Add Customer modal */
+  overlayVariant?: 'dark' | 'blur';
 }
 
 /**
@@ -23,6 +31,10 @@ const Modal: React.FC<ModalProps> = ({
   size = 'md',
   closeOnOverlayClick = true,
   showCloseButton = true,
+  subtitle,
+  headerVariant = 'default',
+  headerColor = 'pink',
+  overlayVariant = 'dark',
 }) => {
   // Handle escape key
   useEffect(() => {
@@ -59,9 +71,20 @@ const Modal: React.FC<ModalProps> = ({
     }
   };
 
+  const overlayClass = overlayVariant === 'blur' ? 'bg-white/10 backdrop-blur-sm' : 'bg-black bg-opacity-50';
+
+  const headerColorMap: Record<string, { from: string; to: string; subtitle: string; close: string }> = {
+    pink: { from: 'from-pink-600', to: 'to-pink-700', subtitle: 'text-pink-100', close: 'text-pink-100 hover:text-white' },
+    blue: { from: 'from-blue-600', to: 'to-blue-700', subtitle: 'text-blue-100', close: 'text-blue-100 hover:text-white' },
+    green: { from: 'from-green-600', to: 'to-green-700', subtitle: 'text-green-100', close: 'text-green-100 hover:text-white' },
+    red: { from: 'from-red-600', to: 'to-red-700', subtitle: 'text-red-100', close: 'text-red-100 hover:text-white' },
+  };
+
+  const pickedHeaderColor = headerColorMap[headerColor] ?? headerColorMap.pink;
+
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className={`fixed inset-0 ${overlayClass} flex items-center justify-center p-4 z-50`}
       onClick={handleOverlayClick}
     >
       <div
@@ -69,14 +92,29 @@ const Modal: React.FC<ModalProps> = ({
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+          <div
+            className={`${
+              headerVariant === 'themed'
+                ? `bg-gradient-to-r ${pickedHeaderColor.from} ${pickedHeaderColor.to} text-white p-6 flex-shrink-0`
+                : 'flex items-center justify-between p-6 border-b border-gray-200'
+            }`}
+          >
+            <div>
+              <h2
+                className={`${headerVariant === 'themed' ? 'text-xl font-bold' : 'text-xl font-semibold text-gray-900'}`}
+              >
+                {title}
+              </h2>
+              {subtitle && headerVariant === 'themed' && (
+                <p className={`${pickedHeaderColor.subtitle} text-sm mt-1`}>{subtitle}</p>
+              )}
+            </div>
             {showCloseButton && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600"
+                className={headerVariant === 'themed' ? pickedHeaderColor.close : 'text-gray-400 hover:text-gray-600'}
               >
                 <X className="h-5 w-5" />
               </Button>

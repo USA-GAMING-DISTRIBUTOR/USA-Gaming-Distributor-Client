@@ -5,6 +5,7 @@ import { usePlatforms } from '../domains/platforms/hooks/usePlatforms';
 // Domain hook encapsulates fetching, filtering, pagination, and CRUD
 import type { Platform, PlatformCreateData } from '../types/platform';
 import Pagination from './common/Pagination';
+import { formatNumber, formatCurrency } from '../utils/format';
 import TableSkeleton from './common/TableSkeleton';
 import ErrorDisplay from './common/ErrorDisplay';
 import CreatePlatformModal from './platforms/CreatePlatformModal';
@@ -68,6 +69,7 @@ const PlatformPanel: React.FC = () => {
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [modalAccent, setModalAccent] = useState<'pink' | 'blue' | 'green' | 'red'>('pink');
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
@@ -155,6 +157,7 @@ const PlatformPanel: React.FC = () => {
   };
 
   const handleEdit = (platform: Platform) => {
+    setModalAccent('blue');
     setSelectedPlatform(platform);
     setEditForm({
       platform_name: platform.platform, // Map platform to platform_name for the form
@@ -183,6 +186,7 @@ const PlatformPanel: React.FC = () => {
   };
 
   const handleDelete = (platform: Platform) => {
+    setModalAccent('red');
     setSelectedPlatform(platform);
     setShowDeleteModal(true);
   };
@@ -218,6 +222,7 @@ const PlatformPanel: React.FC = () => {
   };
 
   const openPurchaseModal = (platform: Platform) => {
+    setModalAccent('green');
     setSelectedPlatform(platform);
     setPurchaseForm({
       quantity: 0,
@@ -229,6 +234,7 @@ const PlatformPanel: React.FC = () => {
   };
 
   const showPurchaseHistory = async (platform: Platform) => {
+    setModalAccent('pink');
     setSelectedPlatform(platform);
     await fetchPurchaseHistoryFor(platform.id);
     setShowHistoryModal(true);
@@ -304,6 +310,7 @@ const PlatformPanel: React.FC = () => {
           <button
             onClick={() => {
               fetchAllPurchaseHistory();
+              setModalAccent('blue');
               setShowAllHistoryModal(true);
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
@@ -314,6 +321,7 @@ const PlatformPanel: React.FC = () => {
           <button
             onClick={() => {
               fetchDeletedPlatforms();
+              setModalAccent('green');
               setShowRestoreModal(true);
             }}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center mr-2"
@@ -322,7 +330,10 @@ const PlatformPanel: React.FC = () => {
             Restore Platforms
           </button>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              setModalAccent('pink');
+              setShowCreateModal(true);
+            }}
             className="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition-colors flex items-center"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -393,14 +404,14 @@ const PlatformPanel: React.FC = () => {
                             : ''
                         }`}
                       >
-                        {platform.inventory}
+                        {formatNumber(platform.inventory)}
                       </span>
                       {platform.inventory < platform.low_stock_alert && (
                         <AlertTriangle className="w-4 h-4 ml-2 text-red-500" />
                       )}
                     </div>
                   </td>
-                  <td className="py-3 px-4">${platform.cost_price.toFixed(2)}</td>
+                  <td className="py-3 px-4">{formatCurrency(platform.cost_price)}</td>
                   <td className="py-3 px-4">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -474,6 +485,7 @@ const PlatformPanel: React.FC = () => {
         onChange={handleInputChange}
         onSubmit={handleSubmit}
         onClose={() => setShowCreateModal(false)}
+        accentColor={modalAccent}
       />
 
       {/* Edit Modal */}
@@ -485,6 +497,7 @@ const PlatformPanel: React.FC = () => {
         onChange={handleEditInputChange}
         onSubmit={handleEditSubmit}
         onClose={() => setShowEditModal(false)}
+        accentColor={modalAccent}
       />
 
       {/* Delete Confirmation Modal */}
@@ -495,6 +508,7 @@ const PlatformPanel: React.FC = () => {
         platform={selectedPlatform}
         onConfirm={confirmDelete}
         onClose={() => setShowDeleteModal(false)}
+        accentColor={modalAccent}
       />
 
       <PurchaseStockModal
@@ -505,6 +519,7 @@ const PlatformPanel: React.FC = () => {
         onChange={(changes) => setPurchaseForm((prev) => ({ ...prev, ...changes }))}
         onSubmit={handlePurchaseSubmit}
         onClose={() => setShowPurchaseModal(false)}
+        accentColor={modalAccent}
       />
 
       <PlatformPurchaseHistoryModal
@@ -518,6 +533,7 @@ const PlatformPanel: React.FC = () => {
         onPageChange={setPhPage}
         onItemsPerPageChange={(n: number) => setPhPageSize(n)}
         onClose={() => setShowHistoryModal(false)}
+        accentColor={modalAccent}
       />
 
       <AllPurchaseHistoryModal
@@ -530,6 +546,7 @@ const PlatformPanel: React.FC = () => {
         onPageChange={setAllPhPage}
         onItemsPerPageChange={(n: number) => setAllPhPageSize(n)}
         onClose={() => setShowAllHistoryModal(false)}
+        accentColor={modalAccent}
       />
 
       <RestorePlatformsModal
@@ -538,6 +555,7 @@ const PlatformPanel: React.FC = () => {
         platforms={deletedPlatforms}
         onRestore={handleRestoreClick}
         onClose={() => setShowRestoreModal(false)}
+        accentColor={modalAccent}
       />
     </div>
   );

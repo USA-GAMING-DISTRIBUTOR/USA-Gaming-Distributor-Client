@@ -2,6 +2,8 @@ import React from 'react';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  /** Accent color used for primary/secondary/ghost variants. Defaults to 'pink' */
+  color?: 'pink' | 'blue' | 'green' | 'red';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: React.ReactNode;
@@ -18,17 +20,27 @@ const Button: React.FC<ButtonProps> = ({
   icon,
   disabled,
   className = '',
+  color = 'pink',
   children,
   ...props
 }) => {
   const baseClasses =
     'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
+  const colorMap: Record<string, { c600: string; c700: string; c500: string; c50: string }> = {
+    pink: { c600: 'pink-600', c700: 'pink-700', c500: 'pink-500', c50: 'pink-50' },
+    blue: { c600: 'blue-600', c700: 'blue-700', c500: 'blue-500', c50: 'blue-50' },
+    green: { c600: 'green-600', c700: 'green-700', c500: 'green-500', c50: 'green-50' },
+    red: { c600: 'red-600', c700: 'red-700', c500: 'red-500', c50: 'red-50' },
+  };
+
+  const accent = colorMap[color] ?? colorMap.pink;
+
   const variantClasses = {
-    primary: 'bg-pink-600 text-white hover:bg-pink-700 focus:ring-pink-500',
-    secondary: 'bg-white text-pink-600 border border-pink-600 hover:bg-pink-50 focus:ring-pink-500',
+    primary: `bg-${accent.c600} text-white hover:bg-${accent.c700} focus:ring-${accent.c500}`,
+    secondary: `bg-white text-${accent.c600} border border-${accent.c600} hover:bg-${accent.c50} focus:ring-${accent.c500}`,
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    ghost: 'text-pink-600 hover:text-pink-700 hover:bg-pink-50',
+    ghost: `text-${accent.c600} hover:text-${accent.c700} hover:bg-${accent.c50}`,
   };
 
   const sizeClasses = {

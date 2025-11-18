@@ -4,11 +4,13 @@ import { supabase } from '../lib/supabase';
 export const generateInvoiceImage = async (invoiceElement: HTMLElement): Promise<string | null> => {
   try {
     // Generate canvas from HTML element
+    
     const canvas = await html2canvas(invoiceElement, {
       useCORS: true,
       allowTaint: false,
       width: invoiceElement.offsetWidth,
       height: invoiceElement.offsetHeight,
+      
     });
 
     // Convert canvas to blob
@@ -79,30 +81,27 @@ export const uploadInvoiceToStorage = async (
 
 export const copyInvoiceToClipboard = async (invoiceElement: HTMLElement): Promise<boolean> => {
   try {
-    // Check clipboard permissions
     if (!navigator.clipboard || !navigator.clipboard.write) {
       throw new Error('Clipboard API not supported');
     }
 
-    // Generate canvas from HTML element
+
+
     const canvas = await html2canvas(invoiceElement, {
       useCORS: true,
       allowTaint: false,
-      width: invoiceElement.offsetWidth,
-      height: invoiceElement.offsetHeight,
+
     });
 
-    // Convert canvas to blob
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/png', 0.9),
+      canvas.toBlob(resolve, 'image/png', 1.0) // max quality
     );
 
-    if (!blob) {
-      throw new Error('Failed to generate invoice image');
-    }
+    if (!blob) throw new Error('Failed to generate invoice image');
 
-    // Copy to clipboard
-    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+    await navigator.clipboard.write([
+      new ClipboardItem({ [blob.type]: blob })
+    ]);
 
     return true;
   } catch (error) {
@@ -110,6 +109,7 @@ export const copyInvoiceToClipboard = async (invoiceElement: HTMLElement): Promi
     return false;
   }
 };
+
 
 export const downloadInvoiceImage = async (
   invoiceElement: HTMLElement,

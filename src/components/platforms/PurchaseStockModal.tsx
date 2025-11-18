@@ -95,18 +95,18 @@ const PurchaseStockModal: React.FC<PurchaseStockModalProps> = ({
 
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
           <div className="flex gap-3">
-          <Button type="button" variant="secondary" onClick={onClose} color={accentColor}>
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            loading={loading}
-            disabled={loading || form.quantity <= 0}
-            color={accentColor}
-          >
-            {loading ? 'Adding...' : 'Add Stock'}
-          </Button>
+            <Button type="button" variant="secondary" onClick={onClose} color={accentColor}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={loading}
+              disabled={loading || form.quantity <= 0}
+              color={accentColor}
+            >
+              {loading ? 'Adding...' : 'Add Stock'}
+            </Button>
           </div>
         </div>
       </form>

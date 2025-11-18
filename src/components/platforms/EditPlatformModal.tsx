@@ -88,12 +88,12 @@ const EditPlatformModal: React.FC<EditPlatformModalProps> = ({
 
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
           <div className="flex gap-3">
-          <Button type="button" variant="secondary" onClick={onClose} color={accentColor}>
-            Cancel
-          </Button>
-          <Button type="submit" loading={loading} color={accentColor}>
-            {loading ? 'Updating...' : 'Update Platform'}
-          </Button>
+            <Button type="button" variant="secondary" onClick={onClose} color={accentColor}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={loading} color={accentColor}>
+              {loading ? 'Updating...' : 'Update Platform'}
+            </Button>
           </div>
         </div>
       </form>

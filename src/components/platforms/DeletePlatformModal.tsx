@@ -38,12 +38,12 @@ const DeletePlatformModal: React.FC<DeletePlatformModalProps> = ({
         </p>
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end items-center flex-shrink-0">
           <div className="flex gap-3">
-          <Button variant="secondary" type="button" onClick={onClose} color={accentColor}>
-            Cancel
-          </Button>
-          <Button variant="danger" type="button" loading={loading} onClick={onConfirm}>
-            {loading ? 'Deleting...' : 'Delete'}
-          </Button>
+            <Button variant="secondary" type="button" onClick={onClose} color={accentColor}>
+              Cancel
+            </Button>
+            <Button variant="danger" type="button" loading={loading} onClick={onConfirm}>
+              {loading ? 'Deleting...' : 'Delete'}
+            </Button>
           </div>
         </div>
       </div>

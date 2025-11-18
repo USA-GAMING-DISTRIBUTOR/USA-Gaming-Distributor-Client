@@ -641,7 +641,7 @@ const OrderPanel: React.FC = () => {
   // Start editing an item in the edit order
   const startEditingItem = (index: number) => {
     const item = editForm.items[index];
-    
+
     // Calculate the price based on current quantity and customer pricing
     let unit_price = item.unitPrice || 0;
     if (editForm.customer_id && item.platform_id && item.quantity > 0) {
@@ -649,15 +649,11 @@ const OrderPanel: React.FC = () => {
       const existingQuantity = editForm.items
         .filter((it, idx) => idx !== index && it.platform_id === item.platform_id)
         .reduce((total, it) => total + it.quantity, 0);
-      
+
       const totalQuantity = existingQuantity + item.quantity;
-      
-      const price = getCustomerPrice(
-        editForm.customer_id,
-        item.platform_id,
-        totalQuantity,
-      );
-      
+
+      const price = getCustomerPrice(editForm.customer_id, item.platform_id, totalQuantity);
+
       // If customer pricing returns 0, fall back to platform cost price
       if (price > 0) {
         unit_price = price;
@@ -670,7 +666,7 @@ const OrderPanel: React.FC = () => {
       const platform = platforms.find((p) => p.id === item.platform_id);
       unit_price = platform?.cost_price || 0;
     }
-    
+
     setEditingItemIndex(index);
     setEditingItemData({
       platform_id: item.platform_id,
@@ -900,7 +896,8 @@ const OrderPanel: React.FC = () => {
       // (not the items that might have been updated from a previous edit session)
       const { data: originalOrderData, error: fetchOriginalError } = await supabase
         .from('orders')
-        .select(`
+        .select(
+          `
           *,
           items:order_items(
             id,
@@ -911,7 +908,8 @@ const OrderPanel: React.FC = () => {
             username,
             usernames
           )
-        `)
+        `,
+        )
         .eq('id', editForm.id)
         .single();
 
@@ -922,17 +920,19 @@ const OrderPanel: React.FC = () => {
       const originalOrder = originalOrderData;
 
       // Build a map of current inventory + what we're returning from the original order
-      const inventoryChanges: { [platformId: string]: { 
-        originalQty: number; 
-        newQty: number; 
-        currentInventory: number 
-      } } = {};
+      const inventoryChanges: {
+        [platformId: string]: {
+          originalQty: number;
+          newQty: number;
+          currentInventory: number;
+        };
+      } = {};
 
       // First pass: record original quantities (these will be returned to inventory)
       for (const originalItem of originalOrder.items) {
         const platform = platforms.find((p) => p.id === originalItem.platform_id);
         if (!platform) continue;
-        
+
         inventoryChanges[originalItem.platform_id] = {
           originalQty: originalItem.quantity,
           newQty: 0,
@@ -955,7 +955,7 @@ const OrderPanel: React.FC = () => {
           };
         }
       }
-      
+
       // Validate inventory availability
       for (const [platformId, change] of Object.entries(inventoryChanges)) {
         const platform = platforms.find((p) => p.id === platformId);
@@ -963,7 +963,7 @@ const OrderPanel: React.FC = () => {
 
         // Available = current inventory + what we're returning from original order
         const availableInventory = change.currentInventory + change.originalQty;
-        
+
         if (change.newQty > availableInventory) {
           throw new Error(
             `Insufficient inventory for ${platform.platform}. Available: ${availableInventory}, Requested: ${change.newQty}`,
@@ -989,10 +989,10 @@ const OrderPanel: React.FC = () => {
 
       // IMPORTANT: Apply inventory changes FIRST, before deleting order items
       // This prevents any delete triggers from interfering with our inventory logic
-      
+
       for (const [platformId, change] of Object.entries(inventoryChanges)) {
         const netChange = change.originalQty - change.newQty;
-        
+
         // Only update if there's a net change
         if (netChange !== 0) {
           // Get the latest inventory from database to avoid stale data
@@ -1192,12 +1192,12 @@ const OrderPanel: React.FC = () => {
 
     setLoading(true);
     try {
-      // NOTE: Replacements don't affect inventory. 
+      // NOTE: Replacements don't affect inventory.
       // A replacement means we're replacing defective/incorrect accounts with working ones,
       // but the customer already paid and received accounts from our inventory.
       // The inventory was already deducted when the original order was created.
       // We're just swapping the account credentials, not issuing new inventory.
-      
+
       // Update order status to replacement
       const { error: orderError } = await supabase
         .from('orders')
@@ -2158,12 +2158,15 @@ const OrderPanel: React.FC = () => {
                                   </span>
                                 )}
                                 <span>
-                                  {formatNumber(item.quantity)} × {formatCurrency(item.unitPrice || 0)}
+                                  {formatNumber(item.quantity)} ×{' '}
+                                  {formatCurrency(item.unitPrice || 0)}
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center space-x-2">
-                              <span className="font-semibold">{formatCurrency(item.total_price || 0)}</span>
+                              <span className="font-semibold">
+                                {formatCurrency(item.total_price || 0)}
+                              </span>
                               <button
                                 type="button"
                                 onClick={() => removeItemFromOrder(item.platform_id)}
@@ -2322,7 +2325,8 @@ const OrderPanel: React.FC = () => {
                         const details = createForm.payment_details as any;
                         const hasNetwork = !!details?.crypto_network;
                         const currency = details?.crypto_currency;
-                        const showUsername = !!currency && ['USDT', 'USDC'].includes(currency) && !hasNetwork;
+                        const showUsername =
+                          !!currency && ['USDT', 'USDC'].includes(currency) && !hasNetwork;
 
                         if (showUsername) {
                           return (
@@ -2917,23 +2921,32 @@ const OrderPanel: React.FC = () => {
                                         });
 
                                         // Automatically calculate price based on customer pricing
-                                        if (editForm.customer_id && platformId && editingItemData.quantity > 0) {
+                                        if (
+                                          editForm.customer_id &&
+                                          platformId &&
+                                          editingItemData.quantity > 0
+                                        ) {
                                           // Calculate total quantity including other items of this platform in the order
                                           const existingQuantity = editForm.items
-                                            .filter((it, idx) => idx !== index && it.platform_id === platformId)
+                                            .filter(
+                                              (it, idx) =>
+                                                idx !== index && it.platform_id === platformId,
+                                            )
                                             .reduce((total, it) => total + it.quantity, 0);
-                                          
-                                          const totalQuantity = existingQuantity + editingItemData.quantity;
-                                          
+
+                                          const totalQuantity =
+                                            existingQuantity + editingItemData.quantity;
+
                                           const price = getCustomerPrice(
                                             editForm.customer_id,
                                             platformId,
                                             totalQuantity,
                                           );
-                                          
+
                                           setEditingItemData((prev) => ({
                                             ...prev!,
-                                            unit_price: price > 0 ? price : platform.cost_price || 0,
+                                            unit_price:
+                                              price > 0 ? price : platform.cost_price || 0,
                                           }));
                                         } else if (platformId) {
                                           // Fallback to platform cost price if no customer selected
@@ -2965,7 +2978,9 @@ const OrderPanel: React.FC = () => {
                                         });
                                       }
                                     }}
-                                    disabled={!editForm.customer_id || !editingItemData?.platform_id}
+                                    disabled={
+                                      !editForm.customer_id || !editingItemData?.platform_id
+                                    }
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                                   >
                                     <option value="">
@@ -2975,20 +2990,23 @@ const OrderPanel: React.FC = () => {
                                           ? 'Select Platform First'
                                           : customerUsernames.length === 0
                                             ? 'No usernames available'
-                                            : getAvailableUsernames(editForm.customer_id, editingItemData.platform_id)
-                                                  .length === 0
+                                            : getAvailableUsernames(
+                                                  editForm.customer_id,
+                                                  editingItemData.platform_id,
+                                                ).length === 0
                                               ? 'No usernames for this customer+platform'
                                               : 'Select Username'}
                                     </option>
                                     {editForm.customer_id &&
                                       editingItemData?.platform_id &&
-                                      getAvailableUsernames(editForm.customer_id, editingItemData.platform_id).map(
-                                        (username: any) => (
-                                          <option key={username.id} value={username.username}>
-                                            {username.username}
-                                          </option>
-                                        ),
-                                      )}
+                                      getAvailableUsernames(
+                                        editForm.customer_id,
+                                        editingItemData.platform_id,
+                                      ).map((username: any) => (
+                                        <option key={username.id} value={username.username}>
+                                          {username.username}
+                                        </option>
+                                      ))}
                                   </select>
                                 </div>
 
@@ -3003,26 +3021,39 @@ const OrderPanel: React.FC = () => {
                                       const quantity = parseInt(e.target.value) || 1;
                                       if (editingItemData && editingItemData.platform_id) {
                                         // Automatically calculate price based on customer pricing
-                                        if (editForm.customer_id && editingItemData.platform_id && quantity > 0) {
+                                        if (
+                                          editForm.customer_id &&
+                                          editingItemData.platform_id &&
+                                          quantity > 0
+                                        ) {
                                           // Calculate total quantity including other items of this platform in the order
                                           const existingQuantity = editForm.items
-                                            .filter((it, idx) => idx !== index && it.platform_id === editingItemData.platform_id)
+                                            .filter(
+                                              (it, idx) =>
+                                                idx !== index &&
+                                                it.platform_id === editingItemData.platform_id,
+                                            )
                                             .reduce((total, it) => total + it.quantity, 0);
-                                          
+
                                           const totalQuantity = existingQuantity + quantity;
-                                          
+
                                           const price = getCustomerPrice(
                                             editForm.customer_id,
                                             editingItemData.platform_id,
                                             totalQuantity,
                                           );
-                                          
+
                                           // If customer pricing returns 0, fall back to platform cost price
-                                          const finalPrice = price > 0 ? price : (() => {
-                                            const platform = platforms.find((p) => p.id === editingItemData.platform_id);
-                                            return platform?.cost_price || 0;
-                                          })();
-                                          
+                                          const finalPrice =
+                                            price > 0
+                                              ? price
+                                              : (() => {
+                                                  const platform = platforms.find(
+                                                    (p) => p.id === editingItemData.platform_id,
+                                                  );
+                                                  return platform?.cost_price || 0;
+                                                })();
+
                                           setEditingItemData({
                                             ...editingItemData,
                                             quantity,
@@ -3052,7 +3083,10 @@ const OrderPanel: React.FC = () => {
                                   <div className="flex items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                                     <span className="text-sm text-gray-600 mr-2">Total:</span>
                                     <span className="font-semibold">
-                                      {formatCurrency(((editingItemData?.quantity || 0) * (editingItemData?.unit_price || 0)) || 0)}
+                                      {formatCurrency(
+                                        (editingItemData?.quantity || 0) *
+                                          (editingItemData?.unit_price || 0) || 0,
+                                      )}
                                     </span>
                                   </div>
                                 </div>
@@ -3087,7 +3121,8 @@ const OrderPanel: React.FC = () => {
                                     )}
                                   </div>
                                   <span className="text-sm text-gray-600">
-                                    {formatNumber(item.quantity)} × {formatCurrency(item.unitPrice || 0)}
+                                    {formatNumber(item.quantity)} ×{' '}
+                                    {formatCurrency(item.unitPrice || 0)}
                                   </span>
                                 </div>
                                 <div className="flex items-center space-x-2">
@@ -3268,7 +3303,8 @@ const OrderPanel: React.FC = () => {
                         const details = editForm.payment_details as any;
                         const hasNetwork = !!details?.crypto_network;
                         const currency = details?.crypto_currency;
-                        const showUsername = !!currency && ['USDT', 'USDC'].includes(currency) && !hasNetwork;
+                        const showUsername =
+                          !!currency && ['USDT', 'USDC'].includes(currency) && !hasNetwork;
 
                         if (showUsername) {
                           return (
@@ -3827,7 +3863,7 @@ const OrderPanel: React.FC = () => {
                       Order Summary
                     </h4>
                     <div className="space-y-2">
-                        <div className="flex justify-between text-gray-600">
+                      <div className="flex justify-between text-gray-600">
                         <span>Subtotal:</span>
                         <span>{formatCurrency(selectedOrder.total_amount)}</span>
                       </div>
@@ -3919,11 +3955,15 @@ const OrderPanel: React.FC = () => {
                                   )}
                                   {/* Prefer showing wallet address for crypto payments. If wallet is missing,
                                       fall back to showing the username but label it consistently as "Wallet Address" */}
-                                  {(orderPaymentDetails.crypto_wallet_address || orderPaymentDetails.crypto_username) && (
+                                  {(orderPaymentDetails.crypto_wallet_address ||
+                                    orderPaymentDetails.crypto_username) && (
                                     <div>
-                                      <span className="font-medium text-gray-600">Wallet Address:</span>
+                                      <span className="font-medium text-gray-600">
+                                        Wallet Address:
+                                      </span>
                                       <p className="text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded mt-1">
-                                        {orderPaymentDetails.crypto_wallet_address || orderPaymentDetails.crypto_username}
+                                        {orderPaymentDetails.crypto_wallet_address ||
+                                          orderPaymentDetails.crypto_username}
                                       </p>
                                     </div>
                                   )}

@@ -71,13 +71,37 @@ const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  const overlayClass = overlayVariant === 'blur' ? 'bg-white/10 backdrop-blur-sm' : 'bg-black bg-opacity-50';
+  const overlayClass =
+    overlayVariant === 'blur' ? 'bg-white/10 backdrop-blur-sm' : 'bg-black bg-opacity-50';
 
-  const headerColorMap: Record<string, { from: string; to: string; subtitle: string; close: string }> = {
-    pink: { from: 'from-pink-600', to: 'to-pink-700', subtitle: 'text-pink-100', close: 'text-pink-100 hover:text-white' },
-    blue: { from: 'from-blue-600', to: 'to-blue-700', subtitle: 'text-blue-100', close: 'text-blue-100 hover:text-white' },
-    green: { from: 'from-green-600', to: 'to-green-700', subtitle: 'text-green-100', close: 'text-green-100 hover:text-white' },
-    red: { from: 'from-red-600', to: 'to-red-700', subtitle: 'text-red-100', close: 'text-red-100 hover:text-white' },
+  const headerColorMap: Record<
+    string,
+    { from: string; to: string; subtitle: string; close: string }
+  > = {
+    pink: {
+      from: 'from-pink-600',
+      to: 'to-pink-700',
+      subtitle: 'text-pink-100',
+      close: 'text-pink-100 hover:text-white',
+    },
+    blue: {
+      from: 'from-blue-600',
+      to: 'to-blue-700',
+      subtitle: 'text-blue-100',
+      close: 'text-blue-100 hover:text-white',
+    },
+    green: {
+      from: 'from-green-600',
+      to: 'to-green-700',
+      subtitle: 'text-green-100',
+      close: 'text-green-100 hover:text-white',
+    },
+    red: {
+      from: 'from-red-600',
+      to: 'to-red-700',
+      subtitle: 'text-red-100',
+      close: 'text-red-100 hover:text-white',
+    },
   };
 
   const pickedHeaderColor = headerColorMap[headerColor] ?? headerColorMap.pink;
@@ -114,7 +138,11 @@ const Modal: React.FC<ModalProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className={headerVariant === 'themed' ? pickedHeaderColor.close : 'text-gray-400 hover:text-gray-600'}
+                className={
+                  headerVariant === 'themed'
+                    ? pickedHeaderColor.close
+                    : 'text-gray-400 hover:text-gray-600'
+                }
               >
                 <X className="h-5 w-5" />
               </Button>

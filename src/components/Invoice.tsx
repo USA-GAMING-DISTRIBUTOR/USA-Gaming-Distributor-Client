@@ -81,6 +81,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               borderRadius: '12px',
               objectFit: 'cover',
               border: '2px solid #fce7f3',
+              flexShrink: 0,
             }}
           />
           <div>
@@ -99,7 +100,8 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               style={{
                 fontSize: '14px',
                 color: '#6b7280',
-                marginBottom: '2px',
+                marginBottom: '8px',
+                lineHeight: 1.5,
               }}
             >
               📧 USAGamingDistributor@gmail.com | 📞 +1 (347) 690-3982
@@ -108,44 +110,113 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               style={{
                 fontSize: '14px',
                 color: '#6b7280',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
+                display: 'block',
+                height: '18px',
+                lineHeight: '28px',
               }}
             >
-              <img
-                src="/whatsapp.svg" // put your WhatsApp icon in public/assets or adjust path
-                alt="WhatsApp"
+              <span
                 style={{
-                  width: 18,
-                  height: 18,
-                  objectFit: 'contain',
-                  borderRadius: 4,
+                  display: 'inline-block',
+                  width: '16px',
+                  height: '16px',
+                  verticalAlign: 'middle',
+                  marginTop: '1px',
+                  marginRight: '4px',
+                  lineHeight: '18px',
                 }}
-              />
-              <span style={{ lineHeight: 2 }}>+1 (347) 690-3982</span>
-            </div>
-            <div
-              style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <img
-                src="/facebook.svg" // put your WhatsApp icon in public/assets or adjust path
-                alt="Facebook"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 1219.547 1225.016"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ display: 'block', width: '100%', height: '100%' }}
+                  aria-hidden="true"
+                >
+                  <path
+                    fill="#E0E0E0"
+                    d="M1041.858 178.02C927.206 63.289 774.753.07 612.325 0 277.617 0 5.232 272.298 5.098 606.991c-.039 106.986 27.915 211.42 81.048 303.476L0 1225.016l321.898-84.406c88.689 48.368 188.547 73.855 290.166 73.896h.258.003c334.654 0 607.08-272.346 607.222-607.023.056-162.208-63.052-314.724-177.689-429.463zm-429.533 933.963h-.197c-90.578-.048-179.402-24.366-256.878-70.339l-18.438-10.93-191.021 50.083 51-186.176-12.013-19.087c-50.525-80.336-77.198-173.175-77.16-268.504.111-278.186 226.507-504.503 504.898-504.503 134.812.056 261.519 52.604 356.814 147.965 95.289 95.36 147.728 222.128 147.688 356.948-.118 278.195-226.522 504.543-504.693 504.543z"
+                  />
+                  <linearGradient
+                    id="whatsapp-grad"
+                    x1="609.77"
+                    x2="609.77"
+                    y1="1190.114"
+                    y2="21.084"
+                    gradientUnits="userSpaceOnUse"
+                  >
+                    <stop offset="0" stopColor="#20b038"></stop>
+                    <stop offset="1" stopColor="#60d66a"></stop>
+                  </linearGradient>
+                  <path
+                    fill="url(#whatsapp-grad)"
+                    d="M27.875 1190.114l82.211-300.18c-50.719-87.852-77.391-187.523-77.359-289.602.133-319.398 260.078-579.25 579.469-579.25 155.016.07 300.508 60.398 409.898 169.891 109.414 109.492 169.633 255.031 169.57 409.812-.133 319.406-260.094 579.281-579.445 579.281-.023 0 .016 0 0 0h-.258c-96.977-.031-192.266-24.375-276.898-70.5l-307.188 80.548z"
+                  />
+                  <path
+                    fill="#FFF"
+                    fillRule="evenodd"
+                    d="M462.273 349.294c-11.234-24.977-23.062-25.477-33.75-25.914-8.742-.375-18.75-.352-28.742-.352-10 0-26.25 3.758-39.992 18.766-13.75 15.008-52.5 51.289-52.5 125.078 0 73.797 53.75 145.102 61.242 155.117 7.5 10 103.758 166.266 256.203 226.383 126.695 49.961 152.477 40.023 179.977 37.523s88.734-36.273 101.234-71.297c12.5-35.016 12.5-65.031 8.75-71.305-3.75-6.25-13.75-10-28.75-17.5s-88.734-43.789-102.484-48.789-23.75-7.5-33.75 7.516c-10 15-38.727 48.773-47.477 58.773-8.75 10.023-17.5 11.273-32.5 3.773-15-7.523-63.305-23.344-120.609-74.438-44.586-39.75-74.688-88.844-83.438-103.859-8.75-15-.938-23.125 6.586-30.602 6.734-6.719 15-17.508 22.5-26.266 7.484-8.758 9.984-15.008 14.984-25.008 5-10.016 2.5-18.773-1.25-26.273s-32.898-81.67-46.234-111.326z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </span>
+              <span
                 style={{
-                  width: 18,
-                  height: 18,
-                  objectFit: 'contain',
-                  borderRadius: 4,
+                  display: 'inline-block',
+                  lineHeight: '28px',
+                  verticalAlign: 'top',
+                  marginRight: '12px',
                 }}
-              />
+              >
+                +1 (347) 690-3982
+              </span>
+              <span
+                style={{
+                  display: 'inline-block',
+                  margin: '0 12px 0 0',
+                  lineHeight: '28px',
+                  verticalAlign: 'middle',
+                }}
+              >
+                |
+              </span>
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: '16px',
+                  height: '16px',
+                  verticalAlign: 'middle',
+                  marginTop: '1px',
+                  marginRight: '4px',
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 1024 1024"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ display: 'block', width: '100%', height: '100%' }}
+                  aria-hidden="true"
+                >
+                  <path
+                    fill="#1877f2"
+                    d="M1024,512C1024,229.23016,794.76978,0,512,0S0,229.23016,0,512c0,255.554,187.231,467.37012,432,505.77777V660H302V512H432V399.2C432,270.87982,508.43854,200,625.38922,200C681.40765,200,740,210,740,210V336H675.43713C611.83508,336,592,375.46667,592,415.95728V512H734L711.3,660H592v357.77777C836.769,979.37012,1024,767.554,1024,512Z"
+                  />
+                  <path
+                    fill="#fff"
+                    d="M711.3,660,734,512H592V415.95728C592,375.46667,611.83508,336,675.43713,336H740V210s-58.59235-10-114.61078-10C508.43854,200,432,270.87982,432,399.2V512H302V660H432v357.77777a517.39619,517.39619,0,0,0,160,0V660Z"
+                  />
+                </svg>
+              </span>
               <a
-                style={{ lineHeight: 2, color: '#ec4899', textDecoration: 'underline' }}
+                style={{
+                  color: '#ec4899',
+                  textDecoration: 'underline',
+                  display: 'inline-block',
+                  lineHeight: '28px',
+                  verticalAlign: 'top',
+                }}
                 href="https://www.facebook.com/USAGamingDistributor"
               >
                 www.facebook.com/USAGamingDistributor
@@ -998,7 +1069,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               marginBottom: '8px',
             }}
           >
-            🎮 Thank You for Your Purchase!
+            Thank You For Trusting USA Gaming Distributor 🇺🇸
           </div>
           <div
             style={{
@@ -1008,7 +1079,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               lineHeight: '1.6',
             }}
           >
-            Your gaming accounts will be delivered within 24 hours.
+            Kindly Review Your Invoice And Let Us Know If You Require Any Assistance.
             <br />
             For any questions or support, please don't hesitate to contact us.
           </div>

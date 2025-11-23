@@ -15,7 +15,9 @@ import {
   UserCog,
   LogOut,
   UserCheck,
+  BarChart,
 } from 'lucide-react';
+import ReportsPanel from './ReportsPanel';
 import { useAppDispatch, useAppSelector } from '../hooks/redux';
 import { logout } from '../store/authSlice';
 
@@ -34,6 +36,7 @@ const AdminDashboard: React.FC = () => {
   const menuItems: MenuItem[] = [
     { id: 'overview', label: 'Overview', icon: Home, active: true },
     { id: 'platform', label: 'Platform', icon: Coins },
+    { id: 'reports', label: 'Reports', icon: BarChart },
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'usernames', label: 'Usernames', icon: UserCheck },
     {
@@ -116,6 +119,7 @@ const AdminDashboard: React.FC = () => {
           {/* Placeholder for other menu items */}
           {activeMenuItem === 'overview' && <OverviewPanel />}
           {activeMenuItem === 'platform' && <PlatformPanel />}
+          {activeMenuItem === 'reports' && <ReportsPanel />}
           {activeMenuItem === 'employees' && <EmployeePanel />}
           {activeMenuItem === 'orders' && <OrderPanel />}
           {activeMenuItem === 'customer-issues' && <CustomerIssuesPanel />}
@@ -123,6 +127,7 @@ const AdminDashboard: React.FC = () => {
           {activeMenuItem === 'usernames' && <UsernamesPanel />}
           {activeMenuItem !== 'overview' &&
             activeMenuItem !== 'platform' &&
+            activeMenuItem !== 'reports' &&
             activeMenuItem !== 'employees' &&
             activeMenuItem !== 'orders' &&
             activeMenuItem !== 'customer-issues' &&

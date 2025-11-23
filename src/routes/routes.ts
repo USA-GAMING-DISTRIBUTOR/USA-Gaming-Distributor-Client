@@ -17,6 +17,7 @@ const SuperAdminDashboard = lazy(() => import('../components/Dashboard'));
 const AdminDashboard = lazy(() => import('../components/AdminDashboard'));
 const EmployeeDashboard = lazy(() => import('../components/EmployeeDashboard'));
 const UsernamesPanel = lazy(() => import('../components/UsernamesPanel'));
+const ReportsPanel = lazy(() => import('../components/ReportsPanel'));
 
 // Route definitions
 export const ROUTE_PATHS = {
@@ -78,6 +79,13 @@ export const privateRoutes: RouteConfig[] = [
     name: 'Username Management',
     component: UsernamesPanel,
     allowedRoles: ['SuperAdmin', 'Admin'],
+    layout: 'dashboard',
+  },
+  {
+    path: ROUTE_PATHS.REPORTS,
+    name: 'Reports',
+    component: ReportsPanel,
+    allowedRoles: ['SuperAdmin', 'Admin', 'Employee'],
     layout: 'dashboard',
   },
 ];

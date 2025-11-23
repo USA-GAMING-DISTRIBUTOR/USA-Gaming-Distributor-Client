@@ -287,26 +287,20 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
             {customer?.name || 'Unknown Customer'}
           </div>
           {customer?.contact_numbers && customer.contact_numbers.length > 0 && (
-            <div
-              style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                marginBottom: '4px',
-              }}
-            >
-              📞 {customer.contact_numbers[0]}
-            </div>
-          )}
-          {customer?.contact_numbers && customer.contact_numbers.length > 1 && (
-            <div
-              style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                marginBottom: '4px',
-              }}
-            >
-              📞 {customer.contact_numbers[1]}
-            </div>
+            <>
+              {customer.contact_numbers.map((num, i) => (
+                <div
+                  key={i}
+                  style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                  }}
+                >
+                  📞 {num}
+                </div>
+              ))}
+            </>
           )}
           <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>
             Customer ID: {customer?.id.slice(-8).toUpperCase() || 'N/A'}
@@ -766,14 +760,25 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                     </div>
                   )}
                   {/* Prefer wallet address in invoice; fallback to username if address missing. */}
-                  {(paymentDetails.crypto_wallet_address || paymentDetails.crypto_username) && (
-                    <div>
-                      <span style={{ fontWeight: '600', color: '#374151' }}>Wallet Address:</span>
-                      <span style={{ marginLeft: '8px', fontFamily: 'monospace' }}>
-                        {paymentDetails.crypto_wallet_address || paymentDetails.crypto_username}
-                      </span>
-                    </div>
-                  )}
+                  {paymentDetails.crypto_currency === 'USDT'
+                    ? paymentDetails.crypto_username && (
+                        <div>
+                          <span style={{ fontWeight: '600', color: '#374151' }}>Username:</span>
+                          <span style={{ marginLeft: '8px', fontFamily: 'monospace' }}>
+                            {paymentDetails.crypto_username}
+                          </span>
+                        </div>
+                      )
+                    : (paymentDetails.crypto_wallet_address || paymentDetails.crypto_username) && (
+                        <div>
+                          <span style={{ fontWeight: '600', color: '#374151' }}>
+                            Wallet Address:
+                          </span>
+                          <span style={{ marginLeft: '8px', fontFamily: 'monospace' }}>
+                            {paymentDetails.crypto_wallet_address || paymentDetails.crypto_username}
+                          </span>
+                        </div>
+                      )}
                   {paymentDetails.crypto_wallet_address && (
                     <div>
                       <span style={{ fontWeight: '600', color: '#374151' }}>Wallet Address:</span>

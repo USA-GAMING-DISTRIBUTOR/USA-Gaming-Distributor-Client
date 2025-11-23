@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
 import EmployeePanel from './EmployeePanel';
 import PlatformPanel from './PlatformPanel';
 import CustomerIssuesPanel from './CustomerIssuesPanel';
@@ -34,9 +35,10 @@ const AdminDashboard: React.FC = () => {
   const [activeMenuItem, setActiveMenuItem] = useState('overview');
 
   const menuItems: MenuItem[] = [
-    { id: 'overview', label: 'Overview', icon: Home, active: true },
+    { id: 'reports', label: 'Reports', icon: BarChart, active: true },
+    // { id: 'overview', label: 'Overview', icon: Home, active: true },
     { id: 'platform', label: 'Platform', icon: Coins },
-    { id: 'reports', label: 'Reports', icon: BarChart },
+
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'usernames', label: 'Usernames', icon: UserCheck },
     {
@@ -54,7 +56,23 @@ const AdminDashboard: React.FC = () => {
 
   const handleMenuClick = (menuId: string) => {
     setActiveMenuItem(menuId);
+    try {
+      localStorage.setItem('admin:lastMenu', menuId);
+    } catch {
+      // ignore
+    }
   };
+
+  // Restore last selected menu from localStorage, default admins to 'reports'
+  useEffect(() => {
+    try {
+      const last = localStorage.getItem('admin:lastMenu');
+      if (last) setActiveMenuItem(last);
+      else if (user?.role === 'Admin') setActiveMenuItem('reports');
+    } catch {
+      // ignore
+    }
+  }, [user]);
 
   // Sample data for the table
 
@@ -117,9 +135,9 @@ const AdminDashboard: React.FC = () => {
         {/* Content */}
         <main className="flex-1 p-6 bg-pink-500 relative">
           {/* Placeholder for other menu items */}
-          {activeMenuItem === 'overview' && <OverviewPanel />}
-          {activeMenuItem === 'platform' && <PlatformPanel />}
+          {/* {activeMenuItem === 'overview' && <OverviewPanel />} */}
           {activeMenuItem === 'reports' && <ReportsPanel />}
+          {activeMenuItem === 'platform' && <PlatformPanel />}
           {activeMenuItem === 'employees' && <EmployeePanel />}
           {activeMenuItem === 'orders' && <OrderPanel />}
           {activeMenuItem === 'customer-issues' && <CustomerIssuesPanel />}

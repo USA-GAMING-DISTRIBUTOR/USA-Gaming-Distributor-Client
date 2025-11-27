@@ -66,7 +66,8 @@ const OrderCreatePanel: React.FC = () => {
       setCustomers(customerData || []);
       const { data: platformData } = await supabase
         .from('game_coins')
-        .select('id, platform, inventory');
+        .select('id, platform, inventory')
+        .is('deleted_at', null);
       setPlatforms(platformData || []);
       // Fetch orders and attach their items for UI consumption
       const { data: ordersData } = await supabase

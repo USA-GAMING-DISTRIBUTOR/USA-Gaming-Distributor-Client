@@ -346,9 +346,7 @@ const ReportsPanel: React.FC = () => {
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded mb-4">Error: {error}</div>
-      )}
+      {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4">Error: {error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div className="bg-white p-4 rounded shadow">

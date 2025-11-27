@@ -122,7 +122,11 @@ const CustomerPanel: React.FC = () => {
 
   const fetchPlatforms = async () => {
     try {
-      const { data, error } = await supabase.from('game_coins').select('*').order('platform');
+      const { data, error } = await supabase
+        .from('game_coins')
+        .select('*')
+        .is('deleted_at', null)
+        .order('platform');
 
       if (error) throw error;
 

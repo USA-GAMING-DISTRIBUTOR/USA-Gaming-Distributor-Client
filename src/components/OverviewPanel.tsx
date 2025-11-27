@@ -55,7 +55,7 @@ const OverviewPanel: React.FC = () => {
       const [ordersData, customersData, platformsData] = await Promise.all([
         supabase.from('orders').select('*'),
         supabase.from('customers').select('*'),
-        supabase.from('game_coins').select('*'), // Still using game_coins table name
+        supabase.from('game_coins').select('*').is('deleted_at', null), // Still using game_coins table name
       ]);
 
       if (ordersData.error) throw new Error('Failed to fetch orders: ' + ordersData.error.message);

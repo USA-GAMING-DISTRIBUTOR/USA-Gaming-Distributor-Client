@@ -274,7 +274,7 @@ const OrderPanel: React.FC = () => {
         supabase.from('payment_details').select('*'),
         supabase.from('customers').select('*').order('name'),
         supabase.from('customer_pricing').select('*'),
-        supabase.from('game_coins').select('*').order('platform'),
+        supabase.from('game_coins').select('*').is('deleted_at', null).order('platform'),
         supabase
           .from('customer_usernames')
           .select(

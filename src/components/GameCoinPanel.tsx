@@ -37,7 +37,8 @@ const GameCoinPanel: React.FC = () => {
     setError(null);
     const { data, error: fetchError } = await supabase
       .from('game_coins')
-      .select('id, platform, inventory, cost_price, created_at');
+      .select('id, platform, inventory, cost_price, created_at')
+      .is('deleted_at', null);
     if (fetchError) {
       setError('Failed to fetch game coins: ' + fetchError.message);
       setLoading(false);

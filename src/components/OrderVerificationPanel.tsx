@@ -96,7 +96,7 @@ const OrderVerificationPanel: React.FC = () => {
       // 3. Fetch supporting lookups (coins, customers, users)
       const [{ data: coinsData }, { data: customersData }, { data: usersData }] = await Promise.all(
         [
-          supabase.from('game_coins').select('id, platform'),
+          supabase.from('game_coins').select('id, platform').is('deleted_at', null),
           supabase.from('customers').select('id, name'),
           supabase.from('users').select('id, username'),
         ],

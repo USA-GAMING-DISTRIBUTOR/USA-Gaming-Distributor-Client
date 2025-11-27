@@ -18,6 +18,7 @@ export const reportRepository = {
         supabase
           .from('game_coins')
           .select('id,platform,account_type')
+          .is('deleted_at', null)
           .order('platform', { ascending: true }),
         supabase.from('customers').select('id,name').order('name', { ascending: true }),
         supabase.from('users').select('id,username,role').order('username', { ascending: true }),

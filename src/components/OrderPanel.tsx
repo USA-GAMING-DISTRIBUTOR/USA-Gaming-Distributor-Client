@@ -1234,6 +1234,51 @@ const OrderPanel: React.FC = () => {
     }
   };
 
+  // Delete order functionality
+  const handleDeleteOrder = async (order: Order) => {
+    if (!window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1. Restore inventory - REMOVED due to database trigger handling this automatically
+      // The database has a trigger that restores inventory when order items are deleted.
+      // Manual restoration caused double counting (e.g. 10 -> 8 -> 12 instead of 10).
+
+      // 2. Delete payment details
+      const { error: paymentError } = await supabase
+        .from('payment_details')
+        .delete()
+        .eq('order_id', order.id);
+
+      if (paymentError) throw paymentError;
+
+      // 3. Delete order items
+      const { error: deleteItemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', order.id);
+
+      if (deleteItemsError) throw deleteItemsError;
+
+      // 4. Delete the order itself
+      const { error: deleteOrderError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', order.id);
+
+      if (deleteOrderError) throw deleteOrderError;
+
+      fetchData();
+      alert('Order deleted successfully!');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete order');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Invoice functions
   const handleCopyInvoice = async () => {
     if (!invoiceRef.current) return;
@@ -1860,6 +1905,16 @@ const OrderPanel: React.FC = () => {
                               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           </svg>
+                        </button>
+                      )}
+
+                      {order.status === 'pending' && (
+                        <button
+                          onClick={() => handleDeleteOrder(order)}
+                          className="p-1 text-red-600 hover:bg-red-100 rounded"
+                          title="Delete Order"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
 

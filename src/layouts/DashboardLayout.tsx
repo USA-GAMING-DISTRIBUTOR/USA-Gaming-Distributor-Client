@@ -14,6 +14,7 @@ import {
   Shield,
   Power,
   UserCheck,
+  MessageSquare,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -33,7 +34,7 @@ const navigationItems: NavItem[] = [
     name: 'Overview',
     icon: <Home className="h-5 w-5" />,
     path: '/dashboard',
-    roles: ['SuperAdmin', 'Admin', 'Employee'],
+    roles: ['SuperAdmin', 'Admin'],
   },
   {
     name: 'Users',
@@ -48,7 +49,7 @@ const navigationItems: NavItem[] = [
     roles: ['SuperAdmin', 'Admin'],
   },
   {
-    name: 'Orders',
+    name: 'Order Management',
     icon: <ShoppingCart className="h-5 w-5" />,
     path: '/orders',
     roles: ['SuperAdmin', 'Admin', 'Employee'],
@@ -77,6 +78,12 @@ const navigationItems: NavItem[] = [
     path: '/logs',
     roles: ['SuperAdmin'],
   },
+  {
+    name: 'Customer Issues',
+    icon: <MessageSquare className="h-5 w-5" />,
+    path: '/issues',
+    roles: ['SuperAdmin', 'Admin', 'Employee'],
+  },
 ];
 
 /**
@@ -98,7 +105,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen bg-pink-50">
+    <div className="flex h-screen overflow-hidden bg-pink-50">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -177,7 +184,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Mobile menu button */}
         <div className="lg:hidden bg-white border-b border-pink-200 p-4">
           <button
@@ -189,7 +196,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </div>
 
         {/* Page content */}
-        <main className="p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );

@@ -18,6 +18,11 @@ const AdminDashboard = lazy(() => import('../components/AdminDashboard'));
 const EmployeeDashboard = lazy(() => import('../components/EmployeeDashboard'));
 const UsernamesPanel = lazy(() => import('../components/UsernamesPanel'));
 const ReportsPanel = lazy(() => import('../components/ReportsPanel'));
+const OrderPanel = lazy(() => import('../components/OrderPanel'));
+const EmployeePanel = lazy(() => import('../components/EmployeePanel'));
+const PlatformPanel = lazy(() => import('../components/PlatformPanel'));
+const CustomerPanel = lazy(() => import('../components/CustomerPanel'));
+const CustomerIssuesPanel = lazy(() => import('../components/CustomerIssuesPanel'));
 
 // Route definitions
 export const ROUTE_PATHS = {
@@ -88,6 +93,41 @@ export const privateRoutes: RouteConfig[] = [
     allowedRoles: ['SuperAdmin', 'Admin', 'Employee'],
     layout: 'dashboard',
   },
+  {
+    path: ROUTE_PATHS.ORDERS,
+    name: 'Orders',
+    component: OrderPanel,
+    allowedRoles: ['SuperAdmin', 'Admin', 'Employee'],
+    layout: 'dashboard',
+  },
+  {
+    path: ROUTE_PATHS.USERS,
+    name: 'Users',
+    component: EmployeePanel,
+    allowedRoles: ['SuperAdmin'],
+    layout: 'dashboard',
+  },
+  {
+    path: ROUTE_PATHS.PLATFORMS,
+    name: 'Platforms',
+    component: PlatformPanel,
+    allowedRoles: ['SuperAdmin', 'Admin'],
+    layout: 'dashboard',
+  },
+  {
+    path: ROUTE_PATHS.CUSTOMERS,
+    name: 'Customers',
+    component: CustomerPanel,
+    allowedRoles: ['SuperAdmin', 'Admin'],
+    layout: 'dashboard',
+  },
+  {
+    path: ROUTE_PATHS.ISSUES,
+    name: 'Customer Issues',
+    component: CustomerIssuesPanel,
+    allowedRoles: ['SuperAdmin', 'Admin', 'Employee'],
+    layout: 'dashboard',
+  },
 ];
 
 // Role-based dashboard mapping
@@ -98,7 +138,7 @@ export const getRoleBasedDashboard = (role: UserRole): string => {
     case 'Admin':
       return ROUTE_PATHS.ADMIN;
     case 'Employee':
-      return ROUTE_PATHS.EMPLOYEE;
+      return ROUTE_PATHS.ORDERS;
     default:
       return ROUTE_PATHS.LOGIN;
   }

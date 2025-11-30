@@ -249,6 +249,21 @@ const OrderPanel: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      let ordersQuery = supabase
+        .from('orders')
+        .select(
+          `
+        *,
+          users!orders_created_by_fkey(username)
+        `,
+        )
+        .order('created_at', { ascending: false });
+
+      // Filter orders for employees
+      if (user?.role === 'Employee') {
+        ordersQuery = ordersQuery.eq('created_by', user.id);
+      }
+
       const [
         ordersRes,
         orderItemsRes,
@@ -258,15 +273,7 @@ const OrderPanel: React.FC = () => {
         platformsRes,
         customerUsernamesRes,
       ] = await Promise.all([
-        supabase
-          .from('orders')
-          .select(
-            `
-          *,
-            users!orders_created_by_fkey(username)
-          `,
-          )
-          .order('created_at', { ascending: false }),
+        ordersQuery,
         supabase.from('order_items').select(`
             *,
             game_coins!order_items_platform_id_fkey(account_type)
@@ -285,6 +292,7 @@ const OrderPanel: React.FC = () => {
           )
           .eq('is_active', true),
       ]);
+
 
       if (ordersRes.error) throw new Error('Failed to fetch orders: ' + ordersRes.error.message);
       if (orderItemsRes.error)
@@ -1886,7 +1894,7 @@ const OrderPanel: React.FC = () => {
                         <Copy className="w-4 h-4" />
                       </button>
 
-                      {order.status === 'pending' && (
+                      {order.status === 'pending' && user?.role !== 'Employee' && (
                         <button
                           onClick={() => updateOrderStatus(order.id, 'verified')}
                           className="p-1 text-green-600 hover:bg-green-100 rounded"

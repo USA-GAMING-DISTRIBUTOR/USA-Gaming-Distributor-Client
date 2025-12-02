@@ -367,7 +367,8 @@ const OrderPanel: React.FC = () => {
           items: items,
           payment_method: (order.payment_method as PaymentMethod) || 'None',
           payment_status: (order.payment_status as any) || 'pending',
-          payment_details: order.payment_details || null,
+          payment_details:
+            (paymentDetailsRes.data || []).find((pd: any) => pd.order_id === order.id) || null,
           total_amount: Number(order.total_amount || 0),
           discount_amount: Number(order.discount_amount || 0),
           final_amount: Number(order.final_amount || order.total_amount || 0),
@@ -2454,13 +2455,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Sender Name"
-                        value={(createForm.payment_details as any)?.sender_name || ''}
+                        value={(createForm.payment_details as any)?.bank_sender_name || ''}
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as PaymentDetails),
-                              sender_name: e.target.value,
+                              bank_sender_name: e.target.value,
                             },
                           }))
                         }
@@ -2471,13 +2472,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Sender Institution"
-                        value={(createForm.payment_details as any)?.sender_bank || ''}
+                        value={(createForm.payment_details as any)?.bank_sender_bank || ''}
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              sender_bank: e.target.value,
+                              bank_sender_bank: e.target.value,
                             },
                           }))
                         }
@@ -2487,13 +2488,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Purpose"
-                        value={(createForm.payment_details as any)?.purpose || ''}
+                        value={(createForm.payment_details as any)?.bank_purpose || ''}
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              purpose: e.target.value,
+                              bank_purpose: e.target.value,
                             },
                           }))
                         }
@@ -2503,13 +2504,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Transaction Type"
-                        value={(createForm.payment_details as any)?.transaction_type || ''}
+                        value={(createForm.payment_details as any)?.bank_transaction_type || ''}
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              transaction_type: e.target.value,
+                              bank_transaction_type: e.target.value,
                             },
                           }))
                         }
@@ -2519,13 +2520,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="datetime-local"
                         placeholder="Transaction Time"
-                        value={(createForm.payment_details as any)?.transaction_time || ''}
+                        value={(createForm.payment_details as any)?.bank_transaction_time || ''}
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              transaction_time: e.target.value,
+                              bank_transaction_time: e.target.value,
                             },
                           }))
                         }
@@ -2547,7 +2548,6 @@ const OrderPanel: React.FC = () => {
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       >
                         <option value="USD">USD</option>
-
                         <option value="PKR">PKR</option>
                       </select>
 
@@ -2573,13 +2573,13 @@ const OrderPanel: React.FC = () => {
                         type="number"
                         step="0.0001"
                         placeholder="Exchange Rate (optional)"
-                        value={(createForm.payment_details as any)?.exchange_rate || ''}
+                        value={(createForm.payment_details as any)?.bank_exchange_rate || ''}
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              exchange_rate: parseFloat(e.target.value) || undefined,
+                              bank_exchange_rate: parseFloat(e.target.value) || undefined,
                             },
                           }))
                         }
@@ -2596,13 +2596,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Received By"
-                        value={(createForm.payment_details as any)?.received_by || ''}
+                        value={(createForm.payment_details as any)?.cash_received_by || ''}
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              received_by: e.target.value,
+                              cash_received_by: e.target.value,
                             },
                           }))
                         }
@@ -2613,13 +2613,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Receipt Number (optional)"
-                        value={(createForm.payment_details as any)?.receipt_number || ''}
+                        value={(createForm.payment_details as any)?.cash_receipt_number || ''}
                         onChange={(e) =>
                           setCreateForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              receipt_number: e.target.value,
+                              cash_receipt_number: e.target.value,
                             },
                           }))
                         }
@@ -3415,13 +3415,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Sender Name"
-                        value={(editForm.payment_details as any)?.sender_name || ''}
+                        value={(editForm.payment_details as any)?.bank_sender_name || ''}
                         onChange={(e) =>
                           setEditForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              sender_name: e.target.value,
+                              bank_sender_name: e.target.value,
                             },
                           }))
                         }
@@ -3432,13 +3432,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Sender Institution"
-                        value={(editForm.payment_details as any)?.sender_bank || ''}
+                        value={(editForm.payment_details as any)?.bank_sender_bank || ''}
                         onChange={(e) =>
                           setEditForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              sender_bank: e.target.value,
+                              bank_sender_bank: e.target.value,
                             },
                           }))
                         }
@@ -3448,13 +3448,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Purpose"
-                        value={(editForm.payment_details as any)?.purpose || ''}
+                        value={(editForm.payment_details as any)?.bank_purpose || ''}
                         onChange={(e) =>
                           setEditForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              purpose: e.target.value,
+                              bank_purpose: e.target.value,
                             },
                           }))
                         }
@@ -3464,13 +3464,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Transaction Type"
-                        value={(editForm.payment_details as any)?.transaction_type || ''}
+                        value={(editForm.payment_details as any)?.bank_transaction_type || ''}
                         onChange={(e) =>
                           setEditForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              transaction_type: e.target.value,
+                              bank_transaction_type: e.target.value,
                             },
                           }))
                         }
@@ -3480,13 +3480,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="datetime-local"
                         placeholder="Transaction Time"
-                        value={(editForm.payment_details as any)?.transaction_time || ''}
+                        value={(editForm.payment_details as any)?.bank_transaction_time || ''}
                         onChange={(e) =>
                           setEditForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              transaction_time: e.target.value,
+                              bank_transaction_time: e.target.value,
                             },
                           }))
                         }
@@ -3533,13 +3533,13 @@ const OrderPanel: React.FC = () => {
                         type="number"
                         step="0.0001"
                         placeholder="Exchange Rate (optional)"
-                        value={(editForm.payment_details as any)?.exchange_rate || ''}
+                        value={(editForm.payment_details as any)?.bank_exchange_rate || ''}
                         onChange={(e) =>
                           setEditForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              exchange_rate: parseFloat(e.target.value) || undefined,
+                              bank_exchange_rate: parseFloat(e.target.value) || undefined,
                             },
                           }))
                         }
@@ -3556,13 +3556,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Received By"
-                        value={(editForm.payment_details as any)?.received_by || ''}
+                        value={(editForm.payment_details as any)?.cash_received_by || ''}
                         onChange={(e) =>
                           setEditForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              received_by: e.target.value,
+                              cash_received_by: e.target.value,
                             },
                           }))
                         }
@@ -3573,13 +3573,13 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="text"
                         placeholder="Receipt Number (optional)"
-                        value={(editForm.payment_details as any)?.receipt_number || ''}
+                        value={(editForm.payment_details as any)?.cash_receipt_number || ''}
                         onChange={(e) =>
                           setEditForm((prev) => ({
                             ...prev,
                             payment_details: {
                               ...(prev.payment_details as any),
-                              receipt_number: e.target.value,
+                              cash_receipt_number: e.target.value,
                             },
                           }))
                         }
@@ -3988,36 +3988,48 @@ const OrderPanel: React.FC = () => {
                                 <div className="space-y-2 text-sm">
                                   {orderPaymentDetails.crypto_currency && (
                                     <div>
-                                      <span className="font-medium text-gray-600">Type:</span>
+                                      <span className="font-medium text-gray-600">Currency:</span>
                                       <span className="ml-2 bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-medium">
                                         {orderPaymentDetails.crypto_currency}
                                       </span>
                                     </div>
                                   )}
-                                  {/* Prefer showing wallet address for crypto payments. If wallet is missing,
-                                      fall back to showing the username but label it consistently as "Wallet Address" */}
-                                  {(orderPaymentDetails.crypto_wallet_address ||
-                                    orderPaymentDetails.crypto_username) && (
+                                  {orderPaymentDetails.crypto_network && (
                                     <div>
-                                      <span className="font-medium text-gray-600">
-                                        Wallet Address:
+                                      <span className="font-medium text-gray-600">Network:</span>
+                                      <span className="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                                        {orderPaymentDetails.crypto_network}
                                       </span>
-                                      <p className="text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded mt-1">
-                                        {orderPaymentDetails.crypto_wallet_address ||
-                                          orderPaymentDetails.crypto_username}
-                                      </p>
                                     </div>
                                   )}
-                                  {orderPaymentDetails.crypto_wallet_address && (
-                                    <div>
-                                      <span className="font-medium text-gray-600">
-                                        Wallet Address:
-                                      </span>
-                                      <p className="text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded mt-1">
-                                        {orderPaymentDetails.crypto_wallet_address}
-                                      </p>
-                                    </div>
-                                  )}
+                                  {/* USDT/USDC -> Username */}
+                                  {['USDT', 'USDC'].includes(
+                                    orderPaymentDetails.crypto_currency || '',
+                                  ) &&
+                                    orderPaymentDetails.crypto_username && (
+                                      <div>
+                                        <span className="font-medium text-gray-600">Username:</span>
+                                        <p className="text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded mt-1">
+                                          {orderPaymentDetails.crypto_username}
+                                        </p>
+                                      </div>
+                                    )}
+
+                                  {/* TRC20/BEP20/Bitcoin -> Wallet Address */}
+                                  {['TRC20', 'BEP20', 'Bitcoin'].includes(
+                                    orderPaymentDetails.crypto_network || '',
+                                  ) &&
+                                    orderPaymentDetails.crypto_wallet_address && (
+                                      <div>
+                                        <span className="font-medium text-gray-600">
+                                          Wallet Address:
+                                        </span>
+                                        <p className="text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded mt-1">
+                                          {orderPaymentDetails.crypto_wallet_address}
+                                        </p>
+                                      </div>
+                                    )}
+
                                   {orderPaymentDetails.crypto_transaction_hash && (
                                     <div>
                                       <span className="font-medium text-gray-600">

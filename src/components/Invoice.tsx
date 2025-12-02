@@ -743,7 +743,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                 >
                   {paymentDetails.crypto_currency && (
                     <div>
-                      <span style={{ fontWeight: '600', color: '#374151' }}>Type:</span>
+                      <span style={{ fontWeight: '600', color: '#374151' }}>Currency:</span>
                       <span
                         style={{
                           marginLeft: '8px',
@@ -759,45 +759,47 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
                       </span>
                     </div>
                   )}
-                  {/* Prefer wallet address in invoice; fallback to username if address missing. */}
-                  {paymentDetails.crypto_currency === 'USDT'
-                    ? paymentDetails.crypto_username && (
-                        <div>
-                          <span style={{ fontWeight: '600', color: '#374151' }}>Username:</span>
-                          <span style={{ marginLeft: '8px', fontFamily: 'monospace' }}>
-                            {paymentDetails.crypto_username}
-                          </span>
-                        </div>
-                      )
-                    : (paymentDetails.crypto_wallet_address || paymentDetails.crypto_username) && (
-                        <div>
-                          <span style={{ fontWeight: '600', color: '#374151' }}>
-                            Wallet Address:
-                          </span>
-                          <span style={{ marginLeft: '8px', fontFamily: 'monospace' }}>
-                            {paymentDetails.crypto_wallet_address || paymentDetails.crypto_username}
-                          </span>
-                        </div>
-                      )}
-                  {paymentDetails.crypto_wallet_address && (
+                  {paymentDetails.crypto_network && (
                     <div>
-                      <span style={{ fontWeight: '600', color: '#374151' }}>Wallet Address:</span>
-                      <div
+                      <span style={{ fontWeight: '600', color: '#374151' }}>Network:</span>
+                      <span
                         style={{
-                          marginTop: '4px',
-                          fontFamily: 'monospace',
-                          fontSize: '11px',
-                          backgroundColor: '#f1f5f9',
-                          padding: '6px 8px',
+                          marginLeft: '8px',
+                          backgroundColor: '#dbeafe',
+                          color: '#1e40af',
+                          padding: '2px 6px',
                           borderRadius: '4px',
-                          wordBreak: 'break-all',
-                          color: '#374151',
+                          fontSize: '12px',
+                          fontWeight: '600',
                         }}
                       >
-                        {paymentDetails.crypto_wallet_address}
-                      </div>
+                        {paymentDetails.crypto_network}
+                      </span>
                     </div>
                   )}
+                  {/* Prefer wallet address in invoice; fallback to username if address missing. */}
+                  {/* USDT/USDC -> Username */}
+                  {['USDT', 'USDC'].includes(paymentDetails.crypto_currency || '') &&
+                    paymentDetails.crypto_username && (
+                      <div>
+                        <span style={{ fontWeight: '600', color: '#374151' }}>Username:</span>
+                        <span style={{ marginLeft: '8px', fontFamily: 'monospace' }}>
+                          {paymentDetails.crypto_username}
+                        </span>
+                      </div>
+                    )}
+
+                  {/* TRC20/BEP20/Bitcoin -> Wallet Address */}
+                  {['TRC20', 'BEP20', 'Bitcoin'].includes(paymentDetails.crypto_network || '') &&
+                    paymentDetails.crypto_wallet_address && (
+                      <div>
+                        <span style={{ fontWeight: '600', color: '#374151' }}>Wallet Address:</span>
+                        <span style={{ marginLeft: '8px', fontFamily: 'monospace' }}>
+                          {paymentDetails.crypto_wallet_address}
+                        </span>
+                      </div>
+                    )}
+
                   {paymentDetails.crypto_transaction_hash && (
                     <div>
                       <span style={{ fontWeight: '600', color: '#374151' }}>Transaction Hash:</span>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 
 import Modal from '../common/Modal';
 import Pagination from '../common/Pagination';
@@ -35,6 +35,38 @@ const PlatformPurchaseHistoryModal: React.FC<PlatformPurchaseHistoryModalProps> 
   onClose,
   accentColor = 'pink',
 }) => {
+  const [filterSupplier, setFilterSupplier] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const uniqueSuppliers = useMemo(() => {
+    return Array.from(
+      new Set(purchaseHistory.map((p) => p.supplier).filter(Boolean) as string[]),
+    ).sort();
+  }, [purchaseHistory]);
+
+  const filteredHistory = useMemo(() => {
+    return purchaseHistory.filter((p) => {
+      const matchesSupplier = filterSupplier === 'all' || p.supplier === filterSupplier;
+
+      let matchesDate = true;
+      if (startDate || endDate) {
+        const purchaseDate = new Date(p.created_at).setHours(0, 0, 0, 0);
+        const start = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+        const end = endDate ? new Date(endDate).setHours(0, 0, 0, 0) : null;
+
+        if (start && purchaseDate < start) matchesDate = false;
+        if (end && purchaseDate > end) matchesDate = false;
+      }
+
+      return matchesSupplier && matchesDate;
+    });
+  }, [purchaseHistory, filterSupplier, startDate, endDate]);
+
+  const currentPaginated = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredHistory.slice(start, start + pageSize);
+  }, [filteredHistory, page, pageSize]);
   const useVirtualized = purchaseHistory.length >= UI_CONSTANTS.VIRTUALIZATION_THRESHOLD;
 
   return (
@@ -48,26 +80,57 @@ const PlatformPurchaseHistoryModal: React.FC<PlatformPurchaseHistoryModalProps> 
       overlayVariant="blur"
       size="xl"
     >
+      <div className="mb-4 flex flex-col md:flex-row gap-4">
+        <div className="flex gap-2 flex-1">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm w-full"
+            placeholder="Start Date"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm w-full"
+            placeholder="End Date"
+          />
+        </div>
+        <select
+          value={filterSupplier}
+          onChange={(e) => setFilterSupplier(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm flex-1"
+        >
+          <option value="all">All Suppliers</option>
+          {uniqueSuppliers.map((supplier) => (
+            <option key={supplier} value={supplier}>
+              {supplier}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {useVirtualized ? (
         <VirtualizedPurchaseHistoryTable
           loading={loading}
-          rows={purchaseHistory}
+          rows={filteredHistory}
           variant="platform"
         />
       ) : (
         <PurchaseHistoryTable
           loading={loading}
-          rows={paginated}
+          rows={currentPaginated}
           variant="platform"
           pageSize={pageSize}
         />
       )}
 
-      {!useVirtualized && purchaseHistory.length > 0 && !loading && (
+      {!useVirtualized && filteredHistory.length > 0 && !loading && (
         <div className="mt-4">
           <Pagination
             currentPage={page}
-            totalItems={purchaseHistory.length}
+            totalItems={filteredHistory.length}
             itemsPerPage={pageSize}
             onPageChange={onPageChange}
             onItemsPerPageChange={onItemsPerPageChange}

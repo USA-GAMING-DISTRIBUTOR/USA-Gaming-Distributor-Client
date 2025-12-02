@@ -82,25 +82,25 @@ const Modal: React.FC<ModalProps> = ({
       from: 'from-pink-600',
       to: 'to-pink-700',
       subtitle: 'text-pink-100',
-      close: 'text-pink-100 hover:text-white',
+      close: 'text-white hover:text-white hover:!bg-white/10',
     },
     blue: {
       from: 'from-blue-600',
       to: 'to-blue-700',
       subtitle: 'text-blue-100',
-      close: 'text-blue-100 hover:text-white',
+      close: 'text-white hover:text-white hover:!bg-white/10',
     },
     green: {
       from: 'from-green-600',
       to: 'to-green-700',
       subtitle: 'text-green-100',
-      close: 'text-green-100 hover:text-white',
+      close: 'text-white hover:text-white hover:!bg-white/10',
     },
     red: {
       from: 'from-red-600',
       to: 'to-red-700',
       subtitle: 'text-red-100',
-      close: 'text-red-100 hover:text-white',
+      close: 'text-white hover:text-white hover:!bg-white/10',
     },
   };
 
@@ -119,7 +119,7 @@ const Modal: React.FC<ModalProps> = ({
           <div
             className={`${
               headerVariant === 'themed'
-                ? `bg-gradient-to-r ${pickedHeaderColor.from} ${pickedHeaderColor.to} text-white p-6 flex-shrink-0`
+                ? `bg-gradient-to-r ${pickedHeaderColor.from} ${pickedHeaderColor.to} text-white p-6 flex-shrink-0 flex justify-between items-center`
                 : 'flex items-center justify-between p-6 border-b border-gray-200'
             }`}
           >

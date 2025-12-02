@@ -115,6 +115,7 @@ const OverviewPanel: React.FC = () => {
         inventory: Number(platform.inventory || 0),
         cost_price: Number(platform.cost_price || 0),
         low_stock_alert: Number(platform.low_stock_alert || 10),
+        is_visible_to_employee: true, // Default to true as this is admin view
         created_at: String(platform.created_at || new Date().toISOString()),
         updated_at: String(platform.updated_at || platform.created_at || new Date().toISOString()),
         deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,

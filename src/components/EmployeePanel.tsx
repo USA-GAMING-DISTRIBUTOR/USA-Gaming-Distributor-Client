@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Edit, Trash2, Plus, X } from 'lucide-react';
+import { Edit, Trash2, Plus, X, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import Pagination from './common/Pagination';
 
@@ -16,6 +16,7 @@ const EmployeePanel: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [form, setForm] = useState({
     username: '',
     password: '',
@@ -30,6 +31,12 @@ const EmployeePanel: React.FC = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
+
+  // Filter employees based on search term
+  const filteredEmployees = employees.filter((emp) =>
+    emp.username.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
   const handleEditClick = (emp: Employee) => {
     setSelectedEmployee(emp);
     setEditForm({
@@ -84,10 +91,15 @@ const EmployeePanel: React.FC = () => {
     fetchEmployees();
   }, []);
 
+  // Reset page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   // Pagination logic
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedEmployees = employees.slice(startIndex, endIndex);
+  const paginatedEmployees = filteredEmployees.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -126,12 +138,24 @@ const EmployeePanel: React.FC = () => {
     <div className="bg-white rounded-2xl p-6 shadow-lg">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Employees</h2>
-        <button
-          className="bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center"
-          onClick={() => setShowModal(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" /> Add Employee
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search employees..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+          <button
+            className="bg-pink-500 text-white px-4 py-2 rounded-lg flex items-center"
+            onClick={() => setShowModal(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Add Employee
+          </button>
+        </div>
       </div>
       {showModal && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-sm flex items-center justify-center z-50">

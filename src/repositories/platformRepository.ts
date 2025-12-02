@@ -17,6 +17,7 @@ export const mapRowToPlatform = (row: Record<string, unknown>): Platform => ({
   inventory: Number(row.inventory ?? 0),
   cost_price: Number(row.cost_price ?? 0),
   low_stock_alert: Number(row.low_stock_alert ?? 10),
+  is_visible_to_employee: Boolean(row.is_visible_to_employee ?? true),
   created_at: (row.created_at as string) ?? null,
   updated_at: (row.updated_at as string) ?? null,
   deleted_at: (row.deleted_at as string) ?? null,

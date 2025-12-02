@@ -6,6 +6,7 @@ import { useAppSelector } from '../hooks/redux';
 import Invoice from './Invoice';
 import { copyInvoiceToClipboard, downloadInvoiceImage } from '../utils/invoiceUtils';
 import Pagination from './common/Pagination';
+import SearchableDropdown from './common/SearchableDropdown';
 import { formatNumber, formatCurrency } from '../utils/format';
 import type { Database } from '../types/database.types';
 import type {
@@ -293,7 +294,6 @@ const OrderPanel: React.FC = () => {
           .eq('is_active', true),
       ]);
 
-
       if (ordersRes.error) throw new Error('Failed to fetch orders: ' + ordersRes.error.message);
       if (orderItemsRes.error)
         throw new Error('Failed to fetch order items: ' + orderItemsRes.error.message);
@@ -316,6 +316,7 @@ const OrderPanel: React.FC = () => {
           inventory: Number(platform.inventory || 0),
           cost_price: Number(platform.cost_price || 0),
           low_stock_alert: Number(platform.low_stock_alert || 10),
+          is_visible_to_employee: Boolean(platform.is_visible_to_employee ?? true),
           created_at: String(platform.created_at || new Date().toISOString()),
           updated_at: String(
             platform.updated_at || platform.created_at || new Date().toISOString(),
@@ -323,6 +324,14 @@ const OrderPanel: React.FC = () => {
           deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
         }),
       );
+
+      // Filter platforms for employees
+      const visiblePlatforms =
+        user?.role === 'Employee'
+          ? transformedPlatforms.filter((p) => p.is_visible_to_employee)
+          : transformedPlatforms;
+
+      setPlatforms(visiblePlatforms);
 
       // Transform raw data to match our types
       const transformedOrders: Order[] = (ordersRes.data || []).map((order: any) => {
@@ -388,7 +397,7 @@ const OrderPanel: React.FC = () => {
       setCustomers(transformedCustomers);
       setCustomerPricing(customerPricingRes.data || []);
       setPaymentDetails(paymentDetailsRes.data || []);
-      setPlatforms(transformedPlatforms);
+      // Platforms are already set above with filtering
       setCustomerUsernames(customerUsernamesRes.data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -1244,7 +1253,9 @@ const OrderPanel: React.FC = () => {
 
   // Delete order functionality
   const handleDeleteOrder = async (order: Order) => {
-    if (!window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+    if (
+      !window.confirm('Are you sure you want to delete this order? This action cannot be undone.')
+    ) {
       return;
     }
 
@@ -1271,10 +1282,7 @@ const OrderPanel: React.FC = () => {
       if (deleteItemsError) throw deleteItemsError;
 
       // 4. Delete the order itself
-      const { error: deleteOrderError } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', order.id);
+      const { error: deleteOrderError } = await supabase.from('orders').delete().eq('id', order.id);
 
       if (deleteOrderError) throw deleteOrderError;
 
@@ -1986,10 +1994,14 @@ const OrderPanel: React.FC = () => {
                 {/* Customer Selection */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Customer *</label>
-                  <select
+                  <SearchableDropdown
+                    options={customers.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
                     value={createForm.customer_id}
-                    onChange={async (e) => {
-                      const customerId = e.target.value;
+                    onChange={(value) => {
+                      const customerId = value;
                       setCreateForm((prev) => ({
                         ...prev,
                         customer_id: customerId,
@@ -2015,16 +2027,8 @@ const OrderPanel: React.FC = () => {
                         }));
                       }
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select Customer</option>
-                    {customers.map((customer) => (
-                      <option key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Select Customer"
+                  />
                 </div>
 
                 {/* Add Items Section */}
@@ -2033,40 +2037,36 @@ const OrderPanel: React.FC = () => {
 
                   {/* Platform and Username Selection Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    <select
+                    <SearchableDropdown
+                      options={platforms.map((p) => ({
+                        value: p.id,
+                        label: `${p.platform} - ${p.account_type}`,
+                      }))}
                       value={newItem.platform_id}
-                      onChange={(e) => {
-                        const platformId = e.target.value;
+                      onChange={(value) => {
+                        const platformId = value;
                         setNewItem((prev) => ({
                           ...prev,
                           platform_id: platformId,
-                          unit_price: 0, // Reset price, will be updated below
-                          username: '', // Reset username when platform changes
+                          unit_price: 0,
+                          username: '',
                         }));
 
-                        // Reset price editing state when platform changes
                         setIsPriceEditable(false);
 
-                        // Automatically calculate price based on customer pricing
                         if (createForm.customer_id && platformId && newItem.quantity > 0) {
-                          // Calculate total quantity including existing items of this platform in the order
                           const existingQuantity = createForm.items
                             .filter((item) => item.platform_id === platformId)
                             .reduce((total, item) => total + item.quantity, 0);
 
                           const totalQuantity = existingQuantity + newItem.quantity;
-
                           const price = getCustomerPrice(
                             createForm.customer_id,
                             platformId,
                             totalQuantity,
                           );
-                          setNewItem((prev) => ({
-                            ...prev,
-                            unit_price: price,
-                          }));
+                          setNewItem((prev) => ({ ...prev, unit_price: price }));
                         } else if (platformId) {
-                          // Fallback to platform cost price if no customer selected
                           const platform = platforms.find((p) => p.id === platformId);
                           setNewItem((prev) => ({
                             ...prev,
@@ -2074,15 +2074,8 @@ const OrderPanel: React.FC = () => {
                           }));
                         }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    >
-                      <option value="">Select Platform</option>
-                      {platforms.map((platform) => (
-                        <option key={platform.id} value={platform.id}>
-                          {platform.platform} - {platform.account_type}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Select Platform"
+                    />
 
                     {/* Username Dropdown */}
                     <select
@@ -2738,10 +2731,14 @@ const OrderPanel: React.FC = () => {
                 {/* Customer Selection */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Customer *</label>
-                  <select
+                  <SearchableDropdown
+                    options={customers.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
                     value={editForm.customer_id}
-                    onChange={async (e) => {
-                      const customerId = e.target.value;
+                    onChange={async (value) => {
+                      const customerId = value;
                       setEditForm((prev) => ({
                         ...prev,
                         customer_id: customerId,
@@ -2767,16 +2764,8 @@ const OrderPanel: React.FC = () => {
                         }));
                       }
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select Customer</option>
-                    {customers.map((customer) => (
-                      <option key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Select Customer"
+                  />
                 </div>
 
                 {/* Add Items Section */}
@@ -2785,40 +2774,36 @@ const OrderPanel: React.FC = () => {
 
                   {/* Platform and Username Selection Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    <select
+                    <SearchableDropdown
+                      options={platforms.map((p) => ({
+                        value: p.id,
+                        label: `${p.platform} - ${p.account_type}`,
+                      }))}
                       value={newItem.platform_id}
-                      onChange={(e) => {
-                        const platformId = e.target.value;
+                      onChange={(value) => {
+                        const platformId = value;
                         setNewItem((prev) => ({
                           ...prev,
                           platform_id: platformId,
-                          unit_price: 0, // Reset price, will be updated below
-                          username: '', // Reset username when platform changes
+                          unit_price: 0,
+                          username: '',
                         }));
 
-                        // Reset price editing state when platform changes
                         setIsPriceEditable(false);
 
-                        // Automatically calculate price based on customer pricing
                         if (editForm.customer_id && platformId && newItem.quantity > 0) {
-                          // Calculate total quantity including existing items of this platform in the order
                           const existingQuantity = editForm.items
                             .filter((item) => item.platform_id === platformId)
                             .reduce((total, item) => total + item.quantity, 0);
 
                           const totalQuantity = existingQuantity + newItem.quantity;
-
                           const price = getCustomerPrice(
                             editForm.customer_id,
                             platformId,
                             totalQuantity,
                           );
-                          setNewItem((prev) => ({
-                            ...prev,
-                            unit_price: price,
-                          }));
+                          setNewItem((prev) => ({ ...prev, unit_price: price }));
                         } else if (platformId) {
-                          // Fallback to platform cost price if no customer selected
                           const platform = platforms.find((p) => p.id === platformId);
                           setNewItem((prev) => ({
                             ...prev,
@@ -2826,15 +2811,8 @@ const OrderPanel: React.FC = () => {
                           }));
                         }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    >
-                      <option value="">Select Platform</option>
-                      {platforms.map((platform) => (
-                        <option key={platform.id} value={platform.id}>
-                          {platform.platform} - {platform.account_type}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Select Platform"
+                    />
 
                     {/* Username Dropdown */}
                     <select

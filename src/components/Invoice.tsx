@@ -1074,7 +1074,7 @@ const Invoice: React.FC<InvoiceProps> = ({ order, customer, platforms, paymentDe
               marginBottom: '8px',
             }}
           >
-            Thank You For Trusting USA Gaming Distributor 🇺🇸
+            Thank You For Trusting USA Gaming Distributor
           </div>
           <div
             style={{

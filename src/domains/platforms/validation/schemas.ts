@@ -16,6 +16,7 @@ export const platformCreateSchema = z.object({
   inventory: nonNegativeInt,
   cost_price: nonNegativeNumber,
   low_stock_alert: positiveInt,
+  is_visible_to_employee: z.boolean().optional(),
 });
 
 export type PlatformCreateForm = z.infer<typeof platformCreateSchema>;

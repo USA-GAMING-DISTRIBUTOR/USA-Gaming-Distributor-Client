@@ -6,6 +6,7 @@ export interface Platform {
   inventory: number;
   cost_price: number;
   low_stock_alert: number; // Low stock alert threshold
+  is_visible_to_employee: boolean;
   created_at: string | null;
   updated_at: string | null;
   deleted_at: string | null; // Soft delete timestamp
@@ -17,6 +18,7 @@ export interface PlatformCreateData {
   inventory: number;
   cost_price: number;
   low_stock_alert: number;
+  is_visible_to_employee?: boolean;
 }
 
 export interface PlatformUpdateData extends Partial<PlatformCreateData> {

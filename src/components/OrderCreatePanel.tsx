@@ -66,9 +66,17 @@ const OrderCreatePanel: React.FC = () => {
       setCustomers(customerData || []);
       const { data: platformData } = await supabase
         .from('game_coins')
-        .select('id, platform, inventory')
-        .is('deleted_at', null);
-      setPlatforms(platformData || []);
+        .select('id, platform, inventory, is_visible_to_employee')
+        .is('deleted_at', null)
+        .eq('is_visible_to_employee', true);
+      setPlatforms(
+        (platformData || []).map((p: any) => ({
+          ...p,
+          is_visible_to_employee: p.is_visible_to_employee ?? true,
+        })) as (Platform & {
+          inventory?: number;
+        })[],
+      );
       // Fetch orders and attach their items for UI consumption
       const { data: ordersData } = await supabase
         .from('orders')

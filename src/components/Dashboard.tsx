@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, LogOut, Shield, UserCheck, User as UserIcon, Edit, X } from 'lucide-react';
+import {
+  Users,
+  Plus,
+  LogOut,
+  Shield,
+  UserCheck,
+  User as UserIcon,
+  Edit,
+  X,
+  Search,
+} from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../hooks/redux';
 import { logout, createUser, updateUser, clearError } from '../store/authSlice';
 import type { UserRole, CreateUserFormData } from '../domains/auth/types';
@@ -26,6 +36,7 @@ const Dashboard: React.FC = () => {
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [createFormErrors, setCreateFormErrors] = useState<Record<string, string>>({});
   const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,10 +48,20 @@ const Dashboard: React.FC = () => {
     }
   }, [dispatch, error]);
 
+  // Reset page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Filter users based on search term
+  const filteredUsers = users.filter((u) =>
+    u.username.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
   // Pagination logic
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedUsers = users.slice(startIndex, endIndex);
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -498,8 +519,18 @@ const Dashboard: React.FC = () => {
 
         {/* Users List */}
         <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h3 className="text-lg font-medium text-gray-900">All Users</h3>
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              />
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">

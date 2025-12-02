@@ -18,6 +18,7 @@ export function usePlatforms() {
 
   const [filterAccountType, setFilterAccountType] = useState<string>('all');
   const [filterStock, setFilterStock] = useState<StockFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [createForm, setCreateForm] = useState<PlatformCreateData>({
     platform_name: '',
@@ -95,9 +96,13 @@ export function usePlatforms() {
         filterStock === 'all' ||
         (filterStock === 'low_stock' && p.inventory < p.low_stock_alert && p.inventory > 0) ||
         (filterStock === 'out_of_stock' && p.inventory === 0);
-      return matchesType && matchesStock;
+      const matchesSearch =
+        searchQuery === '' ||
+        p.platform.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.account_type.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesType && matchesStock && matchesSearch;
     });
-  }, [platforms, filterAccountType, filterStock]);
+  }, [platforms, filterAccountType, filterStock, searchQuery]);
 
   // Memoize pagination window calculations to keep array references stable
   const total = useMemo(() => filtered.length, [filtered]);
@@ -127,6 +132,7 @@ export function usePlatforms() {
         inventory: parsed.data.inventory,
         cost_price: parsed.data.cost_price,
         low_stock_alert: parsed.data.low_stock_alert,
+        is_visible_to_employee: parsed.data.is_visible_to_employee ?? true,
       });
       if (!res.ok) setError(getError(res));
       await fetchPlatforms();
@@ -154,6 +160,7 @@ export function usePlatforms() {
         inventory: d.inventory,
         cost_price: d.cost_price,
         low_stock_alert: d.low_stock_alert,
+        is_visible_to_employee: d.is_visible_to_employee,
       });
       if (!res.ok) setError(getError(res));
       await fetchPlatforms();
@@ -229,6 +236,7 @@ export function usePlatforms() {
     error,
     filterAccountType,
     filterStock,
+    searchQuery,
     page,
     pageSize,
     phPage,
@@ -241,6 +249,7 @@ export function usePlatforms() {
     // setters
     setFilterAccountType,
     setFilterStock,
+    setSearchQuery,
     setPage,
     setPageSize,
     setPhPage,

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { LoadingSpinner } from './common/Loader';
 import Pagination from './common/Pagination';
+import SearchableDropdown from './common/SearchableDropdown';
 
 const CustomerPanel: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -149,6 +150,7 @@ const CustomerPanel: React.FC = () => {
           inventory: platform.inventory,
           cost_price: platform.cost_price,
           low_stock_alert: platform.low_stock_alert || 10, // Default to 10 if not set
+          is_visible_to_employee: true, // Default to true as this is admin view
           created_at: platform.created_at,
           updated_at: platform.updated_at || null,
           deleted_at: platform.deleted_at || null,
@@ -803,24 +805,20 @@ const CustomerPanel: React.FC = () => {
                 >
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
-                    <select
+                    <SearchableDropdown
+                      options={platforms.map((p) => ({
+                        value: p.id,
+                        label: `${p.platform} (${p.account_type})`,
+                      }))}
                       value={pricingForm.platform_id}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setPricingForm((prev) => ({
                           ...prev,
-                          platform_id: e.target.value,
+                          platform_id: value,
                         }))
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select Platform</option>
-                      {platforms.map((platform) => (
-                        <option key={platform.id} value={platform.id}>
-                          {platform.platform} ({platform.account_type})
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Select Platform"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1005,24 +1003,20 @@ const CustomerPanel: React.FC = () => {
                 >
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
-                    <select
+                    <SearchableDropdown
+                      options={platforms.map((p) => ({
+                        value: p.id,
+                        label: `${p.platform} - ${p.account_type}`,
+                      }))}
                       value={usernameForm.platform_id}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setUsernameForm({
                           ...usernameForm,
-                          platform_id: e.target.value,
+                          platform_id: value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select Platform</option>
-                      {platforms.map((platform) => (
-                        <option key={platform.id} value={platform.id}>
-                          {platform.platform} - {platform.account_type}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Select Platform"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>

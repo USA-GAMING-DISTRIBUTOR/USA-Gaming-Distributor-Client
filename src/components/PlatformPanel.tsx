@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
-import { Edit, Trash2, Plus, Package, AlertTriangle, History } from 'lucide-react';
+import { Edit, Trash2, Plus, Package, AlertTriangle, History, Search } from 'lucide-react';
 import { usePlatforms } from '../domains/platforms/hooks/usePlatforms';
 // Domain hook encapsulates fetching, filtering, pagination, and CRUD
 import type { Platform, PlatformCreateData } from '../types/platform';
@@ -36,6 +36,7 @@ const PlatformPanel: React.FC = () => {
     error,
     filterAccountType,
     filterStock,
+    searchQuery,
     page,
     pageSize,
     phPage,
@@ -48,6 +49,7 @@ const PlatformPanel: React.FC = () => {
     // setters
     setFilterAccountType,
     setFilterStock,
+    setSearchQuery,
     setPage,
     setPageSize,
     setPhPage,
@@ -92,6 +94,7 @@ const PlatformPanel: React.FC = () => {
     inventory: 0,
     cost_price: 0,
     low_stock_alert: INVENTORY_CONSTANTS.LOW_STOCK_DEFAULT,
+    is_visible_to_employee: true,
   });
 
   // ensure local create form mirrors domain form
@@ -165,6 +168,7 @@ const PlatformPanel: React.FC = () => {
       inventory: platform.inventory,
       cost_price: platform.cost_price,
       low_stock_alert: platform.low_stock_alert,
+      is_visible_to_employee: platform.is_visible_to_employee,
     });
     setShowEditModal(true);
   };
@@ -342,8 +346,19 @@ const PlatformPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {/* Search and Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search platforms..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          />
+        </div>
+
         <select
           value={filterAccountType}
           onChange={(e) => setFilterAccountType(e.target.value)}
@@ -377,16 +392,17 @@ const PlatformPanel: React.FC = () => {
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Account Type</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Inventory</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Cost Price</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Visible</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <TableSkeleton rows={Math.min(pageSize, 8)} columns={6} />
+              <TableSkeleton rows={Math.min(pageSize, 8)} columns={7} />
             ) : total === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-8 text-gray-500">
+                <td colSpan={7} className="text-center py-8 text-gray-500">
                   No platforms found
                 </td>
               </tr>
@@ -412,6 +428,24 @@ const PlatformPanel: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-3 px-4">{formatCurrency(platform.cost_price)}</td>
+                  <td className="py-3 px-4">
+                    <input
+                      type="checkbox"
+                      checked={platform.is_visible_to_employee}
+                      onChange={async (e) => {
+                        const newValue = e.target.checked;
+                        await updatePlatform(platform.id, {
+                          platform_name: platform.platform,
+                          account_type: platform.account_type,
+                          inventory: platform.inventory,
+                          cost_price: platform.cost_price,
+                          low_stock_alert: platform.low_stock_alert,
+                          is_visible_to_employee: newValue,
+                        });
+                      }}
+                      className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
+                    />
+                  </td>
                   <td className="py-3 px-4">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${

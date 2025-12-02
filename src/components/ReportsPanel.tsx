@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import { LoadingSpinner } from './common/Loader';
+import SearchableDropdown from './common/SearchableDropdown';
 import { reportRepository } from '../repositories/reportRepository';
 
 type Filters = {
@@ -239,66 +240,54 @@ const ReportsPanel: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Customer</label>
-            <select
-              className="mt-1 block w-full border rounded p-2"
+            <SearchableDropdown
+              options={[
+                { value: '', label: 'All' },
+                ...options.customers.map((c: any) => ({ value: c.id, label: c.name })),
+              ]}
               value={filters.customerId ?? ''}
-              onChange={(e) => setFilters((s) => ({ ...s, customerId: e.target.value || null }))}
-            >
-              <option value="">All</option>
-              {options.customers.map((c: any) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setFilters((s) => ({ ...s, customerId: value || null }))}
+              placeholder="All"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Platform</label>
-            <select
-              className="mt-1 block w-full border rounded p-2"
+            <SearchableDropdown
+              options={[
+                { value: '', label: 'All' },
+                ...options.platforms.map((p: any) => ({
+                  value: p.id,
+                  label: `${p.platform} ${p.account_type ? `(${p.account_type})` : ''}`,
+                })),
+              ]}
               value={filters.platformId ?? ''}
-              onChange={(e) => setFilters((s) => ({ ...s, platformId: e.target.value || null }))}
-            >
-              <option value="">All</option>
-              {options.platforms.map((p: any) => (
-                <option key={p.id} value={p.id}>
-                  {p.platform} {p.account_type ? `(${p.account_type})` : ''}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setFilters((s) => ({ ...s, platformId: value || null }))}
+              placeholder="All"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Employee</label>
-            <select
-              className="mt-1 block w-full border rounded p-2"
+            <SearchableDropdown
+              options={[
+                { value: '', label: 'All' },
+                ...options.employees.map((u: any) => ({ value: u.id, label: u.username })),
+              ]}
               value={filters.employeeId ?? ''}
-              onChange={(e) => setFilters((s) => ({ ...s, employeeId: e.target.value || null }))}
-            >
-              <option value="">All</option>
-              {options.employees.map((u: any) => (
-                <option key={u.id} value={u.id}>
-                  {u.username}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setFilters((s) => ({ ...s, employeeId: value || null }))}
+              placeholder="All"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Payment Method</label>
-            <select
-              className="mt-1 block w-full border rounded p-2"
+            <SearchableDropdown
+              options={[{ value: '', label: 'All' }, ...paymentOptions]}
               value={filters.paymentMethod ?? ''}
-              onChange={(e) => setFilters((s) => ({ ...s, paymentMethod: e.target.value || null }))}
-            >
-              <option value="">All</option>
-              {paymentOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setFilters((s) => ({ ...s, paymentMethod: value || null }))}
+              placeholder="All"
+            />
           </div>
         </div>
 

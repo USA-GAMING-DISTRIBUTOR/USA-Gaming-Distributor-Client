@@ -8,6 +8,7 @@ export interface PlatformCreateDTO {
   inventory: number;
   cost_price: number;
   low_stock_alert: number;
+  is_visible_to_employee?: boolean;
 }
 
 export type PlatformUpdateDTO = Partial<PlatformCreateDTO>;
@@ -32,12 +33,14 @@ export const mapPlatformFormToCreateDTO = (form: {
   inventory: number;
   cost_price: number;
   low_stock_alert: number;
+  is_visible_to_employee?: boolean;
 }): PlatformCreateDTO => ({
   platform: form.platform_name,
   account_type: form.account_type,
   inventory: form.inventory,
   cost_price: form.cost_price,
   low_stock_alert: form.low_stock_alert,
+  is_visible_to_employee: form.is_visible_to_employee,
 });
 
 export const mapPlatformFormToUpdateDTO = mapPlatformFormToCreateDTO; // identical shape currently

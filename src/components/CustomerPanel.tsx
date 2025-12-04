@@ -37,6 +37,10 @@ const CustomerPanel: React.FC = () => {
 
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
+  const [pricingSearchTerm, setPricingSearchTerm] = useState('');
+  const [pricingPlatformFilter, setPricingPlatformFilter] = useState('all');
+  const [usernameSearchTerm, setUsernameSearchTerm] = useState('');
+  const [usernamePlatformFilter, setUsernamePlatformFilter] = useState('all');
 
   // Pagination state
   const [customersPage, setCustomersPage] = useState(1);
@@ -45,6 +49,10 @@ const CustomerPanel: React.FC = () => {
   // Customer pricing pagination state
   const [pricingPage, setPricingPage] = useState(1);
   const [pricingItemsPerPage, setPricingItemsPerPage] = useState(8);
+
+  // Customer username pagination state
+  const [usernamePage, setUsernamePage] = useState(1);
+  const [usernameItemsPerPage, setUsernameItemsPerPage] = useState(8);
   const [formData, setFormData] = useState<{
     name: string;
     contact_numbers: string[];
@@ -97,10 +105,19 @@ const CustomerPanel: React.FC = () => {
     setCustomersPage(1);
   };
 
-  // Customer pricing pagination logic
+  // Customer pricing filtering and pagination logic
+  const filteredPricing = customerPricing.filter((pricing) => {
+    const matchesSearch = pricing.platform_name
+      .toLowerCase()
+      .includes(pricingSearchTerm.toLowerCase());
+    const matchesPlatform =
+      pricingPlatformFilter === 'all' || pricing.platform_id === pricingPlatformFilter;
+    return matchesSearch && matchesPlatform;
+  });
+
   const pricingStartIndex = (pricingPage - 1) * pricingItemsPerPage;
   const pricingEndIndex = pricingStartIndex + pricingItemsPerPage;
-  const paginatedCustomerPricing = customerPricing.slice(pricingStartIndex, pricingEndIndex);
+  const paginatedCustomerPricing = filteredPricing.slice(pricingStartIndex, pricingEndIndex);
 
   const handlePricingPageChange = (page: number) => {
     setPricingPage(page);
@@ -109,6 +126,29 @@ const CustomerPanel: React.FC = () => {
   const handlePricingItemsPerPageChange = (newItemsPerPage: number) => {
     setPricingItemsPerPage(newItemsPerPage);
     setPricingPage(1);
+  };
+
+  // Customer username filtering and pagination logic
+  const filteredUsernames = customerUsernames.filter((username) => {
+    const matchesSearch =
+      username.username.toLowerCase().includes(usernameSearchTerm.toLowerCase()) ||
+      (username.notes || '').toLowerCase().includes(usernameSearchTerm.toLowerCase());
+    const matchesPlatform =
+      usernamePlatformFilter === 'all' || username.platform_id === usernamePlatformFilter;
+    return matchesSearch && matchesPlatform;
+  });
+
+  const usernameStartIndex = (usernamePage - 1) * usernameItemsPerPage;
+  const usernameEndIndex = usernameStartIndex + usernameItemsPerPage;
+  const paginatedCustomerUsernames = filteredUsernames.slice(usernameStartIndex, usernameEndIndex);
+
+  const handleUsernamePageChange = (page: number) => {
+    setUsernamePage(page);
+  };
+
+  const handleUsernameItemsPerPageChange = (newItemsPerPage: number) => {
+    setUsernameItemsPerPage(newItemsPerPage);
+    setUsernamePage(1);
   };
 
   useEffect(() => {
@@ -221,6 +261,8 @@ const CustomerPanel: React.FC = () => {
     setIsPricingModalOpen(false);
     setSelectedCustomerForPricing(null);
     setCustomerPricing([]);
+    setPricingSearchTerm('');
+    setPricingPlatformFilter('all');
     setPricingForm({
       platform_id: '',
       min_quantity: 1,
@@ -334,12 +376,15 @@ const CustomerPanel: React.FC = () => {
     setIsUsernamesModalOpen(false);
     setSelectedCustomerForUsernames(null);
     setCustomerUsernames([]);
+    setUsernameSearchTerm('');
+    setUsernamePlatformFilter('all');
     setUsernameForm({
       platform_id: '',
       username: '',
       notes: '',
       is_active: true,
     });
+    setUsernamePage(1);
   };
 
   const handleUsernameSubmit = async (e: React.FormEvent) => {
@@ -886,6 +931,34 @@ const CustomerPanel: React.FC = () => {
                 </form>
               </div>
 
+              {/* Pricing Filters */}
+              <div className="flex flex-col md:flex-row gap-4 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search pricing..."
+                    value={pricingSearchTerm}
+                    onChange={(e) => setPricingSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                  />
+                </div>
+                <div className="w-full md:w-64">
+                  <SearchableDropdown
+                    options={[
+                      { value: 'all', label: 'All Platforms' },
+                      ...platforms.map((p) => ({
+                        value: p.id,
+                        label: p.platform,
+                      })),
+                    ]}
+                    value={pricingPlatformFilter}
+                    onChange={(value) => setPricingPlatformFilter(value)}
+                    placeholder="Filter by Platform"
+                  />
+                </div>
+              </div>
+
               {/* Existing Pricing Table */}
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
@@ -903,10 +976,12 @@ const CustomerPanel: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {customerPricing.length === 0 ? (
+                    {filteredPricing.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="text-center py-8 text-gray-500">
-                          No pricing tiers set for this customer.
+                          {customerPricing.length === 0
+                            ? 'No pricing tiers set for this customer.'
+                            : 'No pricing tiers match your filters.'}
                         </td>
                       </tr>
                     ) : (
@@ -947,7 +1022,7 @@ const CustomerPanel: React.FC = () => {
               {customerPricing.length > 0 && (
                 <Pagination
                   currentPage={pricingPage}
-                  totalItems={customerPricing.length}
+                  totalItems={filteredPricing.length}
                   itemsPerPage={pricingItemsPerPage}
                   onPageChange={handlePricingPageChange}
                   onItemsPerPageChange={handlePricingItemsPerPageChange}
@@ -1077,6 +1152,34 @@ const CustomerPanel: React.FC = () => {
                 </form>
               </div>
 
+              {/* Username Filters */}
+              <div className="flex flex-col md:flex-row gap-4 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search usernames..."
+                    value={usernameSearchTerm}
+                    onChange={(e) => setUsernameSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                  />
+                </div>
+                <div className="w-full md:w-64">
+                  <SearchableDropdown
+                    options={[
+                      { value: 'all', label: 'All Platforms' },
+                      ...platforms.map((p) => ({
+                        value: p.id,
+                        label: p.platform,
+                      })),
+                    ]}
+                    value={usernamePlatformFilter}
+                    onChange={(value) => setUsernamePlatformFilter(value)}
+                    placeholder="Filter by Platform"
+                  />
+                </div>
+              </div>
+
               {/* Usernames Table */}
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
@@ -1090,14 +1193,16 @@ const CustomerPanel: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {customerUsernames.length === 0 ? (
+                    {filteredUsernames.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="text-center py-8 text-gray-500">
-                          No usernames added yet for this customer.
+                          {customerUsernames.length === 0
+                            ? 'No usernames added yet for this customer.'
+                            : 'No usernames match your filters.'}
                         </td>
                       </tr>
                     ) : (
-                      customerUsernames.map((username) => (
+                      paginatedCustomerUsernames.map((username) => (
                         <tr key={username.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="py-3 px-4 font-medium">
                             {username.platform_name} - {username.account_type}
@@ -1151,6 +1256,17 @@ const CustomerPanel: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Username Pagination */}
+              {customerUsernames.length > 0 && (
+                <Pagination
+                  currentPage={usernamePage}
+                  totalItems={filteredUsernames.length}
+                  itemsPerPage={usernameItemsPerPage}
+                  onPageChange={handleUsernamePageChange}
+                  onItemsPerPageChange={handleUsernameItemsPerPageChange}
+                />
+              )}
             </div>
 
             {/* Modal Footer */}

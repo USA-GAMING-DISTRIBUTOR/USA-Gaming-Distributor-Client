@@ -204,7 +204,7 @@ const ReportsPanel: React.FC = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">From</label>
             <input
-              type="date"
+              type="datetime-local"
               className="mt-1 block w-full border rounded p-2"
               value={filters.from ?? ''}
               onChange={(e) => setFilters((s) => ({ ...s, from: e.target.value }))}
@@ -214,7 +214,7 @@ const ReportsPanel: React.FC = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">To</label>
             <input
-              type="date"
+              type="datetime-local"
               className="mt-1 block w-full border rounded p-2"
               value={filters.to ?? ''}
               onChange={(e) => setFilters((s) => ({ ...s, to: e.target.value }))}

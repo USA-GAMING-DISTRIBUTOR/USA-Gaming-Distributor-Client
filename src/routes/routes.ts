@@ -77,7 +77,7 @@ export const privateRoutes: RouteConfig[] = [
     name: 'Employee Dashboard',
     component: EmployeeDashboard,
     allowedRoles: ['Employee'],
-    layout: 'dashboard',
+    layout: 'public',
   },
   {
     path: ROUTE_PATHS.USERNAMES,
@@ -138,7 +138,7 @@ export const getRoleBasedDashboard = (role: UserRole): string => {
     case 'Admin':
       return ROUTE_PATHS.ADMIN;
     case 'Employee':
-      return ROUTE_PATHS.ORDERS;
+      return ROUTE_PATHS.EMPLOYEE;
     default:
       return ROUTE_PATHS.LOGIN;
   }

@@ -51,9 +51,9 @@ const PlatformPurchaseHistoryModal: React.FC<PlatformPurchaseHistoryModalProps> 
 
       let matchesDate = true;
       if (startDate || endDate) {
-        const purchaseDate = new Date(p.created_at).setHours(0, 0, 0, 0);
-        const start = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
-        const end = endDate ? new Date(endDate).setHours(0, 0, 0, 0) : null;
+        const purchaseDate = new Date(p.created_at).getTime();
+        const start = startDate ? new Date(startDate).getTime() : null;
+        const end = endDate ? new Date(endDate).getTime() : null;
 
         if (start && purchaseDate < start) matchesDate = false;
         if (end && purchaseDate > end) matchesDate = false;
@@ -83,18 +83,18 @@ const PlatformPurchaseHistoryModal: React.FC<PlatformPurchaseHistoryModalProps> 
       <div className="mb-4 flex flex-col md:flex-row gap-4">
         <div className="flex gap-2 flex-1">
           <input
-            type="date"
+            type="datetime-local"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm w-full"
-            placeholder="Start Date"
+            placeholder="Start Date & Time"
           />
           <input
-            type="date"
+            type="datetime-local"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm w-full"
-            placeholder="End Date"
+            placeholder="End Date & Time"
           />
         </div>
         <select

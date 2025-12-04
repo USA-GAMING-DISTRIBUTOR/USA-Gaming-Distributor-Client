@@ -11,12 +11,16 @@ interface Issue {
   created_by: string;
   status: string | null;
   created_at: string | null;
-  customers?: {
-    name: string;
-  } | any;
-  users?: {
-    username: string;
-  } | any;
+  customers?:
+    | {
+        name: string;
+      }
+    | any;
+  users?:
+    | {
+        username: string;
+      }
+    | any;
 }
 
 interface Customer {
@@ -74,7 +78,7 @@ const CustomerIssuesPanel: React.FC = () => {
   const fetchIssues = async () => {
     setLoading(true);
     setError(null);
-    
+
     let query = supabase
       .from('customer_issues')
       .select('*')
@@ -82,10 +86,10 @@ const CustomerIssuesPanel: React.FC = () => {
 
     // Apply filters
     if (filters.startDate) {
-      query = query.gte('created_at', filters.startDate);
+      query = query.gte('created_at', new Date(filters.startDate).toISOString());
     }
     if (filters.endDate) {
-      query = query.lte('created_at', filters.endDate + 'T23:59:59');
+      query = query.lte('created_at', new Date(filters.endDate).toISOString());
     }
     if (filters.status) {
       query = query.eq('status', filters.status);
@@ -93,7 +97,7 @@ const CustomerIssuesPanel: React.FC = () => {
 
     // Role-based filtering
     if (user?.role === 'Employee') {
-       query = query.eq('created_by', user.id);
+      query = query.eq('created_by', user.id);
     }
 
     const { data, error: fetchError } = await query;
@@ -103,7 +107,7 @@ const CustomerIssuesPanel: React.FC = () => {
       setLoading(false);
       return;
     }
-    
+
     if (data) {
       setIssues(data);
     }
@@ -153,7 +157,7 @@ const CustomerIssuesPanel: React.FC = () => {
           issue_text: formData.issue_text,
         })
         .eq('id', currentIssueId);
-      
+
       // If not admin/superadmin, restrict to own issues
       if (user.role !== 'Admin' && user.role !== 'SuperAdmin') {
         query = query.eq('created_by', user.id);
@@ -188,10 +192,7 @@ const CustomerIssuesPanel: React.FC = () => {
     if (!user) return;
 
     setLoading(true);
-    let query = supabase
-      .from('customer_issues')
-      .delete()
-      .eq('id', id);
+    let query = supabase.from('customer_issues').delete().eq('id', id);
 
     // If not admin/superadmin, restrict to own issues
     if (user.role !== 'Admin' && user.role !== 'SuperAdmin') {
@@ -238,24 +239,24 @@ const CustomerIssuesPanel: React.FC = () => {
     <div className="bg-white rounded-2xl p-6 shadow-lg">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h2 className="text-lg font-semibold">Customer Issues</h2>
-        
+
         <div className="flex flex-wrap gap-2 items-center">
           {/* Filters for Admin/SuperAdmin */}
           {(user?.role === 'Admin' || user?.role === 'SuperAdmin') && (
             <>
               <input
-                type="date"
+                type="datetime-local"
                 value={filters.startDate}
                 onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
                 className="px-3 py-2 border rounded-lg text-sm"
-                placeholder="Start Date"
+                placeholder="Start Date & Time"
               />
               <input
-                type="date"
+                type="datetime-local"
                 value={filters.endDate}
                 onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
                 className="px-3 py-2 border rounded-lg text-sm"
-                placeholder="End Date"
+                placeholder="End Date & Time"
               />
               <select
                 value={filters.status}
@@ -297,9 +298,17 @@ const CustomerIssuesPanel: React.FC = () => {
           </thead>
           <tbody>
             {loading && issues.length === 0 ? (
-               <tr><td colSpan={6} className="text-center py-4">Loading...</td></tr>
+              <tr>
+                <td colSpan={6} className="text-center py-4">
+                  Loading...
+                </td>
+              </tr>
             ) : paginatedIssues.length === 0 ? (
-               <tr><td colSpan={6} className="text-center py-4">No issues found</td></tr>
+              <tr>
+                <td colSpan={6} className="text-center py-4">
+                  No issues found
+                </td>
+              </tr>
             ) : (
               paginatedIssues.map((issue) => (
                 <tr key={issue.id} className="border-b border-gray-100 hover:bg-gray-50">
@@ -307,22 +316,26 @@ const CustomerIssuesPanel: React.FC = () => {
                     {issue.created_at ? new Date(issue.created_at).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="py-3 px-4">
-                    {issue.customer_id 
-                      ? (customers.find(c => c.id === issue.customer_id)?.name || issue.customer_id) 
+                    {issue.customer_id
+                      ? customers.find((c) => c.id === issue.customer_id)?.name || issue.customer_id
                       : 'N/A'}
                   </td>
                   <td className="py-3 px-4 max-w-xs truncate" title={issue.issue_text}>
                     {issue.issue_text}
                   </td>
                   <td className="py-3 px-4">
-                    {users.find(u => u.id === issue.created_by)?.username || issue.created_by}
+                    {users.find((u) => u.id === issue.created_by)?.username || issue.created_by}
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                      issue.status === 'Unresolved' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        issue.status === 'Resolved'
+                          ? 'bg-green-100 text-green-800'
+                          : issue.status === 'Unresolved'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
                       {issue.status || 'Open'}
                     </span>
                   </td>
@@ -393,7 +406,10 @@ const CustomerIssuesPanel: React.FC = () => {
           totalItems={issues.length}
           itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
-          onItemsPerPageChange={(n) => { setItemsPerPage(n); setCurrentPage(1); }}
+          onItemsPerPageChange={(n) => {
+            setItemsPerPage(n);
+            setCurrentPage(1);
+          }}
         />
       )}
 
@@ -407,10 +423,12 @@ const CustomerIssuesPanel: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Customer (Optional)
+                </label>
                 <select
                   value={formData.customer_id}
                   onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
@@ -418,13 +436,17 @@ const CustomerIssuesPanel: React.FC = () => {
                 >
                   <option value="">Select Customer (Optional)</option>
                   {customers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Issue Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Issue Description
+                </label>
                 <textarea
                   required
                   rows={4}
@@ -448,7 +470,13 @@ const CustomerIssuesPanel: React.FC = () => {
                   disabled={loading}
                   className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50"
                 >
-                  {loading ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Issue' : 'Create Issue')}
+                  {loading
+                    ? isEditing
+                      ? 'Updating...'
+                      : 'Creating...'
+                    : isEditing
+                      ? 'Update Issue'
+                      : 'Create Issue'}
                 </button>
               </div>
             </form>
@@ -466,20 +494,23 @@ const CustomerIssuesPanel: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Date</label>
                 <p className="text-gray-900">
-                  {selectedIssue.created_at ? new Date(selectedIssue.created_at).toLocaleString() : 'N/A'}
+                  {selectedIssue.created_at
+                    ? new Date(selectedIssue.created_at).toLocaleString()
+                    : 'N/A'}
                 </p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Customer</label>
                 <p className="text-gray-900">
-                  {selectedIssue.customer_id 
-                    ? (customers.find(c => c.id === selectedIssue.customer_id)?.name || selectedIssue.customer_id) 
+                  {selectedIssue.customer_id
+                    ? customers.find((c) => c.id === selectedIssue.customer_id)?.name ||
+                      selectedIssue.customer_id
                     : 'N/A'}
                 </p>
               </div>
@@ -487,17 +518,22 @@ const CustomerIssuesPanel: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Created By</label>
                 <p className="text-gray-900">
-                  {users.find(u => u.id === selectedIssue.created_by)?.username || selectedIssue.created_by}
+                  {users.find((u) => u.id === selectedIssue.created_by)?.username ||
+                    selectedIssue.created_by}
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1">Status</label>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  selectedIssue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                  selectedIssue.status === 'Unresolved' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-blue-100 text-blue-800'
-                }`}>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${
+                    selectedIssue.status === 'Resolved'
+                      ? 'bg-green-100 text-green-800'
+                      : selectedIssue.status === 'Unresolved'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-blue-100 text-blue-800'
+                  }`}
+                >
                   {selectedIssue.status || 'Open'}
                 </span>
               </div>

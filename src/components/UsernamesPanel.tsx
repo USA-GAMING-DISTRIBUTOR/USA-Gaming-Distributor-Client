@@ -4,6 +4,7 @@ import type { Database } from '../types/database.types';
 import { Plus, Edit2, Trash2, X, Search, User } from 'lucide-react';
 import { LoadingSpinner } from './common/Loader';
 import Pagination from './common/Pagination';
+import { useAppSelector } from '../hooks/redux';
 
 type UsernameRow = Database['public']['Tables']['usernames']['Row'];
 interface Username {
@@ -15,6 +16,7 @@ interface Username {
 }
 
 const UsernamesPanel: React.FC = () => {
+  const { user } = useAppSelector((state) => state.auth);
   const [usernames, setUsernames] = useState<Username[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -179,13 +181,15 @@ const UsernamesPanel: React.FC = () => {
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
           </div>
-          <button
-            onClick={() => openModal()}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Username
-          </button>
+          {user?.role !== 'Employee' && (
+            <button
+              onClick={() => openModal()}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Username
+            </button>
+          )}
         </div>
       </div>
 
@@ -198,7 +202,9 @@ const UsernamesPanel: React.FC = () => {
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">Username</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">Created Date</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+                {user?.role !== 'Employee' && (
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -233,25 +239,27 @@ const UsernamesPanel: React.FC = () => {
                     <td className="py-3 px-4 text-gray-600">
                       {new Date(username.created_at).toLocaleDateString()}
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openModal(username)}
-                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                          title="Edit username"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(username.id)}
-                          disabled={loading}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Delete username"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {user?.role !== 'Employee' && (
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openModal(username)}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                            title="Edit username"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(username.id)}
+                            disabled={loading}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Delete username"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

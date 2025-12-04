@@ -368,7 +368,8 @@ const OrderPanel: React.FC = () => {
           payment_method: (order.payment_method as PaymentMethod) || 'None',
           payment_status: (order.payment_status as any) || 'pending',
           payment_details:
-            (paymentDetailsRes.data || []).find((pd: any) => pd.order_id === order.id) || null,
+            ((paymentDetailsRes.data || []).find((pd: any) => pd.order_id === order.id) as any) ||
+            null,
           total_amount: Number(order.total_amount || 0),
           discount_amount: Number(order.discount_amount || 0),
           final_amount: Number(order.final_amount || order.total_amount || 0),
@@ -1011,34 +1012,43 @@ const OrderPanel: React.FC = () => {
       for (const [platformId, change] of Object.entries(inventoryChanges)) {
         const netChange = change.originalQty - change.newQty;
 
-        // Only update if there's a net change
-        if (netChange !== 0) {
-          // Get the latest inventory from database to avoid stale data
-          const { data: latestPlatform, error: fetchError } = await supabase
-            .from('game_coins')
-            .select('inventory, platform')
-            .eq('id', platformId)
-            .single();
+        // We must ALWAYS update the inventory to compensate for the DELETE trigger
+        // The DELETE trigger will add back the originalQty.
+        // So we set the inventory to (Current - NewQty) now.
+        // After DELETE: (Current - NewQty) + OriginalQty = Current + (OriginalQty - NewQty).
+        // This correctly reflects the net change.
 
-          if (fetchError) {
-            throw fetchError;
-          }
+        // Get the latest inventory from database to avoid stale data
+        const { data: latestPlatform, error: fetchError } = await supabase
+          .from('game_coins')
+          .select('inventory, platform')
+          .eq('id', platformId)
+          .single();
 
-          // CRITICAL: There's a database trigger that restores inventory when we insert order_items
-          // The trigger adds back the originalQty after insertion, so we need to compensate by
-          // subtracting an EXTRA originalQty from our calculation
-          const currentInventory = latestPlatform?.inventory || 0;
-          const compensatedInventory = currentInventory + netChange - change.originalQty;
-          const newInventory = compensatedInventory;
+        if (fetchError) {
+          throw fetchError;
+        }
 
-          const { error: inventoryError } = await supabase
-            .from('game_coins')
-            .update({ inventory: newInventory })
-            .eq('id', platformId);
+        const currentInventory = latestPlatform?.inventory || 0;
+        // Calculate what the inventory SHOULD be before the DELETE trigger runs
+        // We want Final = Current + Original - New
+        // Trigger adds Original
+        // So Pre-Trigger must be: Final - Original = (Current + Original - New) - Original = Current - New
+        // Wait, the formula below was: currentInventory + netChange - change.originalQty
+        // = currentInventory + (Original - New) - Original
+        // = currentInventory - New
+        // This matches my derivation.
 
-          if (inventoryError) {
-            throw inventoryError;
-          }
+        const compensatedInventory = currentInventory + netChange - change.originalQty;
+        const newInventory = compensatedInventory;
+
+        const { error: inventoryError } = await supabase
+          .from('game_coins')
+          .update({ inventory: newInventory })
+          .eq('id', platformId);
+
+        if (inventoryError) {
+          throw inventoryError;
         }
       }
 
@@ -4238,7 +4248,7 @@ const OrderPanel: React.FC = () => {
                     Verify Order
                   </button>
                 )}
-                {(selectedOrder?.status === 'verified' ||
+                {/* {(selectedOrder?.status === 'verified' ||
                   selectedOrder?.status === 'completed') && (
                   <>
                     <button
@@ -4280,7 +4290,7 @@ const OrderPanel: React.FC = () => {
                       Process Replacement
                     </button>
                   </>
-                )}
+                )} */}
                 {selectedOrder.invoice_url && (
                   <button
                     onClick={() => window.open(selectedOrder.invoice_url!, '_blank')}

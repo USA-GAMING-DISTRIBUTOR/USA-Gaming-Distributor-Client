@@ -14,6 +14,7 @@ export interface AuthState {
   users: User[];
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitializing: boolean;
   error: string | null;
 }
 

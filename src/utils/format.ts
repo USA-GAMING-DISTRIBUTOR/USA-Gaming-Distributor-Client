@@ -1,8 +1,14 @@
 export function formatCurrency(value: number, currency: string = 'USD', locale: string = 'en-US') {
   try {
-    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    }).format(value);
   } catch {
-    return `$${value.toFixed(2)}`;
+    // Fallback if Intl fails
+    return `$${value.toFixed(4).replace(/\.?0+$/, '')}`;
   }
 }
 

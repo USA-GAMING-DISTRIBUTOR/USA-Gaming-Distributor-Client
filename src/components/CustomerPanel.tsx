@@ -907,7 +907,7 @@ const CustomerPanel: React.FC = () => {
                     </label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="0.0001"
                       min="0"
                       value={pricingForm.unit_price}
                       onChange={(e) =>
@@ -992,7 +992,14 @@ const CustomerPanel: React.FC = () => {
                             {pricing.min_quantity}
                             {pricing.max_quantity ? ` - ${pricing.max_quantity}` : '+'}
                           </td>
-                          <td className="py-3 px-4">${pricing.unit_price}</td>
+                          <td className="py-3 px-4">
+                            {new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: 'USD',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 4,
+                            }).format(pricing.unit_price)}
+                          </td>
                           <td className="py-3 px-4">
                             {pricing.is_default ? (
                               <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">

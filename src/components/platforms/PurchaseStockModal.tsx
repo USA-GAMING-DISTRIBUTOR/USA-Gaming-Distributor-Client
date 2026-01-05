@@ -59,7 +59,7 @@ const PurchaseStockModal: React.FC<PurchaseStockModalProps> = ({
           type="number"
           value={form.cost_per_unit}
           min={0}
-          step={0.01}
+          step={0.0001}
           required
           onChange={(e) => onChange({ cost_per_unit: parseFloat(e.target.value) || 0 })}
         />
@@ -88,7 +88,14 @@ const PurchaseStockModal: React.FC<PurchaseStockModalProps> = ({
               <span className="font-medium">{platform.inventory + form.quantity}</span>
             </p>
             <p>
-              Total Cost: <span className="font-medium">${totalCost.toFixed(2)}</span>
+              Total Cost:{' '}
+              <span className="font-medium">
+                $
+                {totalCost.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 4,
+                })}
+              </span>
             </p>
           </div>
         )}

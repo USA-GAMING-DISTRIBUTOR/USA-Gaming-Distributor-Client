@@ -411,6 +411,7 @@ const OrderCreatePanel: React.FC = () => {
                       <input
                         type="number"
                         min={0}
+                        step="0.0001"
                         value={item.price}
                         onChange={(e) =>
                           handleOrderItemChange(idx, 'price', Number(e.target.value))
@@ -605,7 +606,11 @@ const OrderCreatePanel: React.FC = () => {
                             textAlign: 'right',
                           }}
                         >
-                          ${item.price}
+                          $
+                          {Number(item.price).toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 4,
+                          })}
                         </td>
                         <td
                           style={{
@@ -614,7 +619,11 @@ const OrderCreatePanel: React.FC = () => {
                             textAlign: 'right',
                           }}
                         >
-                          ${total}
+                          $
+                          {total.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 4,
+                          })}
                         </td>
                       </tr>
                     );

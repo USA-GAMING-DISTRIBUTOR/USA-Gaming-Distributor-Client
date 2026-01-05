@@ -61,6 +61,9 @@ const CustomerIssuesPanel: React.FC = () => {
     status: '',
   });
 
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
@@ -85,11 +88,18 @@ const CustomerIssuesPanel: React.FC = () => {
       .order('created_at', { ascending: false });
 
     // Apply filters
+    // Apply filters with robust date handling
     if (filters.startDate) {
-      query = query.gte('created_at', new Date(filters.startDate).toISOString());
+      const start = new Date(filters.startDate);
+      if (!isNaN(start.getTime())) {
+        query = query.gte('created_at', start.toISOString());
+      }
     }
     if (filters.endDate) {
-      query = query.lte('created_at', new Date(filters.endDate).toISOString());
+      const end = new Date(filters.endDate);
+      if (!isNaN(end.getTime())) {
+        query = query.lte('created_at', end.toISOString());
+      }
     }
     if (filters.status) {
       query = query.eq('status', filters.status);
@@ -119,6 +129,25 @@ const CustomerIssuesPanel: React.FC = () => {
     fetchCustomers();
     fetchUsers();
   }, [filters]); // Refetch when filters change
+
+  // Client-side filtering for search
+  const filteredIssues = issues.filter((issue) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+
+    // Search by issue text
+    if (issue.issue_text.toLowerCase().includes(term)) return true;
+
+    // Search by customer name
+    const customer = customers.find((c) => c.id === issue.customer_id);
+    if (customer && customer.name.toLowerCase().includes(term)) return true;
+
+    // Search by creator username
+    const creator = users.find((u) => u.id === issue.created_by);
+    if (creator && creator.username.toLowerCase().includes(term)) return true;
+
+    return false;
+  });
 
   const handleOpenCreateModal = () => {
     setIsEditing(false);
@@ -227,7 +256,7 @@ const CustomerIssuesPanel: React.FC = () => {
   // Pagination logic
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedIssues = issues.slice(startIndex, endIndex);
+  const paginatedIssues = filteredIssues.slice(startIndex, endIndex);
 
   const canEditOrDelete = (issue: Issue) => {
     if (!user) return false;
@@ -270,6 +299,18 @@ const CustomerIssuesPanel: React.FC = () => {
               </select>
             </>
           )}
+
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
 
           {/* Create Button for All Roles */}
           <button

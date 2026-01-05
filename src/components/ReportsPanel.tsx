@@ -107,7 +107,12 @@ const ReportsPanel: React.FC = () => {
 
   const formatCurrency = (amount: number | string) => {
     const num = Number(amount || 0);
-    return num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    return num.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    });
   };
 
   const formatNumber = (num: number) => {

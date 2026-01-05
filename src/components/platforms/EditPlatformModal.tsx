@@ -71,7 +71,7 @@ const EditPlatformModal: React.FC<EditPlatformModalProps> = ({
           value={form.cost_price}
           onChange={onChange}
           min={0}
-          step={0.01}
+          step={0.0001}
           required
         />
 

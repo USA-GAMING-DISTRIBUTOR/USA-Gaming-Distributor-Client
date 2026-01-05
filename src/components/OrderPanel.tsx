@@ -1560,10 +1560,10 @@ const OrderPanel: React.FC = () => {
                         ${item.quantity}
                       </td>
                       <td style="padding: 16px 12px; text-align: right; font-weight: 600; color: #374151;">
-                        {formatCurrency(item.unitPrice || 0)}
+                        ${formatCurrency(item.unitPrice || 0)}
                       </td>
                       <td style="padding: 16px 12px; text-align: right; font-weight: 700; color: #059669; font-size: 15px;">
-                        {formatCurrency(item.total_price || 0)}
+                        ${formatCurrency(item.total_price || 0)}
                       </td>
                     </tr>
                   `;
@@ -2168,7 +2168,7 @@ const OrderPanel: React.FC = () => {
                       <input
                         type="number"
                         placeholder="Unit Price"
-                        step="0.01"
+                        step="0.0001"
                         min="0"
                         value={newItem.unit_price}
                         disabled={!isPriceEditable}
@@ -2260,7 +2260,7 @@ const OrderPanel: React.FC = () => {
                       <span>Discount:</span>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.0001"
                         min="0"
                         max={calculateTotals().subtotal}
                         value={createForm.discount_amount}
@@ -2563,7 +2563,7 @@ const OrderPanel: React.FC = () => {
 
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.0001"
                         placeholder="Amount in Local Currency"
                         value={(createForm.payment_details as any)?.bank_amount_in_currency || ''}
                         onChange={(e) =>
@@ -3217,7 +3217,7 @@ const OrderPanel: React.FC = () => {
                       <span>Discount:</span>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.0001"
                         min="0"
                         max={calculateEditTotals().subtotal}
                         value={editForm.discount_amount}
@@ -3523,7 +3523,7 @@ const OrderPanel: React.FC = () => {
 
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.0001"
                         placeholder="Amount in Local Currency"
                         value={(editForm.payment_details as any)?.bank_amount_in_currency || ''}
                         onChange={(e) =>

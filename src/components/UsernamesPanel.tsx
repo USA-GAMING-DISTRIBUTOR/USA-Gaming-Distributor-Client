@@ -22,6 +22,12 @@ const UsernamesPanel: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUsername, setEditingUsername] = useState<Username | null>(null);
 
+  // Date Filter State
+  const [dateFilter, setDateFilter] = useState({
+    start: '',
+    end: '',
+  });
+
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -60,7 +66,7 @@ const UsernamesPanel: React.FC = () => {
 
   useEffect(() => {
     fetchUsernames();
-  }, []);
+  }, [dateFilter]);
 
   // Reset page when search term changes
   useEffect(() => {
@@ -70,7 +76,23 @@ const UsernamesPanel: React.FC = () => {
   const fetchUsernames = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('usernames').select('*').order('name');
+      let query = supabase.from('usernames').select('*').order('name');
+
+      if (dateFilter.start) {
+        const startDate = new Date(dateFilter.start);
+        if (!isNaN(startDate.getTime())) {
+          query = query.gte('created_at', startDate.toISOString());
+        }
+      }
+
+      if (dateFilter.end) {
+        const endDate = new Date(dateFilter.end);
+        if (!isNaN(endDate.getTime())) {
+          query = query.lte('created_at', endDate.toISOString());
+        }
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -171,6 +193,18 @@ const UsernamesPanel: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-800">Username Management</h2>
         <div className="flex items-center gap-4">
+          <input
+            type="datetime-local"
+            value={dateFilter.start}
+            onChange={(e) => setDateFilter({ ...dateFilter, start: e.target.value })}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <input
+            type="datetime-local"
+            value={dateFilter.end}
+            onChange={(e) => setDateFilter({ ...dateFilter, end: e.target.value })}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input

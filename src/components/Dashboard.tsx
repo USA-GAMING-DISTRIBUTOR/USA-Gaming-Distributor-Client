@@ -11,7 +11,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../hooks/redux';
-import { logout, createUser, updateUser, clearError } from '../store/authSlice';
+import { logout, createUser, updateUser, clearError, fetchAllUsers } from '../store/authSlice';
 import type { UserRole, CreateUserFormData } from '../domains/auth/types';
 import { validateUserCreate, validateUserUpdate } from '../utils/FormValidator';
 import LoadingSpinner from './LoadingSpinner';
@@ -43,6 +43,7 @@ const Dashboard: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(8);
 
   useEffect(() => {
+    dispatch(fetchAllUsers());
     if (error) {
       dispatch(clearError());
     }

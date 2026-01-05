@@ -28,6 +28,11 @@ const EmployeePanel: React.FC = () => {
     role: 'Employee',
   });
 
+  const [dateFilter, setDateFilter] = useState({
+    start: '',
+    end: '',
+  });
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
@@ -79,17 +84,33 @@ const EmployeePanel: React.FC = () => {
 
   const fetchEmployees = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('users')
       .select('id, username, role, created_at')
       .eq('role', 'Employee');
+
+    if (dateFilter.start) {
+      const startDate = new Date(dateFilter.start);
+      if (!isNaN(startDate.getTime())) {
+        query = query.gte('created_at', startDate.toISOString());
+      }
+    }
+
+    if (dateFilter.end) {
+      const endDate = new Date(dateFilter.end);
+      if (!isNaN(endDate.getTime())) {
+        query = query.lte('created_at', endDate.toISOString());
+      }
+    }
+
+    const { data, error } = await query;
     if (!error && data) setEmployees(data);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [dateFilter]);
 
   // Reset page when search term changes
   useEffect(() => {
@@ -139,6 +160,18 @@ const EmployeePanel: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Employees</h2>
         <div className="flex items-center gap-4">
+          <input
+            type="datetime-local"
+            value={dateFilter.start}
+            onChange={(e) => setDateFilter({ ...dateFilter, start: e.target.value })}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
+          <input
+            type="datetime-local"
+            value={dateFilter.end}
+            onChange={(e) => setDateFilter({ ...dateFilter, end: e.target.value })}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+          />
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input

@@ -65,10 +65,9 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ layout, children, routeNa
  * Main App Router Component
  */
 const AppRouter: React.FC = () => {
-  const { user, isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
-
+  const { user, isAuthenticated, isInitializing } = useAppSelector((state) => state.auth);
   // Show loading screen during auth initialization
-  if (isLoading) {
+  if (isInitializing) {
     return <Loader fullScreen text="Initializing..." />;
   }
 

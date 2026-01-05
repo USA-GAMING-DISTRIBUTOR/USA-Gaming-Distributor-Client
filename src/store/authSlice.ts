@@ -31,6 +31,7 @@ const initialState: AuthState = {
   users: [],
   isAuthenticated: false,
   isLoading: false,
+  isInitializing: true,
   error: null,
 };
 
@@ -54,7 +55,7 @@ export const loginUser = createAsyncThunk<User, LoginCredentials, { rejectValue:
 
       if (error) {
         if (error.code === '42P01' || error.message.includes('relation "users" does not exist')) {
-          return rejectWithValue(authReject('DB_NOT_READY', 'Database not set up.')); 
+          return rejectWithValue(authReject('DB_NOT_READY', 'Database not set up.'));
         }
         if (error.code === 'PGRST116' || error.message.includes('406')) {
           return rejectWithValue(authReject('INVALID_CREDENTIALS', 'Invalid username or password'));
@@ -174,12 +175,12 @@ export const initializeAuth = createAsyncThunk<User | null, void, { rejectValue:
         const user = JSON.parse(savedUser) as User;
         const { data, error } = await supabase.from('users').select('*').eq('id', user.id).single();
         if (!error && data) {
-          dispatch(fetchAllUsers());
+          // dispatch(fetchAllUsers()); removed
           return data as User;
         }
         localStorage.removeItem('currentUser');
       }
-      dispatch(fetchAllUsers());
+      // dispatch(fetchAllUsers()); removed
       return null;
     } catch (e) {
       logger.warn('initializeAuth error', e);
@@ -285,9 +286,11 @@ const authSlice = createSlice({
     builder
       .addCase(initializeAuth.pending, (state) => {
         state.isLoading = true;
+        state.isInitializing = true;
       })
       .addCase(initializeAuth.fulfilled, (state, action: PayloadAction<User | null>) => {
         state.isLoading = false;
+        state.isInitializing = false;
         if (action.payload) {
           state.user = action.payload;
           state.isAuthenticated = true;
@@ -295,6 +298,7 @@ const authSlice = createSlice({
       })
       .addCase(initializeAuth.rejected, (state, action) => {
         state.isLoading = false;
+        state.isInitializing = false;
         state.error = (action.payload as AuthError | undefined)?.message || 'Initialization failed';
       });
   },

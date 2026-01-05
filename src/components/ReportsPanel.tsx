@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 import { LoadingSpinner } from './common/Loader';
 import SearchableDropdown from './common/SearchableDropdown';
+import Pagination from './common/Pagination';
 import { reportRepository } from '../repositories/reportRepository';
 
 type Filters = {
@@ -25,8 +26,28 @@ const ReportsPanel: React.FC = () => {
     employees: [],
     paymentMethods: [],
   });
-  const [filters, setFilters] = useState<Filters>({ groupBy: 'none' });
+
+  // Calculate default date range (past 7 days)
+  const getDefaultDateRange = () => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 7);
+
+    // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+    const format = (d: Date) => d.toISOString().slice(0, 16);
+    return { from: format(start), to: format(end) };
+  };
+
+  const [filters, setFilters] = useState<Filters>({
+    groupBy: 'none',
+    ...getDefaultDateRange(),
+  });
+
   const [data, setData] = useState<{ orders: any[]; items: any[]; payments: any[] } | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -81,6 +102,16 @@ const ReportsPanel: React.FC = () => {
     setLoading(false);
     if (!res.ok) return setError((res as any).error || 'Failed to load report data');
     setData(res.data);
+    setCurrentPage(1); // Reset to first page when data changes
+  };
+
+  const formatCurrency = (amount: number | string) => {
+    const num = Number(amount || 0);
+    return num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  };
+
+  const formatNumber = (num: number) => {
+    return num.toLocaleString('en-US');
   };
 
   // Aggregations
@@ -173,6 +204,13 @@ const ReportsPanel: React.FC = () => {
       orders: val.orders.size,
     }));
   }, [data, filters.groupBy, options.customers, options.platforms, options.employees]);
+
+  // Pagination logic for plain orders list
+  const paginatedOrders = useMemo(() => {
+    if (!data?.orders || filters.groupBy !== 'none') return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return data.orders.slice(startIndex, startIndex + itemsPerPage);
+  }, [data?.orders, currentPage, itemsPerPage, filters.groupBy]);
 
   const exportCsv = () => {
     if (!data) return;
@@ -340,15 +378,15 @@ const ReportsPanel: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div className="bg-white p-4 rounded shadow">
           <div className="text-sm text-gray-500">Total Sales</div>
-          <div className="text-2xl font-bold">${totals.sales.toFixed(2)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(totals.sales)}</div>
         </div>
         <div className="bg-white p-4 rounded shadow">
           <div className="text-sm text-gray-500">Profit (est.)</div>
-          <div className="text-2xl font-bold">${totals.profit.toFixed(2)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(totals.profit)}</div>
         </div>
         <div className="bg-white p-4 rounded shadow">
           <div className="text-sm text-gray-500">Orders</div>
-          <div className="text-2xl font-bold">{totals.orders}</div>
+          <div className="text-2xl font-bold">{formatNumber(totals.orders)}</div>
         </div>
       </div>
 
@@ -369,9 +407,9 @@ const ReportsPanel: React.FC = () => {
               {grouped.map((g: any) => (
                 <tr key={g.id} className="border-b">
                   <td className="p-2">{g.label}</td>
-                  <td className="p-2">${g.sales.toFixed(2)}</td>
-                  <td className="p-2">${g.profit.toFixed(2)}</td>
-                  <td className="p-2">{g.orders}</td>
+                  <td className="p-2">{formatCurrency(g.sales)}</td>
+                  <td className="p-2">{formatCurrency(g.profit)}</td>
+                  <td className="p-2">{formatNumber(g.orders)}</td>
                 </tr>
               ))}
             </tbody>
@@ -389,7 +427,7 @@ const ReportsPanel: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {(data?.orders || []).map((o: any) => (
+                {paginatedOrders.map((o: any) => (
                   <tr key={o.id} className="border-b">
                     <td className="p-2">{o.order_number}</td>
                     <td className="p-2">{new Date(o.created_at || '').toLocaleString()}</td>
@@ -400,11 +438,25 @@ const ReportsPanel: React.FC = () => {
                         '—'}
                     </td>
                     <td className="p-2">{o.payment_method ?? '—'}</td>
-                    <td className="p-2">${Number(o.total_amount || 0).toFixed(2)}</td>
+                    <td className="p-2">{formatCurrency(o.total_amount)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {data?.orders && data.orders.length > 0 && filters.groupBy === 'none' && (
+              <Pagination
+                currentPage={currentPage}
+                totalItems={data.orders.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={(n) => {
+                  setItemsPerPage(n);
+                  setCurrentPage(1);
+                }}
+              />
+            )}
           </div>
         )}
       </div>

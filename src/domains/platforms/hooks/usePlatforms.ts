@@ -143,7 +143,7 @@ export function usePlatforms() {
   );
 
   const updatePlatform = useCallback(
-    async (id: string, form: PlatformCreateData): Promise<RepoResult<Platform>> => {
+    async (id: string, form: PlatformCreateData, userId?: string): Promise<RepoResult<Platform>> => {
       setLoading(true);
       setError(null);
       const parsed = platformCreateSchema.partial().safeParse(form);
@@ -161,6 +161,8 @@ export function usePlatforms() {
         cost_price: d.cost_price,
         low_stock_alert: d.low_stock_alert,
         is_visible_to_employee: d.is_visible_to_employee,
+        last_edited_by: userId || null,
+        last_edited_at: userId ? new Date().toISOString() : null,
       });
       if (!res.ok) setError(getError(res));
       await fetchPlatforms();

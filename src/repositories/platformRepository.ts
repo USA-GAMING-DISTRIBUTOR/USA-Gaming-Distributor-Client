@@ -21,6 +21,8 @@ export const mapRowToPlatform = (row: Record<string, unknown>): Platform => ({
   created_at: (row.created_at as string) ?? null,
   updated_at: (row.updated_at as string) ?? null,
   deleted_at: (row.deleted_at as string) ?? null,
+  last_edited_by: (row.last_edited_by as string) ?? null,
+  last_edited_at: (row.last_edited_at as string) ?? null,
 });
 
 /**

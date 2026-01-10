@@ -117,8 +117,10 @@ const OverviewPanel: React.FC = () => {
         low_stock_alert: Number(platform.low_stock_alert || 10),
         is_visible_to_employee: true, // Default to true as this is admin view
         created_at: String(platform.created_at || new Date().toISOString()),
-        updated_at: String(platform.updated_at || platform.created_at || new Date().toISOString()),
-        deleted_at: platform.deleted_at ? String(platform.deleted_at) : null,
+        updated_at: (platform.updated_at as string) || new Date().toISOString(),
+        deleted_at: (platform.deleted_at as string) || null,
+        last_edited_by: (platform.last_edited_by as string) || null,
+        last_edited_at: (platform.last_edited_at as string) || null,
       }));
 
       // Calculate metrics

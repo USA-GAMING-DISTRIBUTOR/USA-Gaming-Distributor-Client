@@ -12,6 +12,8 @@ interface EditPlatformModalProps {
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
   accentColor?: 'pink' | 'blue' | 'green' | 'red';
+  lastEditedBy?: string | null;
+  lastEditedAt?: string | null;
 }
 
 const EditPlatformModal: React.FC<EditPlatformModalProps> = ({
@@ -22,6 +24,8 @@ const EditPlatformModal: React.FC<EditPlatformModalProps> = ({
   onSubmit,
   onClose,
   accentColor = 'pink',
+  lastEditedBy,
+  lastEditedAt,
 }) => {
   return (
     <Modal
@@ -97,6 +101,14 @@ const EditPlatformModal: React.FC<EditPlatformModalProps> = ({
           </div>
         </div>
       </form>
+      {lastEditedBy && lastEditedAt && (
+        <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-xs text-gray-500 flex justify-between">
+          <span>
+            Last edited by: <span className="font-medium text-gray-700">{lastEditedBy}</span>
+          </span>
+          <span>{new Date(lastEditedAt).toLocaleString()}</span>
+        </div>
+      )}
     </Modal>
   );
 };

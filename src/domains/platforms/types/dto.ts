@@ -11,7 +11,10 @@ export interface PlatformCreateDTO {
   is_visible_to_employee?: boolean;
 }
 
-export type PlatformUpdateDTO = Partial<PlatformCreateDTO>;
+export type PlatformUpdateDTO = Partial<PlatformCreateDTO> & {
+  last_edited_by?: string | null;
+  last_edited_at?: string | null;
+};
 
 // Purchase history record DTO (write-only subset)
 export interface PurchaseHistoryRecordDTO {

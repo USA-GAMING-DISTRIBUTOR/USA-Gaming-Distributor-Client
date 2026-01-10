@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../store';
+import { fetchAllUsers } from '../store/authSlice';
 import { Edit, Trash2, Plus, Package, AlertTriangle, History, Search } from 'lucide-react';
 import { usePlatforms } from '../domains/platforms/hooks/usePlatforms';
 // Domain hook encapsulates fetching, filtering, pagination, and CRUD
@@ -68,6 +71,15 @@ const PlatformPanel: React.FC = () => {
     softDelete,
     restore,
   } = usePlatforms();
+
+  const dispatch = useDispatch<AppDispatch>();
+  const { user, users } = useSelector((state: RootState) => state.auth);
+
+  React.useEffect(() => {
+    if (users.length === 0) {
+      dispatch(fetchAllUsers());
+    }
+  }, [dispatch, users.length]);
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -179,7 +191,9 @@ const PlatformPanel: React.FC = () => {
 
     setLocalError(null);
 
-    const res = await updatePlatform(selectedPlatform.id, editForm);
+    setLocalError(null);
+
+    const res = await updatePlatform(selectedPlatform.id, editForm, user?.id);
     if (!res.ok) {
       setLocalError('Failed to update platform: ' + ('error' in res ? res.error : 'unknown'));
       return;
@@ -532,6 +546,11 @@ const PlatformPanel: React.FC = () => {
         onSubmit={handleEditSubmit}
         onClose={() => setShowEditModal(false)}
         accentColor={modalAccent}
+        lastEditedBy={
+          users.find((u) => u.id === selectedPlatform?.last_edited_by)?.username ??
+          selectedPlatform?.last_edited_by
+        }
+        lastEditedAt={selectedPlatform?.last_edited_at}
       />
 
       {/* Delete Confirmation Modal */}

@@ -10,6 +10,8 @@ export interface Platform {
   created_at: string | null;
   updated_at: string | null;
   deleted_at: string | null; // Soft delete timestamp
+  last_edited_by: string | null;
+  last_edited_at: string | null;
 }
 
 export interface PlatformCreateData {
@@ -24,6 +26,8 @@ export interface PlatformCreateData {
 export interface PlatformUpdateData extends Partial<PlatformCreateData> {
   id: string;
   deleted_at?: string | null; // For soft delete operations
+  last_edited_by?: string | null;
+  last_edited_at?: string | null;
 }
 
 // Purchase Order for increasing inventory

@@ -194,6 +194,8 @@ const CustomerPanel: React.FC = () => {
           created_at: platform.created_at,
           updated_at: platform.updated_at || null,
           deleted_at: platform.deleted_at || null,
+          last_edited_by: null,
+          last_edited_at: null,
         }),
       );
 

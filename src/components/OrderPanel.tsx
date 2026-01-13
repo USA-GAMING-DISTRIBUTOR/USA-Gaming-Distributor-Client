@@ -504,9 +504,9 @@ const OrderPanel: React.FC = () => {
       return;
     }
 
-    // Check if this platform is already in the order
+    // Check if this platform is already in the order with the same username
     const existingItemIndex = createForm.items.findIndex(
-      (item) => item.platform_id === newItem.platform_id,
+      (item) => item.platform_id === newItem.platform_id && item.username === newItem.username,
     );
 
     if (existingItemIndex !== -1) {
@@ -589,9 +589,9 @@ const OrderPanel: React.FC = () => {
       return;
     }
 
-    // Check if this platform is already in the order
+    // Check if this platform is already in the order with the same username
     const existingItemIndex = editForm.items.findIndex(
-      (item) => item.platform_id === newItem.platform_id,
+      (item) => item.platform_id === newItem.platform_id && item.username === newItem.username,
     );
 
     if (existingItemIndex !== -1) {

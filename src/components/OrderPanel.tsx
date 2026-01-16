@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useRef } from 'react';
-import { Plus, Edit, Eye, FileText, Trash2, Filter, Copy, Download, Search } from 'lucide-react';
+import { Plus, Edit, Eye, FileText, Trash2, Filter, Copy, Download, Search, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAppSelector } from '../hooks/redux';
 import Invoice from './Invoice';
@@ -138,6 +138,9 @@ const OrderPanel: React.FC = () => {
     reason: '',
     notes: '',
   });
+
+  // Admin filter state
+  const [showHiddenPlatformsOnly, setShowHiddenPlatformsOnly] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -449,7 +452,14 @@ const OrderPanel: React.FC = () => {
       }
     }
 
-    return matchesStatus && matchesPayment && matchesDate && matchesSearch;
+    const matchesHiddenPlatform =
+      !showHiddenPlatformsOnly ||
+      order.items.some((item) => {
+        const platform = platforms.find((p) => p.id === item.platform_id);
+        return platform && !platform.is_visible_to_employee;
+      });
+
+    return matchesStatus && matchesPayment && matchesDate && matchesSearch && matchesHiddenPlatform;
   });
 
   // Pagination
@@ -1754,10 +1764,7 @@ const OrderPanel: React.FC = () => {
           >
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
-            <option value="processing">Processing</option>
             <option value="verified">Verified</option>
-            <option value="refunded">Refunded</option>
-            <option value="replacement">Replacement</option>
           </select>
         </div>
 
@@ -1796,11 +1803,31 @@ const OrderPanel: React.FC = () => {
           </div>
         </div>
 
+        {user?.role !== 'Employee' && (
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1 opacity-0">Premium</label>
+            <button
+              onClick={() => setShowHiddenPlatformsOnly(!showHiddenPlatformsOnly)}
+              className={`
+                px-4 py-2 rounded-lg border flex items-center transition-all duration-200
+                ${
+                  showHiddenPlatformsOnly
+                    ? 'bg-pink-50 border-pink-200 text-pink-700 shadow-sm'
+                    : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                }
+              `}
+            >
+              <span className="font-medium text-sm">Premium Only</span>
+            </button>
+          </div>
+        )}
+
         <button
           onClick={() => {
             setStatusFilter('all');
             setPaymentMethodFilter('all');
             setDateRange({ start: '', end: '' });
+            setShowHiddenPlatformsOnly(false);
           }}
           className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center min-w-[120px]"
         >

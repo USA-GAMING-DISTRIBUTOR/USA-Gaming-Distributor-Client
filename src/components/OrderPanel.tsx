@@ -140,7 +140,7 @@ const OrderPanel: React.FC = () => {
   });
 
   // Admin filter state
-  const [showHiddenPlatformsOnly, setShowHiddenPlatformsOnly] = useState(false);
+  const [platformFilter, setPlatformFilter] = useState<'all' | 'premium' | 'normal'>('all');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -452,12 +452,18 @@ const OrderPanel: React.FC = () => {
       }
     }
 
-    const matchesHiddenPlatform =
-      !showHiddenPlatformsOnly ||
-      order.items.some((item) => {
+    let matchesHiddenPlatform = true;
+    if (platformFilter === 'premium') {
+      matchesHiddenPlatform = order.items.some((item) => {
         const platform = platforms.find((p) => p.id === item.platform_id);
         return platform && !platform.is_visible_to_employee;
       });
+    } else if (platformFilter === 'normal') {
+      matchesHiddenPlatform = order.items.every((item) => {
+        const platform = platforms.find((p) => p.id === item.platform_id);
+        return platform && platform.is_visible_to_employee;
+      });
+    }
 
     return matchesStatus && matchesPayment && matchesDate && matchesSearch && matchesHiddenPlatform;
   });
@@ -1805,20 +1811,16 @@ const OrderPanel: React.FC = () => {
 
         {user?.role !== 'Employee' && (
           <div className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1 opacity-0">Premium</label>
-            <button
-              onClick={() => setShowHiddenPlatformsOnly(!showHiddenPlatformsOnly)}
-              className={`
-                px-4 py-2 rounded-lg border flex items-center transition-all duration-200
-                ${
-                  showHiddenPlatformsOnly
-                    ? 'bg-pink-50 border-pink-200 text-pink-700 shadow-sm'
-                    : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
-                }
-              `}
+            <label className="text-sm font-medium text-gray-700 mb-1">Order Type</label>
+            <select
+              value={platformFilter}
+              onChange={(e) => setPlatformFilter(e.target.value as 'all' | 'premium' | 'normal')}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent min-w-[160px]"
             >
-              <span className="font-medium text-sm">Premium Only</span>
-            </button>
+              <option value="all">All Orders</option>
+              <option value="premium">Premium Only</option>
+              <option value="normal">Normal Only</option>
+            </select>
           </div>
         )}
 
@@ -1826,8 +1828,9 @@ const OrderPanel: React.FC = () => {
           onClick={() => {
             setStatusFilter('all');
             setPaymentMethodFilter('all');
+            setPaymentMethodFilter('all');
             setDateRange({ start: '', end: '' });
-            setShowHiddenPlatformsOnly(false);
+            setPlatformFilter('all');
           }}
           className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center min-w-[120px]"
         >

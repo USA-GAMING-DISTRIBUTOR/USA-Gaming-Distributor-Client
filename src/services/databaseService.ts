@@ -76,8 +76,8 @@ ON CONFLICT (username) DO NOTHING;
       .eq('role', 'SuperAdmin')
       .single();
 
-    if (selectError && selectError.code !== 'PGRST116') {
-      // PGRST116 means no rows found, which is okay
+    if (selectError && selectError.code !== 'PGRST116' && selectError.code !== '406') {
+      // PGRST116 means no rows found. 406 means Not Acceptable (likely RLS), so we try to create anyway.
       logger.error('Error checking for SuperAdmin:', selectError);
       return false;
     }
@@ -98,6 +98,12 @@ ON CONFLICT (username) DO NOTHING;
         .single();
 
       if (error) {
+        // Code 23505 is unique_violation (username already exists) - this is fine!
+        if (error.code === '23505' || error.message?.includes('duplicate key')) {
+          logger.info('✅ SuperAdmin already exists (verified via conflict)');
+          return true;
+        }
+
         logger.error('Error creating default SuperAdmin:', error);
         return false;
       }

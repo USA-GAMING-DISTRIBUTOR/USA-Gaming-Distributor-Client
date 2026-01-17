@@ -268,20 +268,36 @@ const OrderPanel: React.FC = () => {
         ordersQuery = ordersQuery.eq('created_by', user.id);
       }
 
+      // Execute orders query first to get IDs for item filtering
+      const { data: ordersData, error: ordersError } = await ordersQuery;
+      
+      if (ordersError) throw new Error('Failed to fetch orders: ' + ordersError.message);
+      
+
+
+      const orderIds = (ordersData || []).map(o => o.id);
+
+      // Chunk IDs to avoid URI too long errors (Supabase limit)
+      const chunkSize = 50;
+      const orderIdChunks = [];
+      for (let i = 0; i < orderIds.length; i += chunkSize) {
+        orderIdChunks.push(orderIds.slice(i, i + chunkSize));
+      }
+
+      // Prepare item fetch promises
+      const itemFetchPromises = orderIdChunks.map(chunk => 
+        supabase.from('order_items').select('*').in('order_id', chunk)
+      );
+
       const [
-        ordersRes,
-        orderItemsRes,
+        itemChunksRes,
         paymentDetailsRes,
         customersRes,
         customerPricingRes,
         platformsRes,
         customerUsernamesRes,
       ] = await Promise.all([
-        ordersQuery,
-        supabase.from('order_items').select(`
-            *,
-            game_coins!order_items_platform_id_fkey(account_type)
-          `),
+        Promise.all(itemFetchPromises),
         supabase.from('payment_details').select('*'),
         supabase.from('customers').select('*').order('name'),
         supabase.from('customer_pricing').select('*'),
@@ -297,7 +313,19 @@ const OrderPanel: React.FC = () => {
           .eq('is_active', true),
       ]);
 
-      if (ordersRes.error) throw new Error('Failed to fetch orders: ' + ordersRes.error.message);
+      // Aggregate item results
+      const allItems = itemChunksRes.reduce((acc: any[], res) => {
+        if (res.data) return [...acc, ...res.data];
+        return acc;
+      }, []);
+      
+      // Check for errors in any chunk
+      const firstItemError = itemChunksRes.find(res => res.error)?.error;
+      const orderItemsRes = { data: allItems, error: firstItemError || null };
+
+      // map ordersData to expected structure (mocking the wrapper object structure to match existing code minimal change)
+      const ordersRes = { data: ordersData, error: null };
+      
       if (orderItemsRes.error)
         throw new Error('Failed to fetch order items: ' + orderItemsRes.error.message);
       if (paymentDetailsRes.error)
@@ -309,6 +337,7 @@ const OrderPanel: React.FC = () => {
       if (platformsRes.error)
         throw new Error('Failed to fetch platforms: ' + platformsRes.error.message);
       // Don't throw error for customer usernames, just skip them
+
 
       // First transform platforms so we can use them in order transformation
       const transformedPlatforms: Platform[] = (platformsRes.data || []).map(
@@ -342,7 +371,7 @@ const OrderPanel: React.FC = () => {
       const transformedOrders: Order[] = (ordersRes.data || []).map((order: any) => {
         // Find all items for this order
         const orderItems = (orderItemsRes.data || []).filter(
-          (item: any) => item.order_id === order.id,
+          (item: any) => String(item.order_id) === String(order.id),
         );
 
         // Map order items to the expected format
@@ -353,7 +382,7 @@ const OrderPanel: React.FC = () => {
             order_id: String(item.order_id || order.id || ''),
             platform_id: String(item.platform_id || ''),
             platform: platform?.platform || 'Unknown Platform',
-            account_type: item.game_coins?.account_type || platform?.account_type || 'Standard',
+            account_type: platform?.account_type || 'Standard',
             quantity: Number(item.quantity || 0),
             unitPrice: Number(item.unit_price || item.unitPrice || 0),
             total_price: Number(item.total_price || 0),
@@ -459,7 +488,7 @@ const OrderPanel: React.FC = () => {
         return platform && !platform.is_visible_to_employee;
       });
     } else if (platformFilter === 'normal') {
-      matchesHiddenPlatform = order.items.every((item) => {
+      matchesHiddenPlatform = order.items.some((item) => {
         const platform = platforms.find((p) => p.id === item.platform_id);
         return platform && platform.is_visible_to_employee;
       });
